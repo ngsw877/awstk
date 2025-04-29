@@ -1,0 +1,24 @@
+// Package cmd /*
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+const Version = "dev"
+
+// versionCmd represents the version command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of awsfunc",
+	Long:  `All software has versions. This is awsfunc's`,
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("awsfunc version %s\n", Version)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
