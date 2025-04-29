@@ -1,18 +1,17 @@
-package main
+package s3
 
 import (
 	"context"
-	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func main() {
-	// AWS_PROFILE環境変数を参照して設定をロード
+// S3バケット名の一覧を返す関数
+func ListBuckets() ([]string, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Create an Amazon S3 service client
@@ -21,11 +20,12 @@ func main() {
 	// List all S3 buckets
 	result, err := client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	log.Println("S3 Buckets:")
+	buckets := make([]string, 0, len(result.Buckets))
 	for _, bucket := range result.Buckets {
-		log.Println(*bucket.Name)
+		buckets = append(buckets, *bucket.Name)
 	}
+	return buckets, nil
 }
