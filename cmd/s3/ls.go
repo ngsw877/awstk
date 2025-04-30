@@ -4,10 +4,10 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"awsfunc/cmd"
+	"awsfunc/internal/s3"
 	"fmt"
 	"os"
-
-	"awsfunc/internal/s3"
 
 	"github.com/spf13/cobra"
 )
@@ -16,8 +16,8 @@ import (
 var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "S3バケット一覧を表示するコマンド",
-	Run: func(cmd *cobra.Command, args []string) {
-		buckets, err := s3.ListBuckets()
+	Run: func(cmdCobra *cobra.Command, args []string) {
+		buckets, err := s3.ListBuckets(cmd.Region, cmd.Profile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "S3バケット一覧取得でエラー: %v\n", err)
 			os.Exit(1)

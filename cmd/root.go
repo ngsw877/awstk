@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Region string
+var Profile string
+
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "awsfunc",
@@ -43,4 +46,7 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	RootCmd.PersistentFlags().StringVarP(&Region, "region", "r", "ap-northeast-1", "AWSリージョン")
+	RootCmd.PersistentFlags().StringVarP(&Profile, "profile", "P", "", "AWSプロファイル")
 }
