@@ -2,6 +2,7 @@ package cfn
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -38,18 +39,35 @@ func ListStacks(region, profile string) ([]string, error) {
 
 	client := cloudformation.NewFromConfig(cfg)
 
-	input := &cloudformation.ListStacksInput{
-		StackStatusFilter: activeStatuses,
-	}
+	// すべてのスタックを格納するスライス
+	var allStackNames []string
 
-	resp, err := client.ListStacks(context.TODO(), input)
-	if err != nil {
-		return nil, err
-	}
+	// ページネーション用のトークン
+	var nextToken *string
 
-	stacks := make([]string, 0, len(resp.StackSummaries))
-	for _, summary := range resp.StackSummaries {
-		stacks = append(stacks, aws.ToString(summary.StackName))
+	// すべてのページを取得するまでループ
+	for {
+		input := &cloudformation.ListStacksInput{
+			StackStatusFilter: activeStatuses,
+			NextToken:         nextToken,
+		}
+
+		resp, err := client.ListStacks(context.TODO(), input)
+		if err != nil {
+			return nil, fmt.Errorf("スタック一覧取得エラー: %w", err)
+		}
+
+		// 現在のページのスタック名をスライスに追加
+		for _, summary := range resp.StackSummaries {
+			allStackNames = append(allStackNames, aws.ToString(summary.StackName))
+		}
+
+		// 次のページがあるかチェック
+		nextToken = resp.NextToken
+		if nextToken == nil {
+			// 次のページがなければループを抜ける
+			break
+		}
 	}
-	return stacks, nil
+	return allStackNames, nil
 }
