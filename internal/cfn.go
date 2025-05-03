@@ -3,10 +3,8 @@ package internal
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
@@ -25,14 +23,7 @@ func ListCfnStacks(region, profile string) ([]string, error) {
 		activeStatuses = append(activeStatuses, types.StackStatus(s))
 	}
 
-	if profile != "" {
-		os.Setenv("AWS_PROFILE", profile)
-	}
-	if region != "" {
-		os.Setenv("AWS_REGION", region)
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := LoadAwsConfig(region, profile)
 	if err != nil {
 		return nil, err
 	}

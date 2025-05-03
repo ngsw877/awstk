@@ -2,22 +2,13 @@ package internal
 
 import (
 	"context"
-	"os"
 
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // ListS3Buckets はS3バケット名の一覧を返す関数
 func ListS3Buckets(region, profile string) ([]string, error) {
-	if profile != "" {
-		os.Setenv("AWS_PROFILE", profile)
-	}
-	if region != "" {
-		os.Setenv("AWS_REGION", region)
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := LoadAwsConfig(region, profile)
 	if err != nil {
 		return nil, err
 	}
