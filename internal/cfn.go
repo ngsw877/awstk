@@ -1,4 +1,4 @@
-package cfn
+package internal
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
-// ListStacksはアクティブなCloudFormationスタック名一覧を返す
-func ListStacks(region, profile string) ([]string, error) {
+// ListCfnStacks はアクティブなCloudFormationスタック名一覧を返す
+func ListCfnStacks(region, profile string) ([]string, error) {
 	activeStatusStrs := []string{
 		"CREATE_COMPLETE",
 		"UPDATE_COMPLETE",

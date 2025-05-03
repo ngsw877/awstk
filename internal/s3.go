@@ -1,4 +1,4 @@
-package s3
+package internal
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// S3バケット名の一覧を返す関数
-func ListBuckets(region, profile string) ([]string, error) {
+// ListS3Buckets はS3バケット名の一覧を返す関数
+func ListS3Buckets(region, profile string) ([]string, error) {
 	if profile != "" {
 		os.Setenv("AWS_PROFILE", profile)
 	}

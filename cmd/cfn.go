@@ -1,22 +1,27 @@
-package cfn
+package cmd
 
 import (
-	"awsfunc/cmd"
-	"awsfunc/internal/cfn"
+	"awsfunc/internal"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
+// CfnCmd represents the cfn command
+var CfnCmd = &cobra.Command{
+	Use:   "cfn",
+	Short: "CloudFormationリソース操作コマンド",
+}
+
 // lsCmd represents the ls command
-var lsCmd = &cobra.Command{
+var cfnLsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "CloudFormationスタック一覧を表示するコマンド",
 	Run: func(cmdCobra *cobra.Command, args []string) {
 		fmt.Println("CloudFormationスタックを取得中...")
 
-		stackNames, err := cfn.ListStacks(cmd.Region, cmd.Profile)
+		stackNames, err := internal.ListCfnStacks(Region, Profile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "❌ CloudFormationスタック一覧取得でエラー: %v\n", err)
 			os.Exit(1)
@@ -35,5 +40,6 @@ var lsCmd = &cobra.Command{
 }
 
 func init() {
-	CfnCmd.AddCommand(lsCmd)
+	RootCmd.AddCommand(CfnCmd)
+	CfnCmd.AddCommand(cfnLsCmd)
 }

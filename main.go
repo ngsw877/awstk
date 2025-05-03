@@ -5,8 +5,6 @@ package main
 
 import (
 	"awsfunc/cmd"
-	_ "awsfunc/cmd/cfn"
-	_ "awsfunc/cmd/s3"
 )
 
 func main() {
