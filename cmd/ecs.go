@@ -3,8 +3,6 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -30,19 +28,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 例:
   awsfunc ecs exec -P my-profile -S my-stack
   awsfunc ecs exec -P my-profile -c my-cluster -s my-service -t app`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// プロファイルチェック - 各internal関数内でLoadAWSConfigを実行するが、
-		// 先にプロファイルが指定されているか確認する
-		if Profile == "" && os.Getenv("AWS_PROFILE") != "" {
-			Profile = os.Getenv("AWS_PROFILE")
-			fmt.Println("🔍 環境変数 AWS_PROFILE の値 '" + Profile + "' を使用します")
-		}
-
-		if Profile == "" {
-			fmt.Fprintln(os.Stderr, "❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
-			os.Exit(1)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var cluster, service string
 
 		// スタック名から情報取得
@@ -50,8 +36,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			fmt.Println("CloudFormationスタックからECS情報を取得します...")
 			serviceInfo, err := internal.GetEcsFromStack(stackName, Region, Profile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "❌ エラー: %v\n", err)
-				os.Exit(1)
+				return fmt.Errorf("❌ エラー: %w", err)
 			}
 			cluster = serviceInfo.ClusterName
 			service = serviceInfo.ServiceName
@@ -63,26 +48,25 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			cluster = clusterName
 			service = serviceName
 		} else {
-			fmt.Fprintln(os.Stderr, "❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
 			cmd.Help()
-			os.Exit(1)
+			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
 		}
 
 		// タスクIDを取得
 		taskId, err := internal.GetRunningTask(cluster, service, Region, Profile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ エラー: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
 		err = internal.ExecuteCommand(cluster, taskId, containerName, Region, Profile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "❌ コンテナへの接続に失敗しました: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}
+		return nil
 	},
+	SilenceUsage: true,
 }
 
 func init() {

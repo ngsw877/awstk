@@ -3,8 +3,6 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -18,21 +16,22 @@ var S3Cmd = &cobra.Command{
 var s3LsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "S3バケット一覧を表示するコマンド",
-	Run: func(cmdCobra *cobra.Command, args []string) {
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		buckets, err := internal.ListS3Buckets(Region, Profile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "S3バケット一覧取得でエラー: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
 		}
 		if len(buckets) == 0 {
 			fmt.Println("S3バケットが見つかりませんでした")
-			return
+			return nil
 		}
 		fmt.Println("S3バケット一覧:")
 		for _, name := range buckets {
 			fmt.Println("  -", name)
 		}
+		return nil
 	},
+	SilenceUsage: true,
 }
 
 func init() {

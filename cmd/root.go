@@ -1,9 +1,7 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -49,4 +47,35 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVarP(&Region, "region", "r", "ap-northeast-1", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&Profile, "profile", "P", "", "AWSプロファイル")
+
+	// コマンド実行前に共通でプロファイルチェックを行う
+	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// ヘルプコマンドの場合はスキップ
+		if cmd.Name() == "help" {
+			return nil
+		}
+		return checkAndSetProfile(cmd)
+	}
+}
+
+// checkAndSetProfile はプロファイルの確認と設定を行うプライベート関数
+func checkAndSetProfile(cmd *cobra.Command) error {
+	// プロファイルがすでに指定されている場合は何もしない
+	if Profile != "" {
+		return nil
+	}
+	// 環境変数からプロファイル取得を試みる
+	envProfile := os.Getenv("AWS_PROFILE")
+	if envProfile == "" {
+		// プロファイルが見つからない場合はエラー
+		cmd.SilenceUsage = true // エラー時のUsage表示を抑制
+		return errors.New("❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
+	}
+	// 環境変数からプロファイルを設定
+	Profile = envProfile
+	// versionコマンド以外の場合のみメッセージを表示
+	if cmd.Name() != "version" {
+		cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + Profile + "' を使用します")
+	}
+	return nil
 }
