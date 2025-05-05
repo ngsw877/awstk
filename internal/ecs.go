@@ -203,6 +203,8 @@ func SetEcsServiceCapacity(opts ServiceCapacityOptions) error {
 		return fmt.Errorf("スケーラブルターゲット登録でエラー: %w", err)
 	}
 
-	fmt.Println("✅ Fargate (ECSサービス) のDesiredCountを設定しました。サービスが起動中です。")
+	// 設定完了メッセージを表示（サービスの状態の解釈はcmdパッケージに任せる）
+	fmt.Printf("✅ Fargate (ECSサービス) のDesiredCountを%d～%dに設定しました。\n", 
+		opts.MinCapacity, opts.MaxCapacity)
 	return nil
 }
