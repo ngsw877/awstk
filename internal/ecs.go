@@ -9,9 +9,20 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 )
+
+// ServiceCapacityOptions はECSサービスキャパシティ設定のパラメータを格納する構造体
+type ServiceCapacityOptions struct {
+	ClusterName string
+	ServiceName string
+	Region      string
+	Profile     string
+	MinCapacity int
+	MaxCapacity int
+}
 
 type EcsServiceInfo struct {
 	ClusterName string
@@ -162,4 +173,36 @@ func ExecuteCommand(clusterName, taskId, containerName, region, profile string) 
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+// SetEcsServiceCapacity はECSサービスの最小・最大キャパシティを設定します
+func SetEcsServiceCapacity(opts ServiceCapacityOptions) error {
+	fmt.Printf("🔍 🚀 Fargate (ECSサービス: %s) のDesiredCountを%d～%dに設定します...\n",
+		opts.ServiceName, opts.MinCapacity, opts.MaxCapacity)
+
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
+	// Application Auto Scalingクライアントを作成
+	client := applicationautoscaling.NewFromConfig(cfg)
+
+	// リソースIDを構築
+	resourceId := fmt.Sprintf("service/%s/%s", opts.ClusterName, opts.ServiceName)
+
+	// スケーラブルターゲットを登録
+	_, err = client.RegisterScalableTarget(context.TODO(), &applicationautoscaling.RegisterScalableTargetInput{
+		ServiceNamespace:  "ecs",
+		ScalableDimension: "ecs:service:DesiredCount",
+		ResourceId:        &resourceId,
+		MinCapacity:       aws.Int32(int32(opts.MinCapacity)),
+		MaxCapacity:       aws.Int32(int32(opts.MaxCapacity)),
+	})
+	if err != nil {
+		return fmt.Errorf("スケーラブルターゲット登録でエラー: %w", err)
+	}
+
+	fmt.Println("✅ Fargate (ECSサービス) のDesiredCountを設定しました。サービスが起動中です。")
+	return nil
 }
