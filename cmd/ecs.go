@@ -15,6 +15,8 @@ var (
 	minCapacity    int
 	maxCapacity    int
 	timeoutSeconds int
+	taskDefinition string
+	commandString  string
 )
 
 var EcsCmd = &cobra.Command{
@@ -199,11 +201,78 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	SilenceUsage: true,
 }
 
+// ecsRunCmd はECSタスクを実行してその完了を待機するコマンドです
+var ecsRunCmd = &cobra.Command{
+	Use:   "run",
+	Short: "ECSタスクを実行するコマンド",
+	Long: `ECSタスクを実行してその完了を待機するコマンドです。
+CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
+タスク定義は指定されていない場合、サービスで使用されている最新のタスク定義が使用されます。
+待機タイムアウトは--timeoutで秒数指定できます（デフォルト: 300秒）。
+
+例:
+  awsfunc ecs run -P my-profile -S my-stack -t app -C "echo hello"
+  awsfunc ecs run -P my-profile -c my-cluster -s my-service -t app -C "echo hello"
+  awsfunc ecs run -P my-profile -S my-stack -t app -d my-task-def:1 -C "echo hello"`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var cluster, service string
+
+		// スタック名から情報取得
+		if stackName != "" {
+			fmt.Println("CloudFormationスタックからECS情報を取得します...")
+			serviceInfo, err := internal.GetEcsFromStack(stackName, Region, Profile)
+			if err != nil {
+				return fmt.Errorf("❌ エラー: %w", err)
+			}
+			cluster = serviceInfo.ClusterName
+			service = serviceInfo.ServiceName
+
+			fmt.Println("🔍 検出されたクラスター: " + cluster)
+			fmt.Println("🔍 検出されたサービス: " + service)
+		} else if clusterName != "" && serviceName != "" {
+			// クラスター名とサービス名が直接指定された場合
+			cluster = clusterName
+			service = serviceName
+		} else {
+			cmd.Help()
+			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+		}
+
+		// タスク実行オプションを作成
+		opts := internal.RunAndWaitForTaskOptions{
+			ClusterName:    cluster,
+			ServiceName:    service,
+			TaskDefinition: taskDefinition,
+			ContainerName:  containerName,
+			Command:        commandString,
+			Region:         Region,
+			Profile:        Profile,
+			TimeoutSeconds: timeoutSeconds,
+		}
+
+		// タスクを実行して完了を待機
+		fmt.Println("🚀 ECSタスクを実行します...")
+		exitCode, err := internal.RunAndWaitForTask(opts)
+		if err != nil {
+			return fmt.Errorf("❌ タスク実行エラー: %w", err)
+		}
+
+		fmt.Printf("✅ タスクが完了しました。終了コード: %d\n", exitCode)
+		// 終了コードが0以外の場合はエラーとして扱う
+		if exitCode != 0 {
+			return fmt.Errorf("タスクが非ゼロの終了コード %d で終了しました", exitCode)
+		}
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(EcsCmd)
 	EcsCmd.AddCommand(ecsExecCmd)
 	EcsCmd.AddCommand(ecsStartCmd)
 	EcsCmd.AddCommand(ecsStopCmd)
+	EcsCmd.AddCommand(ecsRunCmd)
 
 	// execコマンドのフラグを設定
 	ecsExecCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -217,11 +286,20 @@ func init() {
 	ecsStartCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsStartCmd.Flags().IntVarP(&minCapacity, "min", "m", 1, "最小キャパシティ")
 	ecsStartCmd.Flags().IntVarP(&maxCapacity, "max", "M", 2, "最大キャパシティ")
-	ecsStartCmd.Flags().IntVarP(&timeoutSeconds, "timeout", "t", 300, "待機タイムアウト（秒）")
+	ecsStartCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 
 	// stopコマンドのフラグを設定
 	ecsStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStopCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
-	ecsStopCmd.Flags().IntVarP(&timeoutSeconds, "timeout", "t", 300, "待機タイムアウト（秒）")
+	ecsStopCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+
+	// runコマンドのフラグを設定
+	ecsRunCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsRunCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
+	ecsRunCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
+	ecsRunCmd.Flags().StringVarP(&containerName, "container", "t", "app", "実行するコンテナ名")
+	ecsRunCmd.Flags().StringVarP(&taskDefinition, "task-definition", "d", "", "タスク定義 (指定しない場合はサービスのタスク定義を使用)")
+	ecsRunCmd.Flags().StringVarP(&commandString, "command", "C", "", "実行するコマンド")
+	ecsRunCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 }
