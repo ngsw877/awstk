@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -204,7 +205,71 @@ func SetEcsServiceCapacity(opts ServiceCapacityOptions) error {
 	}
 
 	// 設定完了メッセージを表示（サービスの状態の解釈はcmdパッケージに任せる）
-	fmt.Printf("✅ Fargate (ECSサービス) のDesiredCountを%d～%dに設定しました。\n", 
+	fmt.Printf("✅ Fargate (ECSサービス) のDesiredCountを%d～%dに設定しました。\n",
 		opts.MinCapacity, opts.MaxCapacity)
 	return nil
+}
+
+// WaitForServiceStatus はECSサービスの状態が目標とする状態になるまで待機します
+func WaitForServiceStatus(opts ServiceCapacityOptions, targetRunningCount int, timeoutSeconds int) error {
+	var status string
+	if targetRunningCount == 0 {
+		status = "停止"
+	} else {
+		status = "起動"
+	}
+	fmt.Printf("⏳ サービスが%s状態になるまで待機しています...\n", status)
+
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
+	// ECSクライアントを作成
+	ecsClient := ecs.NewFromConfig(cfg)
+
+	start := time.Now()
+	timeout := time.Duration(timeoutSeconds) * time.Second
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		// サービスの状態を取得
+		resp, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+			Cluster:  aws.String(opts.ClusterName),
+			Services: []string{opts.ServiceName},
+		})
+		if err != nil {
+			return fmt.Errorf("サービス情報の取得に失敗しました: %w", err)
+		}
+
+		if len(resp.Services) == 0 {
+			return fmt.Errorf("サービス '%s' が見つかりません", opts.ServiceName)
+		}
+
+		service := resp.Services[0]
+		runningCount := int(service.RunningCount)
+		desiredCount := int(service.DesiredCount)
+
+		// 経過時間と進捗状況を表示
+		elapsed := time.Since(start).Round(time.Second)
+		fmt.Printf("⏱️ 経過時間: %s - 実行中タスク: %d / 希望タスク数: %d\n",
+			elapsed, runningCount, desiredCount)
+
+		// 目標達成の確認
+		if runningCount == targetRunningCount && desiredCount == targetRunningCount {
+			if targetRunningCount == 0 {
+				fmt.Println("✅ サービスが完全に停止しました")
+			} else {
+				fmt.Println("✅ サービスが完全に起動しました")
+			}
+			return nil
+		}
+
+		// タイムアウトのチェック
+		if time.Since(start) > timeout {
+			return fmt.Errorf("タイムアウト: %d秒経過しましたがサービスは目標状態に達していません", timeoutSeconds)
+		}
+	}
 }

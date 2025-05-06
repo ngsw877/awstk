@@ -3,16 +3,18 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	stackName     string
-	clusterName   string
-	serviceName   string
-	containerName string
-	minCapacity   int
-	maxCapacity   int
+	stackName      string
+	clusterName    string
+	serviceName    string
+	containerName  string
+	minCapacity    int
+	maxCapacity    int
+	timeoutSeconds int
 )
 
 var EcsCmd = &cobra.Command{
@@ -77,10 +79,12 @@ var ecsStartCmd = &cobra.Command{
 	Short: "ECSサービスのキャパシティを設定して起動するコマンド",
 	Long: `ECSサービスの最小・最大キャパシティを設定して起動するコマンドです。
 CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
+サービスが指定したキャパシティになるまで必ず待機します。待機タイムアウトは-t/--timeoutで秒数指定できます（デフォルト: 300秒）。
 
 例:
   awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2
-  awsfunc ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3`,
+  awsfunc ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3
+  awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var cluster, service string
 
@@ -116,12 +120,17 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// キャパシティを設定
+		fmt.Println(" サービスの起動を開始します...")
 		err := internal.SetEcsServiceCapacity(opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
-		fmt.Println("✅ サービスが起動中です。")
+		// 起動完了を必ず待機
+		err = internal.WaitForServiceStatus(opts, minCapacity, timeoutSeconds)
+		if err != nil {
+			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
+		}
 		return nil
 	},
 	SilenceUsage: true,
@@ -133,10 +142,12 @@ var ecsStopCmd = &cobra.Command{
 	Short: "ECSサービスを停止するコマンド",
 	Long: `ECSサービスの最小・最大キャパシティを0に設定して停止するコマンドです。
 CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
+サービスが完全に停止するまで必ず待機します。待機タイムアウトは-t/--timeoutで秒数指定できます（デフォルト: 300秒）。
 
 例:
   awsfunc ecs stop -P my-profile -S my-stack
-  awsfunc ecs stop -P my-profile -c my-cluster -s my-service`,
+  awsfunc ecs stop -P my-profile -c my-cluster -s my-service
+  awsfunc ecs stop -P my-profile -S my-stack`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var cluster, service string
 
@@ -172,12 +183,17 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// キャパシティを設定
+		fmt.Println(" サービスの停止を開始します...")
 		err := internal.SetEcsServiceCapacity(opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
-		fmt.Println("✅ サービスが停止中です。")
+		// 停止完了を必ず待機
+		err = internal.WaitForServiceStatus(opts, 0, timeoutSeconds)
+		if err != nil {
+			return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
+		}
 		return nil
 	},
 	SilenceUsage: true,
@@ -201,9 +217,11 @@ func init() {
 	ecsStartCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsStartCmd.Flags().IntVarP(&minCapacity, "min", "m", 1, "最小キャパシティ")
 	ecsStartCmd.Flags().IntVarP(&maxCapacity, "max", "M", 2, "最大キャパシティ")
+	ecsStartCmd.Flags().IntVarP(&timeoutSeconds, "timeout", "t", 300, "待機タイムアウト（秒）")
 
 	// stopコマンドのフラグを設定
 	ecsStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStopCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
+	ecsStopCmd.Flags().IntVarP(&timeoutSeconds, "timeout", "t", 300, "待機タイムアウト（秒）")
 }
