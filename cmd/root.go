@@ -9,6 +9,7 @@ import (
 
 var Region string
 var Profile string
+var StackName string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -47,6 +48,7 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVarP(&Region, "region", "r", "ap-northeast-1", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&Profile, "profile", "P", "", "AWSプロファイル")
+	RootCmd.PersistentFlags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
 
 	// コマンド実行前に共通でプロファイルチェックを行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {

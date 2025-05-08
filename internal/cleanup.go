@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	cftypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -15,42 +17,166 @@ import (
 
 // CleanupOptions はクリーンアップ処理のパラメータを格納する構造体
 type CleanupOptions struct {
-	SearchString string
+	SearchString string // 検索文字列
+	StackName    string // CloudFormationスタック名
 	Region       string
 	Profile      string
 }
 
-// CleanupResources は指定した文字列を含むAWSリソースをクリーンアップします
-func CleanupResources(opts CleanupOptions) error {
-	fmt.Printf("AWS Profile: %s\n", opts.Profile)
-	fmt.Printf("検索文字列: %s\n", opts.SearchString)
-	fmt.Println("削除を開始します...")
-
-	// S3バケットの削除
-	fmt.Println("S3バケットの削除を開始...")
-	err := cleanupS3Buckets(opts)
-	if err != nil {
-		// エラーが発生しても、他のリソースのクリーンアップは続行するためにエラーを返さない
-		fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
+// ValidateCleanupOptions はクリーンアップオプションのバリデーションを行います
+func ValidateCleanupOptions(opts CleanupOptions) error {
+	// キーワードとスタック名の両方が指定された場合はエラー
+	if opts.SearchString != "" && opts.StackName != "" {
+		return fmt.Errorf("検索キーワードとスタック名は同時に指定できません。いずれか一方を指定してください")
 	}
 
-	// ECRリポジトリの削除
+	// 少なくとも一方が指定されている必要がある
+	if opts.SearchString == "" && opts.StackName == "" {
+		return fmt.Errorf("検索キーワードまたはスタック名のいずれかを指定してください")
+	}
+
+	return nil
+}
+
+// CleanupResources は指定した文字列を含むAWSリソースをクリーンアップします
+func CleanupResources(opts CleanupOptions) error {
+	// 事前条件チェック
+	if err := ValidateCleanupOptions(opts); err != nil {
+		return err
+	}
+
+	fmt.Printf("AWS Profile: %s\n", opts.Profile)
+
+	var s3BucketNames, ecrRepoNames []string
+	var err error
+
+	// 検索方法によって取得ロジックを分岐
+	if opts.StackName != "" {
+		// スタック名から検索する場合
+		fmt.Printf("CloudFormationスタック: %s\n", opts.StackName)
+		fmt.Println("スタックに関連するリソースの削除を開始します...")
+
+		// スタックからリソース情報を取得
+		s3BucketNames, ecrRepoNames, err = getResourcesFromStack(opts)
+		if err != nil {
+			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
+		}
+	} else {
+		// キーワードから検索する場合
+		fmt.Printf("検索文字列: %s\n", opts.SearchString)
+		fmt.Println("検索文字列に一致するリソースの削除を開始します...")
+
+		// S3バケット名を取得
+		s3BucketNames, err = getS3BucketsByKeyword(opts)
+		if err != nil {
+			fmt.Printf("❌ S3バケット一覧取得中にエラーが発生しました: %v\n", err)
+			// エラーが発生しても続行
+			s3BucketNames = []string{} // 空のリストで初期化
+		}
+
+		// ECRリポジトリ名を取得
+		ecrRepoNames, err = getEcrRepositoriesByKeyword(opts)
+		if err != nil {
+			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
+			// エラーが発生しても続行
+			ecrRepoNames = []string{} // 空のリストで初期化
+		}
+	}
+
+	// S3バケットの削除（共通処理）
+	fmt.Println("S3バケットの削除を開始...")
+	if len(s3BucketNames) > 0 {
+		err = cleanupS3Buckets(opts, s3BucketNames)
+		if err != nil {
+			fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
+		}
+	} else {
+		if opts.StackName != "" {
+			fmt.Println("スタックに関連するS3バケットは見つかりませんでした。")
+		} else {
+			fmt.Printf("  検索文字列 '%s' にマッチするS3バケットは見つかりませんでした。\n", opts.SearchString)
+		}
+	}
+
+	// ECRリポジトリの削除（共通処理）
 	fmt.Println("ECRリポジトリの削除を開始...")
-	err = cleanupEcrRepositories(opts)
-	if err != nil {
-		// エラーが発生しても、他のリソースのクリーンアップは続行するためにエラーを返さない
-		fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
+	if len(ecrRepoNames) > 0 {
+		err = cleanupEcrRepositories(opts, ecrRepoNames)
+		if err != nil {
+			fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
+		}
+	} else {
+		if opts.StackName != "" {
+			fmt.Println("スタックに関連するECRリポジトリは見つかりませんでした。")
+		} else {
+			fmt.Printf("  検索文字列 '%s' にマッチするECRリポジトリは見つかりませんでした。\n", opts.SearchString)
+		}
 	}
 
 	fmt.Println("クリーンアップ完了！")
 	return nil
 }
 
-// cleanupS3Buckets は指定した文字列を含むS3バケットを検索・削除します (パッケージプライベート)
-func cleanupS3Buckets(opts CleanupOptions) error {
+// getResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
+func getResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
 	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
 	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		return nil, nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
+	// CloudFormationクライアントを作成
+	cfnClient := cloudformation.NewFromConfig(cfg)
+
+	// スタックリソース一覧の取得
+	stackResources := []cftypes.StackResourceSummary{}
+	var nextToken *string
+
+	for {
+		resp, err := cfnClient.ListStackResources(context.TODO(), &cloudformation.ListStackResourcesInput{
+			StackName: aws.String(opts.StackName),
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("スタックリソース一覧取得エラー: %w", err)
+		}
+
+		stackResources = append(stackResources, resp.StackResourceSummaries...)
+
+		if resp.NextToken == nil {
+			break
+		}
+		nextToken = resp.NextToken
+	}
+
+	// S3バケットとECRリポジトリを抽出
+	s3Resources := []string{}
+	ecrResources := []string{}
+
+	for _, resource := range stackResources {
+		// リソースタイプに基づいて振り分け
+		resourceType := *resource.ResourceType
+
+		// S3バケット
+		if resourceType == "AWS::S3::Bucket" && resource.PhysicalResourceId != nil {
+			s3Resources = append(s3Resources, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたS3バケット: %s\n", *resource.PhysicalResourceId)
+		}
+
+		// ECRリポジトリ
+		if resourceType == "AWS::ECR::Repository" && resource.PhysicalResourceId != nil {
+			ecrResources = append(ecrResources, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *resource.PhysicalResourceId)
+		}
+	}
+
+	return s3Resources, ecrResources, nil
+}
+
+// getS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
+func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
 
 	// S3クライアントを作成
@@ -59,22 +185,68 @@ func cleanupS3Buckets(opts CleanupOptions) error {
 	// バケット一覧を取得
 	listBucketsOutput, err := s3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 	if err != nil {
-		return fmt.Errorf("S3バケット一覧取得エラー: %w", err)
+		return nil, fmt.Errorf("S3バケット一覧取得エラー: %w", err)
 	}
 
 	foundBuckets := []string{}
 	for _, bucket := range listBucketsOutput.Buckets {
 		if strings.Contains(*bucket.Name, opts.SearchString) {
 			foundBuckets = append(foundBuckets, *bucket.Name)
+			fmt.Printf("🔍 検出されたS3バケット: %s\n", *bucket.Name)
 		}
 	}
 
-	if len(foundBuckets) == 0 {
-		fmt.Printf("  検索文字列 '%s' にマッチするS3バケットは見つかりませんでした。\n", opts.SearchString)
-		return nil
+	return foundBuckets, nil
+}
+
+// getEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
+func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
 
-	for _, bucket := range foundBuckets {
+	// ECRクライアントを作成
+	ecrClient := ecr.NewFromConfig(cfg)
+
+	// リポジトリ一覧を取得
+	listReposInput := &ecr.DescribeRepositoriesInput{}
+	foundRepos := []string{}
+
+	// ページネーション対応
+	for {
+		listReposOutput, err := ecrClient.DescribeRepositories(context.TODO(), listReposInput)
+		if err != nil {
+			return nil, fmt.Errorf("ECRリポジトリ一覧取得エラー: %w", err)
+		}
+
+		for _, repo := range listReposOutput.Repositories {
+			if strings.Contains(*repo.RepositoryName, opts.SearchString) {
+				foundRepos = append(foundRepos, *repo.RepositoryName)
+				fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *repo.RepositoryName)
+			}
+		}
+
+		if listReposOutput.NextToken == nil {
+			break
+		}
+		listReposInput.NextToken = listReposOutput.NextToken
+	}
+
+	return foundRepos, nil
+}
+
+// cleanupS3Buckets は指定したS3バケット一覧を削除します
+func cleanupS3Buckets(opts CleanupOptions, bucketNames []string) error {
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
+	// S3クライアントを作成
+	s3Client := s3.NewFromConfig(cfg)
+
+	for _, bucket := range bucketNames {
 		fmt.Printf("バケット %s を空にして削除中...\n", bucket)
 
 		// バケットを空にする (バージョン管理対応)
@@ -101,7 +273,6 @@ func cleanupS3Buckets(opts CleanupOptions) error {
 
 // emptyS3Bucket は指定したS3バケットの中身をすべて削除します (バージョン管理対応) (パッケージプライベート)
 func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
-
 	// バケット内のオブジェクトとバージョンをリスト
 	listVersionsOutput, err := s3Client.ListObjectVersions(context.TODO(), &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
@@ -179,8 +350,8 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 	return nil
 }
 
-// cleanupEcrRepositories は指定した文字列を含むECRリポジトリを検索・削除します (パッケージプライベート)
-func cleanupEcrRepositories(opts CleanupOptions) error {
+// cleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
+func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
@@ -189,35 +360,7 @@ func cleanupEcrRepositories(opts CleanupOptions) error {
 	// ECRクライアントを作成
 	ecrClient := ecr.NewFromConfig(cfg)
 
-	// リポジトリ一覧を取得
-	listReposInput := &ecr.DescribeRepositoriesInput{}
-	foundRepos := []string{}
-
-	// ページネーション対応
-	for {
-		listReposOutput, err := ecrClient.DescribeRepositories(context.TODO(), listReposInput)
-		if err != nil {
-			return fmt.Errorf("ECRリポジトリ一覧取得エラー: %w", err)
-		}
-
-		for _, repo := range listReposOutput.Repositories {
-			if strings.Contains(*repo.RepositoryName, opts.SearchString) {
-				foundRepos = append(foundRepos, *repo.RepositoryName)
-			}
-		}
-
-		if listReposOutput.NextToken == nil {
-			break
-		}
-		listReposInput.NextToken = listReposOutput.NextToken
-	}
-
-	if len(foundRepos) == 0 {
-		fmt.Printf("  検索文字列 '%s' にマッチするECRリポジトリは見つかりませんでした。\n", opts.SearchString)
-		return nil
-	}
-
-	for _, repoName := range foundRepos {
+	for _, repoName := range repoNames {
 		fmt.Printf("リポジトリ %s を空にして削除中...\n", repoName)
 
 		// リポジトリ内のイメージをすべて削除 (ページネーション対応)
