@@ -367,7 +367,7 @@ func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 		listImagesInput := &ecr.ListImagesInput{
 			RepositoryName: aws.String(repoName),
 		}
-		imageIDsToDelete := []ecrtypes.ImageIdentifier{}
+		imageIdsToDelete := []ecrtypes.ImageIdentifier{}
 
 		for {
 			listImagesOutput, err := ecrClient.ListImages(context.TODO(), listImagesInput)
@@ -377,9 +377,7 @@ func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 				break // このリポジトリの処理を中断
 			}
 
-			for _, imageId := range listImagesOutput.ImageIds {
-				imageIDsToDelete = append(imageIDsToDelete, imageId)
-			}
+			imageIdsToDelete = append(imageIdsToDelete, listImagesOutput.ImageIds...)
 
 			if listImagesOutput.NextToken == nil {
 				break
@@ -388,15 +386,15 @@ func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 		}
 
 		// イメージ削除対象がなければスキップ
-		if len(imageIDsToDelete) > 0 {
+		if len(imageIdsToDelete) > 0 {
 			// イメージを一括削除 (最大100個ずつ)
 			chunkSize := 100
-			for i := 0; i < len(imageIDsToDelete); i += chunkSize {
+			for i := 0; i < len(imageIdsToDelete); i += chunkSize {
 				end := i + chunkSize
-				if end > len(imageIDsToDelete) {
-					end = len(imageIDsToDelete)
+				if end > len(imageIdsToDelete) {
+					end = len(imageIdsToDelete)
 				}
-				batch := imageIDsToDelete[i:end]
+				batch := imageIdsToDelete[i:end]
 
 				fmt.Printf("  %d件のイメージを削除中...\n", len(batch))
 				_, err = ecrClient.BatchDeleteImage(context.TODO(), &ecr.BatchDeleteImageInput{
