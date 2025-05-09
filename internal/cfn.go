@@ -62,3 +62,58 @@ func ListCfnStacks(region, profile string) ([]string, error) {
 	}
 	return allStackNames, nil
 }
+
+// getResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
+func getResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
+	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
+	// CloudFormationクライアントを作成
+	cfnClient := cloudformation.NewFromConfig(cfg)
+
+	// スタックリソース一覧の取得
+	stackResources := []types.StackResourceSummary{}
+	var nextToken *string
+
+	for {
+		resp, err := cfnClient.ListStackResources(context.TODO(), &cloudformation.ListStackResourcesInput{
+			StackName: aws.String(opts.StackName),
+			NextToken: nextToken,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("スタックリソース一覧取得エラー: %w", err)
+		}
+
+		stackResources = append(stackResources, resp.StackResourceSummaries...)
+
+		if resp.NextToken == nil {
+			break
+		}
+		nextToken = resp.NextToken
+	}
+
+	// S3バケットとECRリポジトリを抽出
+	s3Resources := []string{}
+	ecrResources := []string{}
+
+	for _, resource := range stackResources {
+		// リソースタイプに基づいて振り分け
+		resourceType := *resource.ResourceType
+
+		// S3バケット
+		if resourceType == "AWS::S3::Bucket" && resource.PhysicalResourceId != nil {
+			s3Resources = append(s3Resources, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたS3バケット: %s\n", *resource.PhysicalResourceId)
+		}
+
+		// ECRリポジトリ
+		if resourceType == "AWS::ECR::Repository" && resource.PhysicalResourceId != nil {
+			ecrResources = append(ecrResources, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *resource.PhysicalResourceId)
+		}
+	}
+
+	return s3Resources, ecrResources, nil
+}

@@ -7,14 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version = "dev"
+const version = "dev"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of awsfunc",
 	Long:  `All software has versions. This is awsfunc's`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("awsfunc version %s\n", Version)
+		fmt.Printf("awsfunc version %s\n", version)
 	},
 }
 
