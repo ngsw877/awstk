@@ -3,6 +3,7 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +18,7 @@ var s3LsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "S3バケット一覧を表示するコマンド",
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		buckets, err := internal.ListS3Buckets(Region, Profile)
+		buckets, err := internal.ListS3Buckets(region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
 		}

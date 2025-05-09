@@ -3,6 +3,7 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var cfnLsCmd = &cobra.Command{
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		fmt.Println("CloudFormationスタックを取得中...")
 
-		stackNames, err := internal.ListCfnStacks(Region, Profile)
+		stackNames, err := internal.ListCfnStacks(region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}

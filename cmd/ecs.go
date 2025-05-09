@@ -38,9 +38,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var cluster, service string
 
 		// スタック名から情報取得
-		if StackName != "" {
+		if stackName != "" {
 			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(StackName, Region, Profile)
+			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
@@ -59,14 +59,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// タスクIDを取得
-		taskId, err := internal.GetRunningTask(cluster, service, Region, Profile)
+		taskId, err := internal.GetRunningTask(cluster, service, region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = internal.ExecuteCommand(cluster, taskId, containerName, Region, Profile)
+		err = internal.ExecuteCommand(cluster, taskId, containerName, region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}
@@ -91,9 +91,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var cluster, service string
 
 		// スタック名から情報取得
-		if StackName != "" {
+		if stackName != "" {
 			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(StackName, Region, Profile)
+			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
@@ -115,8 +115,8 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		opts := internal.ServiceCapacityOptions{
 			ClusterName: cluster,
 			ServiceName: service,
-			Region:      Region,
-			Profile:     Profile,
+			Region:      region,
+			Profile:     profile,
 			MinCapacity: minCapacity,
 			MaxCapacity: maxCapacity,
 		}
@@ -154,9 +154,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var cluster, service string
 
 		// スタック名から情報取得
-		if StackName != "" {
+		if stackName != "" {
 			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(StackName, Region, Profile)
+			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
@@ -178,8 +178,8 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		opts := internal.ServiceCapacityOptions{
 			ClusterName: cluster,
 			ServiceName: service,
-			Region:      Region,
-			Profile:     Profile,
+			Region:      region,
+			Profile:     profile,
 			MinCapacity: 0,
 			MaxCapacity: 0,
 		}
@@ -218,9 +218,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var cluster, service string
 
 		// スタック名から情報取得
-		if StackName != "" {
+		if stackName != "" {
 			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(StackName, Region, Profile)
+			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
@@ -245,8 +245,8 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			TaskDefinition: taskDefinition,
 			ContainerName:  containerName,
 			Command:        commandString,
-			Region:         Region,
-			Profile:        Profile,
+			Region:         region,
+			Profile:        profile,
 			TimeoutSeconds: timeoutSeconds,
 		}
 
@@ -275,13 +275,13 @@ func init() {
 	EcsCmd.AddCommand(ecsRunCmd)
 
 	// execコマンドのフラグを設定
-	ecsExecCmd.Flags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsExecCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsExecCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsExecCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsExecCmd.Flags().StringVarP(&containerName, "container", "t", "app", "接続するコンテナ名")
 
 	// startコマンドのフラグを設定
-	ecsStartCmd.Flags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStartCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStartCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsStartCmd.Flags().IntVarP(&minCapacity, "min", "m", 1, "最小キャパシティ")
@@ -289,13 +289,13 @@ func init() {
 	ecsStartCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 
 	// stopコマンドのフラグを設定
-	ecsStopCmd.Flags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStopCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 
 	// runコマンドのフラグを設定
-	ecsRunCmd.Flags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsRunCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsRunCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsRunCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsRunCmd.Flags().StringVarP(&containerName, "container", "t", "app", "実行するコンテナ名")

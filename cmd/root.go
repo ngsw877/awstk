@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Region string
-var Profile string
-var StackName string
+var region string
+var profile string
+var stackName string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -46,9 +46,9 @@ func init() {
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	RootCmd.PersistentFlags().StringVarP(&Region, "region", "r", "ap-northeast-1", "AWSリージョン")
-	RootCmd.PersistentFlags().StringVarP(&Profile, "profile", "P", "", "AWSプロファイル")
-	RootCmd.PersistentFlags().StringVarP(&StackName, "stack", "S", "", "CloudFormationスタック名")
+	RootCmd.PersistentFlags().StringVarP(&region, "region", "r", "ap-northeast-1", "AWSリージョン")
+	RootCmd.PersistentFlags().StringVarP(&profile, "profile", "P", "", "AWSプロファイル")
+	RootCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 
 	// コマンド実行前に共通でプロファイルチェックを行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -63,7 +63,7 @@ func init() {
 // checkAndSetProfile はプロファイルの確認と設定を行うプライベート関数
 func checkAndSetProfile(cmd *cobra.Command) error {
 	// プロファイルがすでに指定されている場合は何もしない
-	if Profile != "" {
+	if profile != "" {
 		return nil
 	}
 	// 環境変数からプロファイル取得を試みる
@@ -74,10 +74,10 @@ func checkAndSetProfile(cmd *cobra.Command) error {
 		return errors.New("❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
 	}
 	// 環境変数からプロファイルを設定
-	Profile = envProfile
+	profile = envProfile
 	// versionコマンド以外の場合のみメッセージを表示
 	if cmd.Name() != "version" {
-		cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + Profile + "' を使用します")
+		cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + profile + "' を使用します")
 	}
 	return nil
 }
