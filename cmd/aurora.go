@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	auroraClusterID string
-	auroraProfile   string
+	auroraClusterId string
 )
 
 var auroraCmd = &cobra.Command{
@@ -18,7 +17,7 @@ var auroraCmd = &cobra.Command{
 }
 
 var auroraStartClusterCmd = &cobra.Command{
-	Use:   "start-cluster",
+	Use:   "start",
 	Short: "Aurora DBクラスターを起動する",
 	Long: `指定したAurora DBクラスターを起動します。
 
@@ -26,12 +25,12 @@ var auroraStartClusterCmd = &cobra.Command{
   awsfunc aurora start-cluster -d <aurora-cluster-identifier> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if auroraClusterID == "" {
+		if auroraClusterId == "" {
 			return fmt.Errorf("❌ Aurora DBクラスター識別子は必須です")
 		}
-		fmt.Printf("Aurora DBクラスター (%s) を起動します...\n", auroraClusterID)
+		fmt.Printf("Aurora DBクラスター (%s) を起動します...\n", auroraClusterId)
 
-		err := internal.StartAuroraCluster(auroraClusterID, auroraProfile)
+		err := internal.StartAuroraCluster(auroraClusterId, region, profile)
 
 		if err != nil {
 			fmt.Printf("❌ Aurora DBクラスターの起動に失敗しました。")
@@ -43,8 +42,35 @@ var auroraStartClusterCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var auroraStopClusterCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Aurora DBクラスターを停止する",
+	Long: `指定したAurora DBクラスターを停止します。
+
+例:
+  awsfunc aurora stop-cluster -d <aurora-cluster-identifier> [-P <aws-profile>]
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if auroraClusterId == "" {
+			return fmt.Errorf("❌ Aurora DBクラスター識別子は必須です")
+		}
+		fmt.Printf("Aurora DBクラスター (%s) を停止します...\n", auroraClusterId)
+
+		err := internal.StopAuroraCluster(auroraClusterId, region, profile)
+		if err != nil {
+			fmt.Printf("❌ Aurora DBクラスターの停止に失敗しました。")
+			return err
+		}
+
+		fmt.Println("✅ Aurora DBクラスターの停止を開始しました。")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(auroraCmd)
 	auroraCmd.AddCommand(auroraStartClusterCmd)
-	auroraStartClusterCmd.Flags().StringVarP(&auroraClusterID, "db-cluster-identifier", "d", "", "Aurora DBクラスター識別子（必須）")
+	auroraCmd.AddCommand(auroraStopClusterCmd)
+	auroraCmd.PersistentFlags().StringVarP(&auroraClusterId, "db-cluster-identifier", "d", "", "Aurora DBクラスター識別子（必須）")
 }
