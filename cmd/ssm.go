@@ -1,0 +1,47 @@
+package cmd
+
+import (
+	"awsfunc/internal"
+	"fmt"
+	"github.com/spf13/cobra"
+)
+
+var ssmInstanceId string
+
+var ssmCmd = &cobra.Command{
+	Use:   "ssm",
+	Short: "SSM関連の操作を行うコマンド群",
+	Long:  "AWS SSMセッションマネージャーを利用したEC2インスタンスへの接続などを行うCLIコマンド群です。",
+}
+
+var ssmSessionStartCmd = &cobra.Command{
+	Use:   "session",
+	Short: "EC2インスタンスにSSMで接続する",
+	Long: `指定したEC2インスタンスIDにSSMセッションで接続します。
+
+例:
+  awsfunc ssm session -i <ec2-instance-id> [-P <aws-profile>]
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if ssmInstanceId == "" {
+			return fmt.Errorf("❌ EC2インスタンスIDは必須です")
+		}
+		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
+
+		err := internal.StartSsmSession(ssmInstanceId, region, profile)
+		if err != nil {
+			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
+			return err
+		}
+
+		fmt.Println("✅ SSMセッションを開始しました。")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
+func init() {
+	RootCmd.AddCommand(ssmCmd)
+	ssmCmd.AddCommand(ssmSessionStartCmd)
+	ssmCmd.PersistentFlags().StringVarP(&ssmInstanceId, "instance-id", "i", "", "EC2インスタンスID（必須）")
+}
