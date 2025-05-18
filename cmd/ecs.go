@@ -35,38 +35,24 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs exec -P my-profile -S my-stack
   awsfunc ecs exec -P my-profile -c my-cluster -s my-service -t app`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cluster, service string
+		var clusterName, serviceName string
+		var err error
 
-		// スタック名から情報取得
-		if stackName != "" {
-			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
-			if err != nil {
-				return fmt.Errorf("❌ エラー: %w", err)
-			}
-			cluster = serviceInfo.ClusterName
-			service = serviceInfo.ServiceName
-
-			fmt.Println("🔍 検出されたクラスター: " + cluster)
-			fmt.Println("🔍 検出されたサービス: " + service)
-		} else if clusterName != "" && serviceName != "" {
-			// クラスター名とサービス名が直接指定された場合
-			cluster = clusterName
-			service = serviceName
-		} else {
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+			return err
 		}
 
 		// タスクIDを取得
-		taskId, err := internal.GetRunningTask(cluster, service, region, profile)
+		taskId, err := internal.GetRunningTask(clusterName, serviceName, region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = internal.ExecuteCommand(cluster, taskId, containerName, region, profile)
+		err = internal.ExecuteCommand(clusterName, taskId, containerName, region, profile)
 		if err != nil {
 			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}
@@ -88,33 +74,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3
   awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cluster, service string
+		var clusterName, serviceName string
+		var err error
 
-		// スタック名から情報取得
-		if stackName != "" {
-			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
-			if err != nil {
-				return fmt.Errorf("❌ エラー: %w", err)
-			}
-			cluster = serviceInfo.ClusterName
-			service = serviceInfo.ServiceName
-
-			fmt.Println("🔍 検出されたクラスター: " + cluster)
-			fmt.Println("🔍 検出されたサービス: " + service)
-		} else if clusterName != "" && serviceName != "" {
-			// クラスター名とサービス名が直接指定された場合
-			cluster = clusterName
-			service = serviceName
-		} else {
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+			return err
 		}
 
 		// キャパシティ設定オプションを作成
 		opts := internal.ServiceCapacityOptions{
-			ClusterName: cluster,
-			ServiceName: service,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
 			Region:      region,
 			Profile:     profile,
 			MinCapacity: minCapacity,
@@ -123,7 +95,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// キャパシティを設定
 		fmt.Println(" サービスの起動を開始します...")
-		err := internal.SetEcsServiceCapacity(opts)
+		err = internal.SetEcsServiceCapacity(opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -151,33 +123,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs stop -P my-profile -c my-cluster -s my-service
   awsfunc ecs stop -P my-profile -S my-stack`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cluster, service string
+		var clusterName, serviceName string
+		var err error
 
-		// スタック名から情報取得
-		if stackName != "" {
-			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
-			if err != nil {
-				return fmt.Errorf("❌ エラー: %w", err)
-			}
-			cluster = serviceInfo.ClusterName
-			service = serviceInfo.ServiceName
-
-			fmt.Println("🔍 検出されたクラスター: " + cluster)
-			fmt.Println("🔍 検出されたサービス: " + service)
-		} else if clusterName != "" && serviceName != "" {
-			// クラスター名とサービス名が直接指定された場合
-			cluster = clusterName
-			service = serviceName
-		} else {
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+			return err
 		}
 
 		// キャパシティ設定オプションを作成（停止のため0に設定）
 		opts := internal.ServiceCapacityOptions{
-			ClusterName: cluster,
-			ServiceName: service,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
 			Region:      region,
 			Profile:     profile,
 			MinCapacity: 0,
@@ -186,7 +144,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// キャパシティを設定
 		fmt.Println(" サービスの停止を開始します...")
-		err := internal.SetEcsServiceCapacity(opts)
+		err = internal.SetEcsServiceCapacity(opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -215,33 +173,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs run -P my-profile -c my-cluster -s my-service -t app -C "echo hello"
   awsfunc ecs run -P my-profile -S my-stack -t app -d my-task-def:1 -C "echo hello"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var cluster, service string
+		var clusterName, serviceName string
+		var err error
 
-		// スタック名から情報取得
-		if stackName != "" {
-			fmt.Println("CloudFormationスタックからECS情報を取得します...")
-			serviceInfo, err := internal.GetEcsFromStack(stackName, region, profile)
-			if err != nil {
-				return fmt.Errorf("❌ エラー: %w", err)
-			}
-			cluster = serviceInfo.ClusterName
-			service = serviceInfo.ServiceName
-
-			fmt.Println("🔍 検出されたクラスター: " + cluster)
-			fmt.Println("🔍 検出されたサービス: " + service)
-		} else if clusterName != "" && serviceName != "" {
-			// クラスター名とサービス名が直接指定された場合
-			cluster = clusterName
-			service = serviceName
-		} else {
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+			return err
 		}
 
 		// タスク実行オプションを作成
 		opts := internal.RunAndWaitForTaskOptions{
-			ClusterName:    cluster,
-			ServiceName:    service,
+			ClusterName:    clusterName,
+			ServiceName:    serviceName,
 			TaskDefinition: taskDefinition,
 			ContainerName:  containerName,
 			Command:        commandString,
@@ -302,4 +246,25 @@ func init() {
 	ecsRunCmd.Flags().StringVarP(&taskDefinition, "task-definition", "d", "", "タスク定義 (指定しない場合はサービスのタスク定義を使用)")
 	ecsRunCmd.Flags().StringVarP(&commandString, "command", "C", "", "実行するコマンド")
 	ecsRunCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+}
+
+// resolveEcsClusterAndService はフラグの値に基づいて
+// 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
+func resolveEcsClusterAndService() (clusterName string, serviceName string, err error) {
+	if stackName != "" {
+		fmt.Println("CloudFormationスタックからECS情報を取得します...")
+		serviceInfo, stackErr := internal.GetEcsFromStack(stackName, region, profile)
+		if stackErr != nil {
+			return "", "", fmt.Errorf("❌ エラー: %w", stackErr)
+		}
+		clusterName = serviceInfo.ClusterName
+		serviceName = serviceInfo.ServiceName
+		fmt.Println("🔍 検出されたクラスター: " + clusterName)
+		fmt.Println("🔍 検出されたサービス: " + serviceName)
+		return clusterName, serviceName, nil
+	} else if clusterName != "" && serviceName != "" {
+		return clusterName, serviceName, nil
+	} else {
+		return "", "", fmt.Errorf("❌ エラー: スタック名が指定されていない場合は、クラスター名 (-c) とサービス名 (-s) が必須です")
+	}
 }
