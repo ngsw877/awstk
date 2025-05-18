@@ -10,7 +10,7 @@ func StartSsmSession(instanceId, region, profile string) error {
 
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
-		"aws", "ssm", "start-session",
+		"ssm", "start-session",
 		"--target", instanceId,
 		"--region", region,
 	}
