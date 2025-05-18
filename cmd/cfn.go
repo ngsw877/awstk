@@ -11,6 +11,7 @@ import (
 var CfnCmd = &cobra.Command{
 	Use:   "cfn",
 	Short: "CloudFormationリソース操作コマンド",
+	Long:  "CloudFormationスタックおよびスタック内リソースを操作するCLIコマンド群です。",
 }
 
 // lsCmd represents the ls command
@@ -39,7 +40,68 @@ var cfnLsCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+// cfnStartCmd はCloudFormationスタック内のリソースを一括起動するコマンド
+var cfnStartCmd = &cobra.Command{
+	Use:   "start",
+	Short: "スタック内のリソースを一括起動するコマンド",
+	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で起動します。
+
+例:
+  awsfunc cfn start -S <stack-name> [-P <aws-profile>]
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if stackName == "" {
+			return fmt.Errorf("❌ エラー: CloudFormationスタック名は必須です (-S で指定)")
+		}
+
+		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括起動します...\n", stackName)
+
+		err := internal.StartAllStackResources(stackName, region, profile)
+		if err != nil {
+			fmt.Println("❌ スタック内の一部またはすべてのリソースの起動に失敗しました。")
+			return err
+		}
+
+		fmt.Println("✅ スタック内のリソースの起動を開始しました。")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
+// cfnStopCmd はCloudFormationスタック内のリソースを一括停止するコマンド
+var cfnStopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "スタック内のリソースを一括停止するコマンド",
+	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で停止します。
+
+例:
+  awsfunc cfn stop -S <stack-name> [-P <aws-profile>]
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if stackName == "" {
+			return fmt.Errorf("❌ エラー: CloudFormationスタック名は必須です (-S で指定)")
+		}
+
+		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括停止します...\n", stackName)
+
+		err := internal.StopAllStackResources(stackName, region, profile)
+		if err != nil {
+			fmt.Println("❌ スタック内の一部またはすべてのリソースの停止に失敗しました。")
+			return err
+		}
+
+		fmt.Println("✅ スタック内のリソースの停止を開始しました。")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
+	CfnCmd.AddCommand(cfnStartCmd)
+	CfnCmd.AddCommand(cfnStopCmd)
+
+	// スタック名フラグを追加
+	CfnCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

@@ -63,35 +63,40 @@ func ListCfnStacks(region, profile string) ([]string, error) {
 	return allStackNames, nil
 }
 
-// getResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
-func getResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
-	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+// 共通処理：スタックからリソース一覧を取得する内部関数
+func getStackResources(stackName, region, profile string) ([]types.StackResource, error) {
+	ctx := context.Background()
+	cfg, err := LoadAwsConfig(region, profile)
 	if err != nil {
-		return nil, nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
 
 	// CloudFormationクライアントを作成
 	cfnClient := cloudformation.NewFromConfig(cfg)
 
-	// スタックリソース一覧の取得
-	stackResources := []types.StackResourceSummary{}
-	var nextToken *string
+	// スタックからリソースを取得
+	fmt.Printf("🔍 スタック '%s' からリソースを検索中...\n", stackName)
+	resp, err := cfnClient.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
+	}
 
-	for {
-		resp, err := cfnClient.ListStackResources(context.TODO(), &cloudformation.ListStackResourcesInput{
-			StackName: aws.String(opts.StackName),
-			NextToken: nextToken,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("スタックリソース一覧取得エラー: %w", err)
-		}
+	// スタック存在確認
+	if len(resp.StackResources) == 0 {
+		return nil, fmt.Errorf("スタック '%s' にリソースが見つかりませんでした", stackName)
+	}
 
-		stackResources = append(stackResources, resp.StackResourceSummaries...)
+	return resp.StackResources, nil
+}
 
-		if resp.NextToken == nil {
-			break
-		}
-		nextToken = resp.NextToken
+// getCleanupResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
+func getCleanupResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
+	// 共通関数を使用してスタックリソースを取得
+	stackResources, err := getStackResources(opts.StackName, opts.Region, opts.Profile)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// S3バケットとECRリポジトリを抽出
@@ -116,4 +121,236 @@ func getResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
 	}
 
 	return s3Resources, ecrResources, nil
+}
+
+// StackResources はCloudFormationスタック内のリソース識別子を格納する構造体
+type StackResources struct {
+	Ec2InstanceIds   []string
+	RdsInstanceIds   []string
+	AuroraClusterIds []string
+	EcsServiceInfo   []EcsServiceInfo
+}
+
+// GetStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
+func GetStartStopResourcesFromStack(stackName, region, profile string) (StackResources, error) {
+	var result StackResources
+
+	// 共通関数を使用してスタックリソースを取得
+	stackResources, err := getStackResources(stackName, region, profile)
+	if err != nil {
+		return result, err
+	}
+
+	// 各リソースタイプをフィルタリング
+	for _, resource := range stackResources {
+		if resource.PhysicalResourceId == nil || *resource.PhysicalResourceId == "" {
+			continue
+		}
+
+		switch *resource.ResourceType {
+		case "AWS::EC2::Instance":
+			result.Ec2InstanceIds = append(result.Ec2InstanceIds, *resource.PhysicalResourceId)
+		case "AWS::RDS::DBInstance":
+			result.RdsInstanceIds = append(result.RdsInstanceIds, *resource.PhysicalResourceId)
+		case "AWS::RDS::DBCluster":
+			result.AuroraClusterIds = append(result.AuroraClusterIds, *resource.PhysicalResourceId)
+		}
+	}
+
+	// ECSサービス情報を取得（既存の関数を使用）
+	ecsInfo, err := GetEcsFromStack(stackName, region, profile)
+	if err == nil {
+		// エラーが発生しなかった場合のみ追加（ECSリソースがない場合もある）
+		result.EcsServiceInfo = append(result.EcsServiceInfo, ecsInfo)
+	}
+
+	return result, nil
+}
+
+// StartAllStackResources はスタック内のすべてのリソースを起動します
+func StartAllStackResources(stackName, region, profile string) error {
+	// スタックからリソースを取得（名前変更された関数を使用）
+	resources, err := GetStartStopResourcesFromStack(stackName, region, profile)
+	if err != nil {
+		return err
+	}
+
+	// 検出されたリソースのサマリーを表示
+	printResourcesSummary(resources)
+
+	errorsOccurred := false
+
+	// EC2インスタンスを起動
+	for _, instanceId := range resources.Ec2InstanceIds {
+		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", instanceId)
+		if err := StartEc2Instance(instanceId, region, profile); err != nil {
+			fmt.Printf("❌ EC2インスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ EC2インスタンス (%s) の起動を開始しました\n", instanceId)
+		}
+	}
+
+	// RDSインスタンスを起動
+	for _, instanceId := range resources.RdsInstanceIds {
+		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
+		if err := StartRdsInstance(instanceId, region, profile); err != nil {
+			fmt.Printf("❌ RDSインスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceId)
+		}
+	}
+
+	// Auroraクラスターを起動
+	for _, clusterId := range resources.AuroraClusterIds {
+		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterId)
+		if err := StartAuroraCluster(clusterId, region, profile); err != nil {
+			fmt.Printf("❌ Aurora DBクラスター (%s) の起動中にエラーが発生しました: %v\n", clusterId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ Aurora DBクラスター (%s) の起動を開始しました\n", clusterId)
+		}
+	}
+
+	// ECSサービスを起動
+	for _, ecsInfo := range resources.EcsServiceInfo {
+		fmt.Printf("🚀 ECSサービス (%s/%s) を起動します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
+		opts := ServiceCapacityOptions{
+			ClusterName: ecsInfo.ClusterName,
+			ServiceName: ecsInfo.ServiceName,
+			Region:      region,
+			Profile:     profile,
+			MinCapacity: 1, // デフォルト値として1を使用
+			MaxCapacity: 2, // デフォルト値として2を使用
+		}
+
+		if err := SetEcsServiceCapacity(opts); err != nil {
+			fmt.Printf("❌ ECSサービス (%s/%s) の起動中にエラーが発生しました: %v\n",
+				ecsInfo.ClusterName, ecsInfo.ServiceName, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ ECSサービス (%s/%s) の起動を開始しました\n",
+				ecsInfo.ClusterName, ecsInfo.ServiceName)
+		}
+	}
+
+	if errorsOccurred {
+		return fmt.Errorf("一部のリソースの起動中にエラーが発生しました")
+	}
+	return nil
+}
+
+// StopAllStackResources はスタック内のすべてのリソースを停止します
+func StopAllStackResources(stackName, region, profile string) error {
+	// スタックからリソースを取得（名前変更された関数を使用）
+	resources, err := GetStartStopResourcesFromStack(stackName, region, profile)
+	if err != nil {
+		return err
+	}
+
+	// 検出されたリソースのサマリーを表示
+	printResourcesSummary(resources)
+
+	errorsOccurred := false
+
+	// ECSサービスを停止（他のリソースより先に停止）
+	for _, ecsInfo := range resources.EcsServiceInfo {
+		fmt.Printf("🛑 ECSサービス (%s/%s) を停止します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
+		opts := ServiceCapacityOptions{
+			ClusterName: ecsInfo.ClusterName,
+			ServiceName: ecsInfo.ServiceName,
+			Region:      region,
+			Profile:     profile,
+			MinCapacity: 0,
+			MaxCapacity: 0,
+		}
+
+		if err := SetEcsServiceCapacity(opts); err != nil {
+			fmt.Printf("❌ ECSサービス (%s/%s) の停止中にエラーが発生しました: %v\n",
+				ecsInfo.ClusterName, ecsInfo.ServiceName, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ ECSサービス (%s/%s) の停止を開始しました\n",
+				ecsInfo.ClusterName, ecsInfo.ServiceName)
+		}
+	}
+
+	// EC2インスタンスを停止
+	for _, instanceId := range resources.Ec2InstanceIds {
+		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", instanceId)
+		if err := StopEc2Instance(instanceId, region, profile); err != nil {
+			fmt.Printf("❌ EC2インスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ EC2インスタンス (%s) の停止を開始しました\n", instanceId)
+		}
+	}
+
+	// RDSインスタンスを停止
+	for _, instanceId := range resources.RdsInstanceIds {
+		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
+		if err := StopRdsInstance(instanceId, region, profile); err != nil {
+			fmt.Printf("❌ RDSインスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceId)
+		}
+	}
+
+	// Auroraクラスターを停止
+	for _, clusterId := range resources.AuroraClusterIds {
+		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterId)
+		if err := StopAuroraCluster(clusterId, region, profile); err != nil {
+			fmt.Printf("❌ Aurora DBクラスター (%s) の停止中にエラーが発生しました: %v\n", clusterId, err)
+			errorsOccurred = true
+		} else {
+			fmt.Printf("✅ Aurora DBクラスター (%s) の停止を開始しました\n", clusterId)
+		}
+	}
+
+	if errorsOccurred {
+		return fmt.Errorf("一部のリソースの停止中にエラーが発生しました")
+	}
+	return nil
+}
+
+// printResourcesSummary はスタック内の検出されたリソースサマリーを表示します
+func printResourcesSummary(resources StackResources) {
+	fmt.Println("📋 検出されたリソース:")
+
+	if len(resources.Ec2InstanceIds) > 0 {
+		fmt.Println("  EC2インスタンス:")
+		for _, id := range resources.Ec2InstanceIds {
+			fmt.Println("   - " + id)
+		}
+	}
+
+	if len(resources.RdsInstanceIds) > 0 {
+		fmt.Println("  RDSインスタンス:")
+		for _, id := range resources.RdsInstanceIds {
+			fmt.Println("   - " + id)
+		}
+	}
+
+	if len(resources.AuroraClusterIds) > 0 {
+		fmt.Println("  Aurora DBクラスター:")
+		for _, id := range resources.AuroraClusterIds {
+			fmt.Println("   - " + id)
+		}
+	}
+
+	if len(resources.EcsServiceInfo) > 0 {
+		fmt.Println("  ECSサービス:")
+		for _, info := range resources.EcsServiceInfo {
+			fmt.Printf("   - %s/%s\n", info.ClusterName, info.ServiceName)
+		}
+	}
+
+	if len(resources.Ec2InstanceIds) == 0 &&
+		len(resources.RdsInstanceIds) == 0 &&
+		len(resources.AuroraClusterIds) == 0 &&
+		len(resources.EcsServiceInfo) == 0 {
+		fmt.Println("  操作可能なリソースは見つかりませんでした")
+	}
 }

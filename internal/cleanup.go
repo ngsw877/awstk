@@ -31,7 +31,7 @@ func CleanupResources(opts CleanupOptions) error {
 		fmt.Println("スタックに関連するリソースの削除を開始します...")
 
 		// スタックからリソース情報を取得
-		s3BucketNames, ecrRepoNames, err = getResourcesFromStack(opts)
+		s3BucketNames, ecrRepoNames, err = getCleanupResourcesFromStack(opts)
 		if err != nil {
 			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
 		}
