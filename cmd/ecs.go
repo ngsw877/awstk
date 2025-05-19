@@ -35,7 +35,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs exec -P my-profile -S my-stack
   awsfunc ecs exec -P my-profile -c my-cluster -s my-service -t app`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var clusterName, serviceName string
 		var err error
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
@@ -74,7 +73,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3
   awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var clusterName, serviceName string
 		var err error
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
@@ -123,7 +121,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs stop -P my-profile -c my-cluster -s my-service
   awsfunc ecs stop -P my-profile -S my-stack`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var clusterName, serviceName string
 		var err error
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
@@ -173,7 +170,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
   awsfunc ecs run -P my-profile -c my-cluster -s my-service -t app -C "echo hello"
   awsfunc ecs run -P my-profile -S my-stack -t app -d my-task-def:1 -C "echo hello"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var clusterName, serviceName string
 		var err error
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
