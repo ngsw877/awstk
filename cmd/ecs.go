@@ -250,13 +250,14 @@ func init() {
 
 // resolveEcsClusterAndService はフラグの値に基づいて
 // 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
-func resolveEcsClusterAndService() (clusterName string, serviceName string, err error) {
+func resolveEcsClusterAndService() (string, string, error) {
 	if stackName != "" {
 		fmt.Println("CloudFormationスタックからECS情報を取得します...")
 		serviceInfo, stackErr := internal.GetEcsFromStack(stackName, region, profile)
 		if stackErr != nil {
 			return "", "", fmt.Errorf("❌ エラー: %w", stackErr)
 		}
+		// グローバル変数に値をセットする（必要に応じて）
 		clusterName = serviceInfo.ClusterName
 		serviceName = serviceInfo.ServiceName
 		fmt.Println("🔍 検出されたクラスター: " + clusterName)
