@@ -1,8 +1,12 @@
 package internal
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,7 +38,7 @@ func ListS3Buckets(region, profile string) ([]string, error) {
 	return buckets, nil
 }
 
-// getS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
+// getS3BucketsByKeyword はキーワードに一致す���S3バケット名の一覧を取得します
 func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
 	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
 	if err != nil {
@@ -173,4 +177,89 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 	}
 
 	return nil
+}
+
+// DownloadAndExtractGzFiles 指定S3パス配下の.gzファイルを一括ダウンロード＆解凍
+func DownloadAndExtractGzFiles(s3url, outDir, region, profile string) error {
+	ctx := context.Background()
+	cfg, err := LoadAwsConfig(region, profile)
+	if err != nil {
+		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
+	}
+	bucket, prefix, err := parseS3Url(s3url)
+	if err != nil {
+		return err
+	}
+	client := s3.NewFromConfig(cfg)
+	// .gzファイル一覧取得
+	listInput := &s3.ListObjectsV2Input{
+		Bucket: &bucket,
+		Prefix: &prefix,
+	}
+	resp, err := client.ListObjectsV2(ctx, listInput)
+	if err != nil {
+		return fmt.Errorf("S3リスト取得失敗: %w", err)
+	}
+	if len(resp.Contents) == 0 {
+		return fmt.Errorf("指定パスに.gzファイルが見つかりませんでした")
+	}
+	for _, obj := range resp.Contents {
+		if !strings.HasSuffix(*obj.Key, ".gz") {
+			continue
+		}
+		getObjInput := &s3.GetObjectInput{
+			Bucket: &bucket,
+			Key:    obj.Key,
+		}
+		getObjOut, err := client.GetObject(ctx, getObjInput)
+		if err != nil {
+			return fmt.Errorf("ダウンロード失敗: %w", err)
+		}
+		defer getObjOut.Body.Close()
+		// ローカルパス生成
+		relPath := strings.TrimPrefix(*obj.Key, prefix)
+		if strings.HasPrefix(relPath, "/") {
+			relPath = relPath[1:]
+		}
+		outPath := filepath.Join(outDir, strings.TrimSuffix(relPath, ".gz"))
+		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+			return fmt.Errorf("ディレクトリ作成失敗: %w", err)
+		}
+		// 解凍して保存
+		gzr, err := gzip.NewReader(getObjOut.Body)
+		if err != nil {
+			return fmt.Errorf("gzip解凍失敗: %w", err)
+		}
+		f, err := os.Create(outPath)
+		if err != nil {
+			return fmt.Errorf("ファイル作成失敗: %w", err)
+		}
+		_, err = io.Copy(f, gzr)
+		gzr.Close()
+		f.Close()
+		if err != nil {
+			return fmt.Errorf("ファイル書き込み失敗: %w", err)
+		}
+		fmt.Printf("✅ %s を %s に保存しました\n", *obj.Key, outPath)
+	}
+	return nil
+}
+
+// parseS3Url s3://bucket/prefix/ 形式を分解
+func parseS3Url(s3url string) (bucket, prefix string, err error) {
+	if !strings.HasPrefix(s3url, "s3://") {
+		return "", "", fmt.Errorf("⚠️ S3パスは s3:// で始めてください")
+	}
+	noPrefix := strings.TrimPrefix(s3url, "s3://")
+	parts := strings.SplitN(noPrefix, "/", 2)
+	bucket = parts[0]
+	if len(parts) > 1 {
+		prefix = parts[1]
+	} else {
+		prefix = ""
+	}
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+	return bucket, prefix, nil
 }

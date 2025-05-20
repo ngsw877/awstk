@@ -35,7 +35,38 @@ var s3LsCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var s3GunzipCmd = &cobra.Command{
+	Use:   "gunzip [s3パス]",
+	Short: "S3の.gzファイルを一括ダウンロード＆解凍するコマンド",
+	Long: `S3バケット内の指定prefix配下に存在する全ての.gzファイルを一括でダウンロードし、解凍してローカルに保存するコマンドです。
+
+【使い方】
+  awsfunc s3 gunzip s3://my-bucket/some/prefix/ [-o 出力先ディレクトリ]
+
+【例】
+  awsfunc s3 gunzip s3://my-bucket/logs/ -o ./logs/
+  → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して ./logs/ に保存します。
+
+出力先ディレクトリを省略した場合は ./outputs/ に保存されます。`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		s3url := args[0]
+		outDir, _ := cmdCobra.Flags().GetString("out")
+		if outDir == "" {
+			outDir = "./outputs/"
+		}
+		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
+		if err := internal.DownloadAndExtractGzFiles(s3url, outDir, region, profile); err != nil {
+			return fmt.Errorf("❌ gunzip失敗: %w", err)
+		}
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(S3Cmd)
 	S3Cmd.AddCommand(s3LsCmd)
+	S3Cmd.AddCommand(s3GunzipCmd)
+	s3GunzipCmd.Flags().StringP("out", "o", "", "解凍ファイルの出力先ディレクトリ (デフォルト: ./outputs/)")
 }
