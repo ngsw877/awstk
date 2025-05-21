@@ -9,8 +9,9 @@ import (
 
 // S3Cmd represents the s3 command
 var S3Cmd = &cobra.Command{
-	Use:   "s3",
-	Short: "S3リソース操作コマンド",
+	Use:          "s3",
+	Short:        "S3リソース操作コマンド",
+	SilenceUsage: true,
 }
 
 // s3LsCmd represents the ls command
@@ -48,8 +49,12 @@ var s3GunzipCmd = &cobra.Command{
   → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して ./logs/ に保存します。
 
 出力先ディレクトリを省略した場合は ./outputs/ に保存されます。`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmdCobra.Help()
+			return nil
+		}
 		s3url := args[0]
 		outDir, _ := cmdCobra.Flags().GetString("out")
 		if outDir == "" {
