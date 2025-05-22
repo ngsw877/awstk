@@ -28,7 +28,8 @@ var ssmSessionStartCmd = &cobra.Command{
 		}
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
-		err := internal.StartSsmSession(ssmInstanceId, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StartSsmSession(awsCtx, ssmInstanceId)
 		if err != nil {
 			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
 			return err

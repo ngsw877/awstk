@@ -9,8 +9,8 @@ import (
 )
 
 // GetSecretValues は指定したシークレット名から全ての値を取得して返す
-func GetSecretValues(region, profile, secretName string) (map[string]interface{}, error) {
-	cfg, err := LoadAwsConfig(region, profile)
+func GetSecretValues(awsCtx AwsContext, secretName string) (map[string]interface{}, error) {
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +18,7 @@ func GetSecretValues(region, profile, secretName string) (map[string]interface{}
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId: &secretName,
 	}
-	result, err := client.GetSecretValue(context.TODO(), input)
+	result, err := client.GetSecretValue(context.Background(), input)
 	if err != nil {
 		return nil, err
 	}

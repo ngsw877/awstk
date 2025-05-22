@@ -71,7 +71,8 @@ var sesVerifyCmd = &cobra.Command{
 			return fmt.Errorf("メールアドレスが指定されていません")
 		}
 
-		failedEmails, err := internal.VerifySesEmails(region, profile, filtered)
+		awsCtx := getAwsContext()
+		failedEmails, err := internal.VerifySesEmails(awsCtx, filtered)
 		if err != nil {
 			return err
 		}

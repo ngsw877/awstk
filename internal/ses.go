@@ -9,8 +9,8 @@ import (
 )
 
 // VerifySesEmails はSESでメールアドレス検証リクエストを送信する
-func VerifySesEmails(region, profile string, emails []string) ([]string, error) {
-	cfg, err := LoadAwsConfig(region, profile)
+func VerifySesEmails(awsCtx AwsContext, emails []string) ([]string, error) {
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
@@ -18,7 +18,7 @@ func VerifySesEmails(region, profile string, emails []string) ([]string, error) 
 
 	var failedEmails []string
 	for _, email := range emails {
-		_, err := client.VerifyEmailIdentity(context.TODO(), &ses.VerifyEmailIdentityInput{
+		_, err := client.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
 			EmailAddress: aws.String(email),
 		})
 		if err != nil {

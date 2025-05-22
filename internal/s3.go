@@ -16,17 +16,14 @@ import (
 )
 
 // ListS3Buckets はS3バケット名の一覧を返す関数
-func ListS3Buckets(region, profile string) ([]string, error) {
-	cfg, err := LoadAwsConfig(region, profile)
+func ListS3Buckets(awsCtx AwsContext) ([]string, error) {
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create an Amazon S3 service client
 	client := s3.NewFromConfig(cfg)
-
-	// List all S3 buckets
-	result, err := client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+	result, err := client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +35,9 @@ func ListS3Buckets(region, profile string) ([]string, error) {
 	return buckets, nil
 }
 
-// getS3BucketsByKeyword はキーワードに一致す���S3バケット名の一覧を取得します
+// getS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
 func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
-	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	cfg, err := LoadAwsConfig(opts.AwsContext)
 	if err != nil {
 		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
@@ -67,7 +64,7 @@ func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
 
 // cleanupS3Buckets は指定したS3バケット一覧を削除します
 func cleanupS3Buckets(opts CleanupOptions, bucketNames []string) error {
-	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	cfg, err := LoadAwsConfig(opts.AwsContext)
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
@@ -180,9 +177,9 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 }
 
 // DownloadAndExtractGzFiles 指定S3パス配下の.gzファイルを一括ダウンロード＆解凍
-func DownloadAndExtractGzFiles(s3url, outDir, region, profile string) error {
+func DownloadAndExtractGzFiles(awsCtx AwsContext, s3url, outDir string) error {
 	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile)
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}

@@ -30,7 +30,8 @@ var auroraStartClusterCmd = &cobra.Command{
 		}
 		fmt.Printf("Aurora DBクラスター (%s) を起動します...\n", auroraClusterId)
 
-		err := internal.StartAuroraCluster(auroraClusterId, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StartAuroraCluster(awsCtx, auroraClusterId)
 
 		if err != nil {
 			fmt.Printf("❌ Aurora DBクラスターの起動に失敗しました。")
@@ -56,7 +57,8 @@ var auroraStopClusterCmd = &cobra.Command{
 		}
 		fmt.Printf("Aurora DBクラスター (%s) を停止します...\n", auroraClusterId)
 
-		err := internal.StopAuroraCluster(auroraClusterId, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StopAuroraCluster(awsCtx, auroraClusterId)
 		if err != nil {
 			fmt.Printf("❌ Aurora DBクラスターの停止に失敗しました。")
 			return err

@@ -5,11 +5,11 @@ import (
 )
 
 // CleanupOptions はクリーンアップ処理のパラメータを格納する構造体
+// AwsContextを埋め込んで共通化
 type CleanupOptions struct {
+	AwsContext
 	SearchString string // 検索文字列
 	StackName    string // CloudFormationスタック名
-	Region       string
-	Profile      string
 }
 
 // CleanupResources は指定した文字列を含むAWSリソースをクリーンアップします

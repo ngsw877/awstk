@@ -9,15 +9,14 @@ import (
 )
 
 // StartAuroraCluster Auroraクラスタを起動する
-func StartAuroraCluster(clusterId, region, profile string) error {
-	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile)
+func StartAuroraCluster(awsCtx AwsContext, clusterId string) error {
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
 
 	client := rds.NewFromConfig(cfg)
-	_, err = client.StartDBCluster(ctx, &rds.StartDBClusterInput{
+	_, err = client.StartDBCluster(context.Background(), &rds.StartDBClusterInput{
 		DBClusterIdentifier: aws.String(clusterId),
 	})
 	if err != nil {
@@ -27,15 +26,14 @@ func StartAuroraCluster(clusterId, region, profile string) error {
 }
 
 // StopAuroraCluster Auroraクラスタを停止する
-func StopAuroraCluster(clusterId, region, profile string) error {
-	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile)
+func StopAuroraCluster(awsCtx AwsContext, clusterId string) error {
+	cfg, err := LoadAwsConfig(awsCtx)
 	if err != nil {
 		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
 
 	client := rds.NewFromConfig(cfg)
-	_, err = client.StopDBCluster(ctx, &rds.StopDBClusterInput{
+	_, err = client.StopDBCluster(context.Background(), &rds.StopDBClusterInput{
 		DBClusterIdentifier: aws.String(clusterId),
 	})
 	if err != nil {

@@ -25,7 +25,7 @@ var secretsManagerGetCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
-		secretMap, err := internal.GetSecretValues(region, profile, secretName)
+		secretMap, err := internal.GetSecretValues(getAwsContext(), secretName)
 		if err != nil {
 			cmd.PrintErrf("エラー: %v\n", err)
 			return err

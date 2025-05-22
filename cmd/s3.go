@@ -19,7 +19,8 @@ var s3LsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "S3バケット一覧を表示するコマンド",
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		buckets, err := internal.ListS3Buckets(region, profile)
+		awsCtx := getAwsContext()
+		buckets, err := internal.ListS3Buckets(awsCtx)
 		if err != nil {
 			return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
 		}
@@ -61,7 +62,8 @@ var s3GunzipCmd = &cobra.Command{
 			outDir = "./outputs/"
 		}
 		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
-		if err := internal.DownloadAndExtractGzFiles(s3url, outDir, region, profile); err != nil {
+		awsCtx := getAwsContext()
+		if err := internal.DownloadAndExtractGzFiles(awsCtx, s3url, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)
 		}
 		return nil

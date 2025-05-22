@@ -32,7 +32,7 @@ var rdsStartInstanceCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("RDSインスタンス (%s) を起動します...\n", instanceId)
-		err = internal.StartRdsInstance(instanceId, region, profile)
+		err = internal.StartRdsInstance(getAwsContext(), instanceId)
 		if err != nil {
 			fmt.Printf("❌ RDSインスタンスの起動に失敗しました。")
 			return err
@@ -59,7 +59,7 @@ var rdsStopInstanceCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("RDSインスタンス (%s) を停止します...\n", instanceId)
-		err = internal.StopRdsInstance(instanceId, region, profile)
+		err = internal.StopRdsInstance(getAwsContext(), instanceId)
 		if err != nil {
 			fmt.Printf("❌ RDSインスタンスの停止に失敗しました。")
 			return err
@@ -93,7 +93,7 @@ func resolveRdsInstanceIdentifier() (instanceId string, err error) {
 	}
 	// -S でスタック名が指定された場合
 	fmt.Println("CloudFormationスタックからRDSインスタンス識別子を取得します...")
-	instanceId, err = internal.GetRdsFromStack(stackName, region, profile)
+	instanceId, err = internal.GetRdsFromStack(getAwsContext(), stackName)
 	if err != nil {
 		return "", fmt.Errorf("❌ エラー: スタックからRDSインスタンス識別子の取得に失敗しました: %w", err)
 	}

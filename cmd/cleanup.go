@@ -33,10 +33,9 @@ var CleanupCmd = &cobra.Command{
 
 		// internal パッケージのクリーンアップ関数を呼び出す
 		opts := internal.CleanupOptions{
+			AwsContext:   getAwsContext(),
 			SearchString: searchString,
 			StackName:    stackName, // root.goで定義されているStackName
-			Region:       region,    // root.goで定義されているRegion
-			Profile:      profile,   // root.goで定義されているProfile
 		}
 
 		err = internal.CleanupResources(opts)

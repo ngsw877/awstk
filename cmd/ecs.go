@@ -37,6 +37,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		awsCtx := getAwsContext()
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
@@ -44,14 +45,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// タスクIDを取得
-		taskId, err := internal.GetRunningTask(clusterName, serviceName, region, profile)
+		taskId, err := internal.GetRunningTask(awsCtx, clusterName, serviceName)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = internal.ExecuteCommand(clusterName, taskId, containerName, region, profile)
+		err = internal.ExecuteCommand(awsCtx, clusterName, taskId, containerName)
 		if err != nil {
 			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}
@@ -75,6 +76,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		awsCtx := getAwsContext()
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
@@ -85,21 +87,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		opts := internal.ServiceCapacityOptions{
 			ClusterName: clusterName,
 			ServiceName: serviceName,
-			Region:      region,
-			Profile:     profile,
 			MinCapacity: minCapacity,
 			MaxCapacity: maxCapacity,
 		}
 
 		// キャパシティを設定
 		fmt.Println(" サービスの起動を開始します...")
-		err = internal.SetEcsServiceCapacity(opts)
+		err = internal.SetEcsServiceCapacity(awsCtx, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// 起動完了を必ず待機
-		err = internal.WaitForServiceStatus(opts, minCapacity, timeoutSeconds)
+		err = internal.WaitForServiceStatus(awsCtx, opts, minCapacity, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
 		}
@@ -123,6 +123,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		awsCtx := getAwsContext()
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
@@ -133,21 +134,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		opts := internal.ServiceCapacityOptions{
 			ClusterName: clusterName,
 			ServiceName: serviceName,
-			Region:      region,
-			Profile:     profile,
 			MinCapacity: 0,
 			MaxCapacity: 0,
 		}
 
 		// キャパシティを設定
 		fmt.Println(" サービスの停止を開始します...")
-		err = internal.SetEcsServiceCapacity(opts)
+		err = internal.SetEcsServiceCapacity(awsCtx, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// 停止完了を必ず待機
-		err = internal.WaitForServiceStatus(opts, 0, timeoutSeconds)
+		err = internal.WaitForServiceStatus(awsCtx, opts, 0, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
 		}
@@ -172,6 +171,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
+		awsCtx := getAwsContext()
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
@@ -185,14 +185,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			TaskDefinition: taskDefinition,
 			ContainerName:  containerName,
 			Command:        commandString,
-			Region:         region,
-			Profile:        profile,
+			Region:         awsCtx.Region,
+			Profile:        awsCtx.Profile,
 			TimeoutSeconds: timeoutSeconds,
 		}
 
 		// タスクを実行して完了を待機
 		fmt.Println("🚀 ECSタスクを実行します...")
-		exitCode, err := internal.RunAndWaitForTask(opts)
+		exitCode, err := internal.RunAndWaitForTask(awsCtx, opts)
 		if err != nil {
 			return fmt.Errorf("❌ タスク実行エラー: %w", err)
 		}
@@ -249,7 +249,8 @@ func init() {
 func resolveEcsClusterAndService() (string, string, error) {
 	if stackName != "" {
 		fmt.Println("CloudFormationスタックからECS情報を取得します...")
-		serviceInfo, stackErr := internal.GetEcsFromStack(stackName, region, profile)
+		awsContext := getAwsContext()
+		serviceInfo, stackErr := internal.GetEcsFromStack(awsContext, stackName)
 		if stackErr != nil {
 			return "", "", fmt.Errorf("❌ エラー: %w", stackErr)
 		}

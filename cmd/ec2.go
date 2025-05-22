@@ -30,7 +30,8 @@ var ec2StartInstanceCmd = &cobra.Command{
 		}
 		fmt.Printf("EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
 
-		err := internal.StartEc2Instance(ec2InstanceId, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StartEc2Instance(awsCtx, ec2InstanceId)
 		if err != nil {
 			fmt.Printf("❌ EC2インスタンスの起動に失敗しました。")
 			return err
@@ -56,7 +57,8 @@ var ec2StopInstanceCmd = &cobra.Command{
 		}
 		fmt.Printf("EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
 
-		err := internal.StopEc2Instance(ec2InstanceId, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StopEc2Instance(awsCtx, ec2InstanceId)
 		if err != nil {
 			fmt.Printf("❌ EC2インスタンスの停止に失敗しました。")
 			return err

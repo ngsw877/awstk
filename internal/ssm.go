@@ -6,16 +6,15 @@ import (
 )
 
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
-func StartSsmSession(instanceId, region, profile string) error {
-
+func StartSsmSession(awsCtx AwsContext, instanceId string) error {
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
 		"ssm", "start-session",
 		"--target", instanceId,
-		"--region", region,
+		"--region", awsCtx.Region,
 	}
-	if profile != "" {
-		args = append(args, "--profile", profile)
+	if awsCtx.Profile != "" {
+		args = append(args, "--profile", awsCtx.Profile)
 	}
 
 	// コマンドを実行

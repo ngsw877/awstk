@@ -12,7 +12,7 @@ import (
 
 // getEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
 func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
-	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	cfg, err := LoadAwsConfig(AwsContext{Region: opts.Region, Profile: opts.Profile})
 	if err != nil {
 		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
@@ -49,7 +49,7 @@ func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
 
 // cleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
 func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
-	cfg, err := LoadAwsConfig(opts.Region, opts.Profile)
+	cfg, err := LoadAwsConfig(AwsContext{Region: opts.Region, Profile: opts.Profile})
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}

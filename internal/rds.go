@@ -10,15 +10,14 @@ import (
 )
 
 // StartRdsInstance RDSインスタンスを起動する
-func StartRdsInstance(instanceId, region, profile string) error {
-	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile)
+func StartRdsInstance(awsContext AwsContext, instanceId string) error {
+	cfg, err := LoadAwsConfig(awsContext)
 	if err != nil {
 		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
 
 	client := rds.NewFromConfig(cfg)
-	_, err = client.StartDBInstance(ctx, &rds.StartDBInstanceInput{
+	_, err = client.StartDBInstance(context.Background(), &rds.StartDBInstanceInput{
 		DBInstanceIdentifier: aws.String(instanceId),
 	})
 	if err != nil {
@@ -28,15 +27,14 @@ func StartRdsInstance(instanceId, region, profile string) error {
 }
 
 // StopRdsInstance RDSインスタンスを停止する
-func StopRdsInstance(instanceId, region, profile string) error {
-	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile)
+func StopRdsInstance(awsContext AwsContext, instanceId string) error {
+	cfg, err := LoadAwsConfig(awsContext)
 	if err != nil {
 		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
 
 	client := rds.NewFromConfig(cfg)
-	_, err = client.StopDBInstance(ctx, &rds.StopDBInstanceInput{
+	_, err = client.StopDBInstance(context.Background(), &rds.StopDBInstanceInput{
 		DBInstanceIdentifier: aws.String(instanceId),
 	})
 	if err != nil {
@@ -46,9 +44,8 @@ func StopRdsInstance(instanceId, region, profile string) error {
 }
 
 // GetRdsFromStack はCloudFormationスタック名からRDSインスタンス識別子を取得します。
-func GetRdsFromStack(stackName, region, profile string) (string, error) {
-	ctx := context.Background()
-	cfg, err := LoadAwsConfig(region, profile) // Assuming LoadAwsConfig is available
+func GetRdsFromStack(awsContext AwsContext, stackName string) (string, error) {
+	cfg, err := LoadAwsConfig(awsContext) // Assuming LoadAwsConfig is available
 	if err != nil {
 		return "", fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
@@ -56,7 +53,7 @@ func GetRdsFromStack(stackName, region, profile string) (string, error) {
 	cfnClient := cloudformation.NewFromConfig(cfg)
 
 	// DescribeStackResources でスタック内のリソース一覧を取得
-	resp, err := cfnClient.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{
+	resp, err := cfnClient.DescribeStackResources(context.Background(), &cloudformation.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),
 	})
 	if err != nil {

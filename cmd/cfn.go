@@ -21,7 +21,8 @@ var cfnLsCmd = &cobra.Command{
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		fmt.Println("CloudFormationスタックを取得中...")
 
-		stackNames, err := internal.ListCfnStacks(region, profile)
+		awsCtx := getAwsContext()
+		stackNames, err := internal.ListCfnStacks(awsCtx)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}
@@ -56,7 +57,8 @@ var cfnStartCmd = &cobra.Command{
 
 		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括起動します...\n", stackName)
 
-		err := internal.StartAllStackResources(stackName, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StartAllStackResources(awsCtx, stackName)
 		if err != nil {
 			fmt.Println("❌ スタック内の一部またはすべてのリソースの起動に失敗しました。")
 			return err
@@ -84,7 +86,8 @@ var cfnStopCmd = &cobra.Command{
 
 		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括停止します...\n", stackName)
 
-		err := internal.StopAllStackResources(stackName, region, profile)
+		awsCtx := getAwsContext()
+		err := internal.StopAllStackResources(awsCtx, stackName)
 		if err != nil {
 			fmt.Println("❌ スタック内の一部またはすべてのリソースの停止に失敗しました。")
 			return err
