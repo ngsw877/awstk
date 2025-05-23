@@ -3,6 +3,7 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -21,14 +22,22 @@ var ssmSessionStartCmd = &cobra.Command{
 
 例:
   awsfunc ssm session -i <ec2-instance-id> [-P <aws-profile>]
+  awsfunc ssm session [-P <aws-profile>]  # インスタンス一覧から選択
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		awsCtx := getAwsContext()
+
+		// -iオプションが指定されていない場合、インスタンス一覧から選択
 		if ssmInstanceId == "" {
-			return fmt.Errorf("❌ EC2インスタンスIDは必須です")
+			selectedInstanceId, err := internal.SelectInstanceInteractively(awsCtx)
+			if err != nil {
+				return err
+			}
+			ssmInstanceId = selectedInstanceId
 		}
+
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
-		awsCtx := getAwsContext()
 		err := internal.StartSsmSession(awsCtx, ssmInstanceId)
 		if err != nil {
 			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
@@ -44,5 +53,5 @@ var ssmSessionStartCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(ssmCmd)
 	ssmCmd.AddCommand(ssmSessionStartCmd)
-	ssmCmd.PersistentFlags().StringVarP(&ssmInstanceId, "instance-id", "i", "", "EC2インスタンスID（必須）")
+	ssmCmd.PersistentFlags().StringVarP(&ssmInstanceId, "instance-id", "i", "", "EC2インスタンスID（省略時は一覧から選択）")
 }
