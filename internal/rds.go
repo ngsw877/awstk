@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
@@ -44,24 +43,15 @@ func StopRdsInstance(awsContext AwsContext, instanceId string) error {
 }
 
 // GetRdsFromStack はCloudFormationスタック名からRDSインスタンス識別子を取得します。
-func GetRdsFromStack(awsContext AwsContext, stackName string) (string, error) {
-	cfg, err := LoadAwsConfig(awsContext) // Assuming LoadAwsConfig is available
-	if err != nil {
-		return "", fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
+func GetRdsFromStack(awsCtx AwsContext, stackName string) (string, error) {
 
-	cfnClient := cloudformation.NewFromConfig(cfg)
-
-	// DescribeStackResources でスタック内のリソース一覧を取得
-	resp, err := cfnClient.DescribeStackResources(context.Background(), &cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stackName),
-	})
+	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {
 		return "", fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
 	// リソースの中からRDS DBInstanceを探す
-	for _, resource := range resp.StackResources {
+	for _, resource := range stackResources {
 		if resource.ResourceType != nil && *resource.ResourceType == "AWS::RDS::DBInstance" {
 			if resource.PhysicalResourceId != nil && *resource.PhysicalResourceId != "" {
 				// 見つかった最初のRDSインスタンスのPhysicalResourceIdを返す

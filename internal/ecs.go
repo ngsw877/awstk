@@ -11,7 +11,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
@@ -32,26 +31,14 @@ type EcsServiceInfo struct {
 func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error) {
 	var result EcsServiceInfo
 
-	cfg, err := LoadAwsConfig(awsCtx)
+	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {
-		return result, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// CloudFormationクライアントを作成
-	cfnClient := cloudformation.NewFromConfig(cfg)
-
-	// スタックからクラスターリソースを取得
-	fmt.Println("🔍 スタック '" + stackName + "' からECSクラスターを検索中...")
-	clusterResources, err := cfnClient.DescribeStackResources(context.TODO(), &cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stackName),
-	})
-	if err != nil {
-		return result, fmt.Errorf("スタックリソース取得エラー: %w", err)
+		return result, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
 	// クラスターリソースをフィルタリング
 	var clusterPhysicalIds []string
-	for _, resource := range clusterResources.StackResources {
+	for _, resource := range stackResources {
 		if *resource.ResourceType == "AWS::ECS::Cluster" {
 			clusterPhysicalIds = append(clusterPhysicalIds, *resource.PhysicalResourceId)
 		}
@@ -79,7 +66,7 @@ func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error
 	// サービスリソースをフィルタリング
 	fmt.Println("🔍 スタック '" + stackName + "' からECSサービスを検索中...")
 	var servicePhysicalIds []string
-	for _, resource := range clusterResources.StackResources {
+	for _, resource := range stackResources {
 		if *resource.ResourceType == "AWS::ECS::Service" {
 			servicePhysicalIds = append(servicePhysicalIds, *resource.PhysicalResourceId)
 		}
