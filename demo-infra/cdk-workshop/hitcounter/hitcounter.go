@@ -1,9 +1,12 @@
 package hitcounter
 
 import (
+	"strings"
+
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awss3assets"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -39,9 +42,26 @@ func NewHitCounter(scope constructs.Construct, id string, props *HitCounterProps
 	})
 
 	handler := awslambda.NewFunction(this, jsii.String("HitCounterHandler"), &awslambda.FunctionProps{
-		Runtime: awslambda.Runtime_NODEJS_16_X(),
-		Code:    awslambda.Code_FromAsset(jsii.String("lambda"), nil),
-		Handler: jsii.String("hitcounter.handler"),
+		Runtime: awslambda.Runtime_PROVIDED_AL2023(),
+		Code: awslambda.Code_FromAsset(jsii.String("lambda/hitcounter"), &awss3assets.AssetOptions{
+			Bundling: &awscdk.BundlingOptions{
+				Image: awscdk.DockerImage_FromRegistry(jsii.String("golang:1.24")),
+				Command: &[]*string{
+					jsii.String("bash"),
+					jsii.String("-c"),
+					jsii.String(strings.Join([]string{
+						"export GOCACHE=/tmp/go-cache",
+						"export GOPATH=/tmp/go-path",
+						"CGO_ENABLED=0",
+						"GOOS=linux",
+						"GOARCH=arm64",
+						"go build -tags lambda.norpc -o /asset-output/bootstrap main.go",
+					}, " && ")),
+				},
+			},
+		}),
+		Handler:      jsii.String("bootstrap"),
+		Architecture: awslambda.Architecture_ARM_64(),
 		Environment: &map[string]*string{
 			"DOWNSTREAM_FUNCTION_NAME": props.Downstream.FunctionName(),
 			"HITS_TABLE_NAME":          table.TableName(),
