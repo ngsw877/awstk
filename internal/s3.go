@@ -260,3 +260,244 @@ func parseS3Url(s3url string) (bucket, prefix string, err error) {
 	}
 	return bucket, prefix, nil
 }
+
+// S3Object はS3オブジェクトの情報を格納する構造体
+type S3Object struct {
+	Key          string
+	Size         int64
+	LastModified time.Time
+}
+
+// listS3Objects 指定されたバケット内のオブジェクト一覧を再帰的に取得します
+func listS3Objects(awsCtx AwsContext, bucketName string, prefix string) ([]S3Object, error) {
+	cfg, err := LoadAwsConfig(awsCtx)
+	if err != nil {
+		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
+	}
+
+	client := s3.NewFromConfig(cfg)
+
+	var objects []S3Object
+
+	// ListObjectsV2Inputを使って再帰的にオブジェクト一覧を取得
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucketName),
+		Prefix: aws.String(prefix),
+		// Delimiterを指定しないことで再帰的に全オブジェクトを取得
+	}
+
+	// ページネーションを考慮して、全オブジェクトを取得
+	paginator := s3.NewListObjectsV2Paginator(client, input)
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("S3オブジェクト一覧のページ取得に失敗: %w", err)
+		}
+
+		for _, obj := range page.Contents {
+			if obj.Key != nil {
+				objects = append(objects, S3Object{
+					Key:          *obj.Key,
+					Size:         *obj.Size,
+					LastModified: *obj.LastModified,
+				})
+			}
+		}
+	}
+
+	return objects, nil
+}
+
+// TreeNode はツリー構造のノードを表現する構造体
+type TreeNode struct {
+	Name     string
+	IsDir    bool
+	Children map[string]*TreeNode
+	Object   *S3Object // ファイルの場合のみ設定
+}
+
+// buildTreeFromObjects S3オブジェクトリストからツリー構造を構築します
+func buildTreeFromObjects(objects []S3Object, prefix string) *TreeNode {
+	root := &TreeNode{
+		Name:     "",
+		IsDir:    true,
+		Children: make(map[string]*TreeNode),
+	}
+
+	for _, obj := range objects {
+		// プレフィックスを除去した相対パスを取得
+		relativePath := strings.TrimPrefix(obj.Key, prefix)
+		if strings.HasPrefix(relativePath, "/") {
+			relativePath = relativePath[1:]
+		}
+
+		// 空のパスはスキップ
+		if relativePath == "" {
+			continue
+		}
+
+		// パスを分割してツリーに追加
+		parts := strings.Split(relativePath, "/")
+		current := root
+
+		// ディレクトリ部分を処理
+		for _, part := range parts[:len(parts)-1] {
+			if part == "" {
+				continue
+			}
+
+			if current.Children[part] == nil {
+				current.Children[part] = &TreeNode{
+					Name:     part,
+					IsDir:    true,
+					Children: make(map[string]*TreeNode),
+				}
+			}
+			current = current.Children[part]
+		}
+
+		// ファイル部分を処理
+		fileName := parts[len(parts)-1]
+		if fileName != "" {
+			current.Children[fileName] = &TreeNode{
+				Name:   fileName,
+				IsDir:  false,
+				Object: &obj,
+			}
+		}
+	}
+
+	return root
+}
+
+// displayTree ツリー構造を表示します
+func displayTree(node *TreeNode, prefix string, isLast bool, humanReadable bool, showTime bool) {
+	if node.Name != "" {
+		connector := "├── "
+		if isLast {
+			connector = "└── "
+		}
+
+		if node.IsDir {
+			fmt.Printf("%s%s%s/\n", prefix, connector, node.Name)
+		} else {
+			if humanReadable && node.Object != nil {
+				// ファイルサイズを人間が読める形式で表示
+				sizeStr := formatFileSize(node.Object.Size)
+				if showTime {
+					// 更新日時も表示（括弧を分ける）
+					timeStr := node.Object.LastModified.Format("2006-01-02 15:04:05")
+					fmt.Printf("%s%s%s (%s) [%s]\n", prefix, connector, node.Name, sizeStr, timeStr)
+				} else {
+					fmt.Printf("%s%s%s (%s)\n", prefix, connector, node.Name, sizeStr)
+				}
+			} else {
+				fmt.Printf("%s%s%s\n", prefix, connector, node.Name)
+			}
+		}
+	}
+
+	// 子ノードをソートして表示
+	var names []string
+	for name := range node.Children {
+		names = append(names, name)
+	}
+
+	// ディレクトリを先に、ファイルを後に表示するためのソート
+	dirs := []string{}
+	files := []string{}
+	for _, name := range names {
+		if node.Children[name].IsDir {
+			dirs = append(dirs, name)
+		} else {
+			files = append(files, name)
+		}
+	}
+
+	// ディレクトリとファイルそれぞれをアルファベット順にソート
+	for i := 0; i < len(dirs); i++ {
+		for j := i + 1; j < len(dirs); j++ {
+			if dirs[i] > dirs[j] {
+				dirs[i], dirs[j] = dirs[j], dirs[i]
+			}
+		}
+	}
+	for i := 0; i < len(files); i++ {
+		for j := i + 1; j < len(files); j++ {
+			if files[i] > files[j] {
+				files[i], files[j] = files[j], files[i]
+			}
+		}
+	}
+
+	// 統合したリスト
+	allNames := append(dirs, files...)
+
+	for i, name := range allNames {
+		child := node.Children[name]
+		isLastChild := (i == len(allNames)-1)
+
+		var newPrefix string
+		if node.Name == "" {
+			// ルートノードの場合
+			newPrefix = prefix
+		} else {
+			if isLast {
+				newPrefix = prefix + "    "
+			} else {
+				newPrefix = prefix + "│   "
+			}
+		}
+
+		displayTree(child, newPrefix, isLastChild, humanReadable, showTime)
+	}
+}
+
+// formatFileSize ファイルサイズを人間が読める形式でフォーマットします
+func formatFileSize(size int64) string {
+	const unit = 1024
+	if size < unit {
+		return fmt.Sprintf("%d B", size)
+	}
+	div, exp := int64(unit), 0
+	for n := size / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(size)/float64(div), "KMGTPE"[exp])
+}
+
+// ListS3TreeView 指定されたS3パスをツリー形式で表示します
+func ListS3TreeView(awsCtx AwsContext, s3Path string, showTime bool) error {
+	bucketName, prefix, err := parseS3Url(s3Path)
+	if err != nil {
+		return fmt.Errorf("S3パスの形式が不正です: %w", err)
+	}
+
+	// ParseS3Urlは末尾に"/"を追加するので、必要に応じて除去
+	prefix = strings.TrimSuffix(prefix, "/")
+
+	if showTime {
+		fmt.Printf("S3パス '%s' の中身 (サイズ + 更新日時):\n", s3Path)
+	} else {
+		fmt.Printf("S3パス '%s' の中身:\n", s3Path)
+	}
+
+	objects, err := listS3Objects(awsCtx, bucketName, prefix)
+	if err != nil {
+		return fmt.Errorf("S3オブジェクト一覧取得でエラー: %w", err)
+	}
+
+	if len(objects) == 0 {
+		fmt.Println("オブジェクトが見つかりませんでした")
+		return nil
+	}
+
+	// ツリー構造を構築して表示
+	tree := buildTreeFromObjects(objects, prefix)
+	displayTree(tree, "", true, true, showTime)
+
+	fmt.Printf("\n📊 合計: %d オブジェクト\n", len(objects))
+	return nil
+}

@@ -16,22 +16,48 @@ var S3Cmd = &cobra.Command{
 
 // s3LsCmd represents the ls command
 var s3LsCmd = &cobra.Command{
-	Use:   "ls",
-	Short: "S3バケット一覧を表示するコマンド",
+	Use:   "ls [s3-path]",
+	Short: "S3バケット一覧、または指定S3パスをツリー形式で表示するコマンド",
+	Long: `S3バケット一覧または指定されたS3パス以下のオブジェクトをツリー形式で表示します。
+S3パスを指定した場合、デフォルトでファイルサイズが表示されます。
+
+【使い方】
+  awsfunc s3 ls                          # バケット一覧を表示
+  awsfunc s3 ls s3://my-bucket           # バケット内をツリー形式で表示（サイズ付き）
+  awsfunc s3 ls s3://my-bucket/prefix/   # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
+  awsfunc s3 ls s3://my-bucket -t        # 更新日時も一緒に表示
+
+【例】
+  awsfunc s3 ls s3://my-bucket/logs/ -t
+  → my-bucket/logs/ 配下のオブジェクトをツリー形式でサイズ + 更新日時付きで表示します。`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
-		buckets, err := internal.ListS3Buckets(awsCtx)
-		if err != nil {
-			return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
+		showTime, _ := cmdCobra.Flags().GetBool("time")
+
+		if len(args) == 0 {
+			// 引数がない場合はバケット一覧表示
+			buckets, err := internal.ListS3Buckets(awsCtx)
+			if err != nil {
+				return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
+			}
+			if len(buckets) == 0 {
+				fmt.Println("S3バケットが見つかりませんでした")
+				return nil
+			}
+			fmt.Println("S3バケット一覧:")
+			for _, name := range buckets {
+				fmt.Println("  -", name)
+			}
+		} else {
+			// 引数がある場合は指定S3パスをツリー形式で表示
+			s3Path := args[0]
+			err := internal.ListS3TreeView(awsCtx, s3Path, showTime)
+			if err != nil {
+				return fmt.Errorf("❌ %w", err)
+			}
 		}
-		if len(buckets) == 0 {
-			fmt.Println("S3バケットが見つかりませんでした")
-			return nil
-		}
-		fmt.Println("S3バケット一覧:")
-		for _, name := range buckets {
-			fmt.Println("  -", name)
-		}
+
 		return nil
 	},
 	SilenceUsage: true,
@@ -76,4 +102,7 @@ func init() {
 	S3Cmd.AddCommand(s3LsCmd)
 	S3Cmd.AddCommand(s3GunzipCmd)
 	s3GunzipCmd.Flags().StringP("out", "o", "", "解凍ファイルの出力先ディレクトリ (デフォルト: ./outputs/)")
+
+	// ls コマンドに --time フラグを追加
+	s3LsCmd.Flags().BoolP("time", "t", false, "ファイルの更新日時も一緒に表示")
 }
