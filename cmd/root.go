@@ -46,7 +46,7 @@ func init() {
 	// when this action is called directly.
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	RootCmd.PersistentFlags().StringVarP(&region, "region", "r", "ap-northeast-1", "AWSリージョン")
+	RootCmd.PersistentFlags().StringVarP(&region, "region", "R", "ap-northeast-1", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&profile, "profile", "P", "", "AWSプロファイル")
 	RootCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 
