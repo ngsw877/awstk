@@ -29,11 +29,22 @@ type EcsServiceInfo struct {
 }
 
 func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error) {
-	var result EcsServiceInfo
+	services, err := GetAllEcsFromStack(awsCtx, stackName)
+	if err != nil {
+		return EcsServiceInfo{}, err
+	}
+
+	// 対話的選択機能を使用
+	return selectEcsServiceInfo(services)
+}
+
+// GetAllEcsFromStack はスタック内のすべてのECSサービス情報を取得します
+func GetAllEcsFromStack(awsCtx AwsContext, stackName string) ([]EcsServiceInfo, error) {
+	var results []EcsServiceInfo
 
 	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {
-		return result, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
+		return results, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
 	// クラスターリソースをフィルタリング
@@ -41,27 +52,13 @@ func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error
 	for _, resource := range stackResources {
 		if *resource.ResourceType == "AWS::ECS::Cluster" {
 			clusterPhysicalIds = append(clusterPhysicalIds, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたECSクラスター: %s\n", *resource.PhysicalResourceId)
 		}
 	}
 
 	if len(clusterPhysicalIds) == 0 {
-		return result, errors.New("スタック '" + stackName + "' からECSクラスターを検出できませんでした")
+		return results, errors.New("スタック '" + stackName + "' からECSクラスターを検出できませんでした")
 	}
-
-	// 複数のクラスターがある場合は警告を表示
-	if len(clusterPhysicalIds) > 1 {
-		fmt.Println("⚠️ 警告: スタック '" + stackName + "' に複数のECSクラスターが見つかりました。最初のクラスターを使用します:")
-		for i, id := range clusterPhysicalIds {
-			if i == 0 {
-				fmt.Println(" * " + id + " (使用するクラスター)")
-			} else {
-				fmt.Println(" * " + id)
-			}
-		}
-	}
-
-	// 最初のクラスターを使用
-	result.ClusterName = clusterPhysicalIds[0]
 
 	// サービスリソースをフィルタリング
 	fmt.Println("🔍 スタック '" + stackName + "' からECSサービスを検索中...")
@@ -73,37 +70,79 @@ func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error
 	}
 
 	if len(servicePhysicalIds) == 0 {
-		return result, errors.New("スタック '" + stackName + "' からECSサービスを検出できませんでした")
+		return results, errors.New("スタック '" + stackName + "' からECSサービスを検出できませんでした")
 	}
 
-	// サービス名を抽出 (形式: arn:aws:ecs:REGION:ACCOUNT:service/CLUSTER/SERVICE_NAME)
-	serviceName := servicePhysicalIds[0]
-	parts := strings.Split(serviceName, "/")
-	if len(parts) > 0 {
-		result.ServiceName = parts[len(parts)-1]
-	} else {
-		result.ServiceName = serviceName
-	}
+	// 各サービスについてクラスターとの組み合わせを作成
+	for _, serviceArn := range servicePhysicalIds {
+		// サービス名を抽出 (形式: arn:aws:ecs:REGION:ACCOUNT:service/CLUSTER/SERVICE_NAME)
+		parts := strings.Split(serviceArn, "/")
+		if len(parts) < 2 {
+			continue // 不正な形式はスキップ
+		}
 
-	// 複数のサービスがある場合は警告を表示
-	if len(servicePhysicalIds) > 1 {
-		fmt.Println("⚠️ 警告: スタック '" + stackName + "' に複数のECSサービスが見つかりました。最初のサービスを使用します:")
-		for i, id := range servicePhysicalIds {
-			serviceName := id
-			parts := strings.Split(serviceName, "/")
-			if len(parts) > 0 {
-				serviceName = parts[len(parts)-1]
+		clusterNameFromArn := parts[len(parts)-2]
+		serviceName := parts[len(parts)-1]
+
+		// ARNから抽出したクラスター名がスタック内のクラスターと一致するかチェック
+		var matchedClusterName string
+		for _, clusterId := range clusterPhysicalIds {
+			// クラスター名の完全一致またはクラスターARNの末尾一致をチェック
+			if clusterId == clusterNameFromArn || strings.HasSuffix(clusterId, "/"+clusterNameFromArn) {
+				matchedClusterName = clusterId
+				break
+			}
+		}
+
+		// マッチしたクラスターがある場合のみ追加
+		if matchedClusterName != "" {
+			// クラスター名を正規化（ARNの場合は名前部分のみ抽出）
+			displayClusterName := matchedClusterName
+			if strings.Contains(matchedClusterName, "/") {
+				clusterParts := strings.Split(matchedClusterName, "/")
+				displayClusterName = clusterParts[len(clusterParts)-1]
 			}
 
-			if i == 0 {
-				fmt.Println(" * " + serviceName + " (使用するサービス)")
-			} else {
-				fmt.Println(" * " + serviceName)
-			}
+			results = append(results, EcsServiceInfo{
+				ClusterName: displayClusterName,
+				ServiceName: serviceName,
+			})
+			fmt.Printf("🔍 検出されたECSサービス: %s/%s\n", displayClusterName, serviceName)
+		} else {
+			fmt.Printf("⚠️ 警告: サービス %s のクラスター %s がスタック内で見つかりませんでした\n", serviceName, clusterNameFromArn)
 		}
 	}
 
-	return result, nil
+	if len(results) == 0 {
+		return results, errors.New("スタック '" + stackName + "' から有効なECSサービスを検出できませんでした")
+	}
+
+	return results, nil
+}
+
+// selectEcsServiceInfo は複数のECSサービス情報から1つを選択させるプライベート関数
+func selectEcsServiceInfo(services []EcsServiceInfo) (EcsServiceInfo, error) {
+	if len(services) == 0 {
+		return EcsServiceInfo{}, fmt.Errorf("ECSサービスが見つかりません")
+	}
+
+	if len(services) == 1 {
+		fmt.Printf("✅ ECSサービス: %s/%s (自動選択)\n", services[0].ClusterName, services[0].ServiceName)
+		return services[0], nil
+	}
+
+	// 選択肢の文字列配列を作成
+	options := make([]string, len(services))
+	for i, service := range services {
+		options[i] = fmt.Sprintf("%s/%s", service.ClusterName, service.ServiceName)
+	}
+
+	selectedIndex, err := SelectFromOptions("複数のECSサービスが見つかりました", options)
+	if err != nil {
+		return EcsServiceInfo{}, err
+	}
+
+	return services[selectedIndex], nil
 }
 
 func GetRunningTask(awsCtx AwsContext, clusterName, serviceName string) (string, error) {

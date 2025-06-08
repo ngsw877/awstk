@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -154,14 +155,26 @@ func GetStartStopResourcesFromStack(awsCtx AwsContext, stackName string) (StackR
 			result.RdsInstanceIds = append(result.RdsInstanceIds, *resource.PhysicalResourceId)
 		case "AWS::RDS::DBCluster":
 			result.AuroraClusterIds = append(result.AuroraClusterIds, *resource.PhysicalResourceId)
-		}
-	}
+		case "AWS::ECS::Service":
+			// ECSサービスARNからクラスター名とサービス名を抽出
+			serviceArn := *resource.PhysicalResourceId
+			parts := strings.Split(serviceArn, "/")
+			if len(parts) >= 2 {
+				clusterName := parts[len(parts)-2]
+				serviceName := parts[len(parts)-1]
 
-	// ECSサービス情報を取得（既存の関数を使用）
-	ecsInfo, err := GetEcsFromStack(awsCtx, stackName)
-	if err == nil {
-		// エラーが発生しなかった場合のみ追加（ECSリソースがない場合もある）
-		result.EcsServiceInfo = append(result.EcsServiceInfo, ecsInfo)
+				// クラスター名を正規化（ARNの場合は名前部分のみ抽出）
+				if strings.Contains(clusterName, "/") {
+					clusterParts := strings.Split(clusterName, "/")
+					clusterName = clusterParts[len(clusterParts)-1]
+				}
+
+				result.EcsServiceInfo = append(result.EcsServiceInfo, EcsServiceInfo{
+					ClusterName: clusterName,
+					ServiceName: serviceName,
+				})
+			}
+		}
 	}
 
 	return result, nil

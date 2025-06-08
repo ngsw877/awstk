@@ -44,22 +44,42 @@ func StopRdsInstance(awsContext AwsContext, instanceId string) error {
 
 // GetRdsFromStack はCloudFormationスタック名からRDSインスタンス識別子を取得します。
 func GetRdsFromStack(awsCtx AwsContext, stackName string) (string, error) {
+	instances, err := GetAllRdsFromStack(awsCtx, stackName)
+	if err != nil {
+		return "", err
+	}
+
+	// 対話的選択機能を使用
+	selectedIndex, err := SelectFromOptions("複数のRDSインスタンスが見つかりました", instances)
+	if err != nil {
+		return "", err
+	}
+
+	return instances[selectedIndex], nil
+}
+
+// GetAllRdsFromStack はスタック内のすべてのRDSインスタンス識別子を取得します
+func GetAllRdsFromStack(awsCtx AwsContext, stackName string) ([]string, error) {
+	var results []string
 
 	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {
-		return "", fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
+		return results, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
 	// リソースの中からRDS DBInstanceを探す
 	for _, resource := range stackResources {
 		if resource.ResourceType != nil && *resource.ResourceType == "AWS::RDS::DBInstance" {
 			if resource.PhysicalResourceId != nil && *resource.PhysicalResourceId != "" {
-				// 見つかった最初のRDSインスタンスのPhysicalResourceIdを返す
-				return *resource.PhysicalResourceId, nil
+				results = append(results, *resource.PhysicalResourceId)
+				fmt.Printf("🔍 検出されたRDSインスタンス: %s\n", *resource.PhysicalResourceId)
 			}
 		}
 	}
 
-	// RDSインスタンスが見つからなかった場合
-	return "", fmt.Errorf("指定されたスタック (%s) にRDSインスタンスが見つかりませんでした", stackName)
+	if len(results) == 0 {
+		return results, fmt.Errorf("指定されたスタック (%s) にRDSインスタンスが見つかりませんでした", stackName)
+	}
+
+	return results, nil
 }

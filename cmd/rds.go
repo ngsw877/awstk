@@ -3,6 +3,7 @@ package cmd
 import (
 	"awsfunc/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -10,72 +11,106 @@ var (
 	rdsInstanceId string
 )
 
-var rdsCmd = &cobra.Command{
+var RdsCmd = &cobra.Command{
 	Use:   "rds",
-	Short: "RDS関連の操作を行うコマンド群",
-	Long:  "AWS RDSインスタンスの操作を行うCLIコマンド群です。",
+	Short: "RDSリソース操作コマンド",
+	Long:  `RDSリソースを操作するためのコマンド群です。`,
 }
 
-var rdsStartInstanceCmd = &cobra.Command{
+var rdsStartCmd = &cobra.Command{
 	Use:   "start",
-	Short: "RDSインスタンスを起動する",
-	Long: `指定したRDSインスタンスを起動します。
+	Short: "RDSインスタンスを起動するコマンド",
+	Long: `RDSインスタンスを起動するコマンドです。
+CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awsfunc rds start -d <rds-instance-identifier> [-P <aws-profile>]
-  awsfunc rds start -S <stack-name> [-P <aws-profile>]
-`,
+  awsfunc rds start -P my-profile -S my-stack
+  awsfunc rds start -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceId, err := resolveRdsInstanceIdentifier()
-		if err != nil {
+		awsCtx := getAwsContext()
+
+		var instanceId string
+		var err error
+
+		if stackName != "" {
+			fmt.Println("CloudFormationスタックからRDS情報を取得します...")
+			instanceId, err = internal.GetRdsFromStack(awsCtx, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ エラー: %w", err)
+			}
+			fmt.Printf("🔍 検出されたRDSインスタンス: %s\n", instanceId)
+		} else if rdsInstanceId != "" {
+			instanceId = rdsInstanceId
+		} else {
 			cmd.Help()
-			return err
+			return fmt.Errorf("❌ エラー: スタック名 (-S) またはRDSインスタンス識別子 (-i) が必須です")
 		}
-		fmt.Printf("RDSインスタンス (%s) を起動します...\n", instanceId)
-		err = internal.StartRdsInstance(getAwsContext(), instanceId)
+
+		fmt.Printf("🚀 RDSインスタンス '%s' を起動します...\n", instanceId)
+		err = internal.StartRdsInstance(awsCtx, instanceId)
 		if err != nil {
-			fmt.Printf("❌ RDSインスタンスの起動に失敗しました。")
-			return err
+			return fmt.Errorf("❌ エラー: %w", err)
 		}
-		fmt.Println("✅ RDSインスタンスの起動を開始しました。")
+
+		fmt.Printf("✅ RDSインスタンス '%s' の起動を開始しました\n", instanceId)
 		return nil
 	},
 	SilenceUsage: true,
 }
 
-var rdsStopInstanceCmd = &cobra.Command{
+var rdsStopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "RDSインスタンスを停止する",
-	Long: `指定したRDSインスタンスを停止します。
+	Short: "RDSインスタンスを停止するコマンド",
+	Long: `RDSインスタンスを停止するコマンドです。
+CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awsfunc rds stop -d <rds-instance-identifier> [-P <aws-profile>]
-  awsfunc rds stop -S <stack-name> [-P <aws-profile>]
-`,
+  awsfunc rds stop -P my-profile -S my-stack
+  awsfunc rds stop -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceId, err := resolveRdsInstanceIdentifier()
-		if err != nil {
+		awsCtx := getAwsContext()
+
+		var instanceId string
+		var err error
+
+		if stackName != "" {
+			fmt.Println("CloudFormationスタックからRDS情報を取得します...")
+			instanceId, err = internal.GetRdsFromStack(awsCtx, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ エラー: %w", err)
+			}
+			fmt.Printf("🔍 検出されたRDSインスタンス: %s\n", instanceId)
+		} else if rdsInstanceId != "" {
+			instanceId = rdsInstanceId
+		} else {
 			cmd.Help()
-			return err
+			return fmt.Errorf("❌ エラー: スタック名 (-S) またはRDSインスタンス識別子 (-i) が必須です")
 		}
-		fmt.Printf("RDSインスタンス (%s) を停止します...\n", instanceId)
-		err = internal.StopRdsInstance(getAwsContext(), instanceId)
+
+		fmt.Printf("🛑 RDSインスタンス '%s' を停止します...\n", instanceId)
+		err = internal.StopRdsInstance(awsCtx, instanceId)
 		if err != nil {
-			fmt.Printf("❌ RDSインスタンスの停止に失敗しました。")
-			return err
+			return fmt.Errorf("❌ エラー: %w", err)
 		}
-		fmt.Println("✅ RDSインスタンスの停止を開始しました。")
+
+		fmt.Printf("✅ RDSインスタンス '%s' の停止を開始しました\n", instanceId)
 		return nil
 	},
 	SilenceUsage: true,
 }
 
 func init() {
-	RootCmd.AddCommand(rdsCmd)
-	rdsCmd.AddCommand(rdsStartInstanceCmd)
-	rdsCmd.AddCommand(rdsStopInstanceCmd)
-	rdsCmd.PersistentFlags().StringVarP(&rdsInstanceId, "db-instance-identifier", "d", "", "RDSインスタンス識別子 (-Sが指定されていない場合に必須)")
-	rdsCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名 (-dが指定されていない場合に必須)")
+	RootCmd.AddCommand(RdsCmd)
+	RdsCmd.AddCommand(rdsStartCmd)
+	RdsCmd.AddCommand(rdsStopCmd)
+
+	// startコマンドのフラグを設定
+	rdsStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	rdsStartCmd.Flags().StringVarP(&rdsInstanceId, "instance", "i", "", "RDSインスタンス識別子 (-Sが指定されていない場合に必須)")
+
+	// stopコマンドのフラグを設定
+	rdsStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	rdsStopCmd.Flags().StringVarP(&rdsInstanceId, "instance", "i", "", "RDSインスタンス識別子 (-Sが指定されていない場合に必須)")
 }
 
 // resolveRdsInstanceIdentifier はフラグの値に基づいて
