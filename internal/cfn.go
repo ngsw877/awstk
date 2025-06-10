@@ -142,6 +142,9 @@ func GetStartStopResourcesFromStack(awsCtx AwsContext, stackName string) (StackR
 		return result, err
 	}
 
+	// Auroraクラスターの存在フラグ
+	hasAuroraCluster := false
+
 	// 各リソースタイプをフィルタリング
 	for _, resource := range stackResources {
 		if resource.PhysicalResourceId == nil || *resource.PhysicalResourceId == "" {
@@ -149,12 +152,21 @@ func GetStartStopResourcesFromStack(awsCtx AwsContext, stackName string) (StackR
 		}
 
 		switch *resource.ResourceType {
+		case "AWS::RDS::DBCluster":
+			// Aurora DBクラスターを検出した場合、フラグを立てる
+			// 実際のスタックでは、AuroraクラスターとRDSインスタンスが混在することは稀で、
+			// Auroraスタックの場合はクラスター単位での操作が基本となる
+			hasAuroraCluster = true
+			result.AuroraClusterIds = append(result.AuroraClusterIds, *resource.PhysicalResourceId)
+		case "AWS::RDS::DBInstance":
+			// Aurora DBクラスターが存在しない場合のみ、純粋なRDSインスタンスとして扱う
+			// 理由: Auroraスタックでは、DBInstanceはDBClusterの一部として作成されるため、
+			// クラスター単位での制御が適切。個別のDBInstance操作は不要かつ非推奨
+			if !hasAuroraCluster {
+				result.RdsInstanceIds = append(result.RdsInstanceIds, *resource.PhysicalResourceId)
+			}
 		case "AWS::EC2::Instance":
 			result.Ec2InstanceIds = append(result.Ec2InstanceIds, *resource.PhysicalResourceId)
-		case "AWS::RDS::DBInstance":
-			result.RdsInstanceIds = append(result.RdsInstanceIds, *resource.PhysicalResourceId)
-		case "AWS::RDS::DBCluster":
-			result.AuroraClusterIds = append(result.AuroraClusterIds, *resource.PhysicalResourceId)
 		case "AWS::ECS::Service":
 			// ECSサービスARNからクラスター名とサービス名を抽出
 			serviceArn := *resource.PhysicalResourceId
