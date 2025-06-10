@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -24,8 +24,8 @@ var rdsStartCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awsfunc rds start -P my-profile -S my-stack
-  awsfunc rds start -P my-profile -i my-db-instance`,
+  awstk rds start -P my-profile -S my-stack
+  awstk rds start -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 
@@ -65,8 +65,8 @@ var rdsStopCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awsfunc rds stop -P my-profile -S my-stack
-  awsfunc rds stop -P my-profile -i my-db-instance`,
+  awstk rds stop -P my-profile -S my-stack
+  awstk rds stop -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 

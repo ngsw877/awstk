@@ -1,6 +1,6 @@
 package cmd
 
-import "awsfunc/internal"
+import "awstk/internal"
 
 // region, profile から AwsContext を生成する共通関数
 func getAwsContext() internal.AwsContext {

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -48,7 +48,7 @@ var cfnStartCmd = &cobra.Command{
 	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で起動します。
 
 例:
-  awsfunc cfn start -S <stack-name> [-P <aws-profile>]
+  awstk cfn start -S <stack-name> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if stackName == "" {
@@ -77,7 +77,7 @@ var cfnStopCmd = &cobra.Command{
 	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で停止します。
 
 例:
-  awsfunc cfn stop -S <stack-name> [-P <aws-profile>]
+  awstk cfn stop -S <stack-name> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if stackName == "" {

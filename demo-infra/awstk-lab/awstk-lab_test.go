@@ -9,18 +9,18 @@ package main
 // )
 
 // example tests. To run these tests, uncomment this file along with the
-// example resource in awsfunc-lab_test.go
-// func TestAwsfuncLabStack(t *testing.T) {
+// example resource in awstk-lab_test.go
+// func TestAwstkLabStack(t *testing.T) {
 // 	// GIVEN
 // 	app := awscdk.NewApp(nil)
 
 // 	// WHEN
-// 	stack := NewAwsfuncLabStack(app, "MyStack", nil)
+// 	stack := NewAwstkLabStack(app, "MyStack", nil)
 
 // 	// THEN
 // 	template := assertions.Template_FromStack(stack, nil)
 
 // 	template.HasResourceProperties(jsii.String("AWS::SQS::Queue"), map[string]interface{}{
-// 		"VisibilityTimeout": 300,
+// 		"VisibilityTimeoutSeconds": 300,
 // 	})
 // }

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -22,13 +22,13 @@ var s3LsCmd = &cobra.Command{
 S3パスを指定した場合、デフォルトでファイルサイズが表示されます。
 
 【使い方】
-  awsfunc s3 ls                          # バケット一覧を表示
-  awsfunc s3 ls s3://my-bucket           # バケット内をツリー形式で表示（サイズ付き）
-  awsfunc s3 ls s3://my-bucket/prefix/   # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
-  awsfunc s3 ls s3://my-bucket -t        # 更新日時も一緒に表示
+  awstk s3 ls                          # バケット一覧を表示
+  awstk s3 ls s3://my-bucket           # バケット内をツリー形式で表示（サイズ付き）
+  awstk s3 ls s3://my-bucket/prefix/   # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
+  awstk s3 ls s3://my-bucket -t        # 更新日時も一緒に表示
 
 【例】
-  awsfunc s3 ls s3://my-bucket/logs/ -t
+  awstk s3 ls s3://my-bucket/logs/ -t
   → my-bucket/logs/ 配下のオブジェクトをツリー形式でサイズ + 更新日時付きで表示します。`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
@@ -69,10 +69,10 @@ var s3GunzipCmd = &cobra.Command{
 	Long: `S3バケット内の指定prefix配下に存在する全ての.gzファイルを一括でダウンロードし、解凍してローカルに保存するコマンドです。
 
 【使い方】
-  awsfunc s3 gunzip s3://my-bucket/some/prefix/ [-o 出力先ディレクトリ]
+  awstk s3 gunzip s3://my-bucket/some/prefix/ [-o 出力先ディレクトリ]
 
 【例】
-  awsfunc s3 gunzip s3://my-bucket/logs/ -o ./logs/
+  awstk s3 gunzip s3://my-bucket/logs/ -o ./logs/
   → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して ./logs/ に保存します。
 
 出力先ディレクトリを省略した場合は ./outputs/ に保存されます。`,

@@ -1,4 +1,4 @@
-module awsfunc
+module awstk
 
 go 1.24.2
 

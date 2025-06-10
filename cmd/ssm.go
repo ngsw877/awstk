@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -21,8 +21,8 @@ var ssmSessionStartCmd = &cobra.Command{
 	Long: `指定したEC2インスタンスIDにSSMセッションで接続します。
 
 例:
-  awsfunc ssm session -i <ec2-instance-id> [-P <aws-profile>]
-  awsfunc ssm session [-P <aws-profile>]  # インスタンス一覧から選択
+  awstk ssm session -i <ec2-instance-id> [-P <aws-profile>]
+  awstk ssm session [-P <aws-profile>]  # インスタンス一覧から選択
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()

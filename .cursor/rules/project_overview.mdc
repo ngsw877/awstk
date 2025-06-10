@@ -3,9 +3,9 @@ description:
 globs: 
 alwaysApply: true
 ---
-# awsfuncプロジェクト概要とAIアシスタントの役割
+# awstkプロジェクト概要とAIアシスタントの役割
 
-このプロジェクト（awsfunc）はGo言語で書かれたAWSリソース操作CLIツールです。ユーザーがコマンドラインから様々なAWSリソース（S3, ECR, CloudFormation, ECSなど）を管理・クリーンアップできることを目的としています。
+このプロジェクト（awstk）はGo言語で書かれたAWSリソース操作CLIツールです。ユーザーがコマンドラインから様々なAWSリソース（S3, ECR, CloudFormation, ECSなど）を管理・クリーンアップできることを目的としています。
 
 ## 技術スタック
 
@@ -32,7 +32,6 @@ alwaysApply: true
   - `utils.go`: AWS設定のロード等の共通ユーティリティ関数
   - ...
 
-- `scripts/`: ビルドや開発用のスクリプト
 - `main.go`: アプリケーションのエントリーポイント
 
 ## アーキテクチャパターン

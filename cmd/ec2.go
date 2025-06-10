@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ var ec2StartInstanceCmd = &cobra.Command{
 	Long: `指定したEC2インスタンスを起動します。
 
 例:
-  awsfunc ec2 start -i <ec2-instance-id> [-P <aws-profile>]
+  awstk ec2 start -i <ec2-instance-id> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if ec2InstanceId == "" {
@@ -49,7 +50,7 @@ var ec2StopInstanceCmd = &cobra.Command{
 	Long: `指定したEC2インスタンスを停止します。
 
 例:
-  awsfunc ec2 stop -i <ec2-instance-id> [-P <aws-profile>]
+  awstk ec2 stop -i <ec2-instance-id> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if ec2InstanceId == "" {

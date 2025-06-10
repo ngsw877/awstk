@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"awsfunc/internal"
+	"awstk/internal"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -32,8 +32,8 @@ var ecsExecCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
 
 例:
-  awsfunc ecs exec -P my-profile -S my-stack
-  awsfunc ecs exec -P my-profile -c my-cluster -s my-service -t app`,
+  awstk ecs exec -P my-profile -S my-stack
+  awstk ecs exec -P my-profile -c my-cluster -s my-service -t app`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -70,9 +70,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 サービスが指定したキャパシティになるまで必ず待機します。待機タイムアウトは-t/--timeoutで秒数指定できます（デフォルト: 300秒）。
 
 例:
-  awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2
-  awsfunc ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3
-  awsfunc ecs start -P my-profile -S my-stack -m 1 -M 2`,
+  awstk ecs start -P my-profile -S my-stack -m 1 -M 2
+  awstk ecs start -P my-profile -c my-cluster -s my-service -m 1 -M 3
+  awstk ecs start -P my-profile -S my-stack -m 1 -M 2`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -117,9 +117,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 サービスが完全に停止するまで必ず待機します。待機タイムアウトは-t/--timeoutで秒数指定できます（デフォルト: 300秒）。
 
 例:
-  awsfunc ecs stop -P my-profile -S my-stack
-  awsfunc ecs stop -P my-profile -c my-cluster -s my-service
-  awsfunc ecs stop -P my-profile -S my-stack`,
+  awstk ecs stop -P my-profile -S my-stack
+  awstk ecs stop -P my-profile -c my-cluster -s my-service
+  awstk ecs stop -P my-profile -S my-stack`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -165,9 +165,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 待機タイムアウトは--timeoutで秒数指定できます（デフォルト: 300秒）。
 
 例:
-  awsfunc ecs run -P my-profile -S my-stack -t app -C "echo hello"
-  awsfunc ecs run -P my-profile -c my-cluster -s my-service -t app -C "echo hello"
-  awsfunc ecs run -P my-profile -S my-stack -t app -d my-task-def:1 -C "echo hello"`,
+  awstk ecs run -P my-profile -S my-stack -t app -C "echo hello"
+  awstk ecs run -P my-profile -c my-cluster -s my-service -t app -C "echo hello"
+  awstk ecs run -P my-profile -S my-stack -t app -d my-task-def:1 -C "echo hello"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
