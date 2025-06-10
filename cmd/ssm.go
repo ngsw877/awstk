@@ -21,8 +21,8 @@ var ssmSessionStartCmd = &cobra.Command{
 	Long: `指定したEC2インスタンスIDにSSMセッションで接続します。
 
 例:
-  awstk ssm session -i <ec2-instance-id> [-P <aws-profile>]
-  awstk ssm session [-P <aws-profile>]  # インスタンス一覧から選択
+  ` + AppName + ` ssm session -i <ec2-instance-id> [-P <aws-profile>]
+  ` + AppName + ` ssm session [-P <aws-profile>]  # インスタンス一覧から選択
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()

@@ -25,9 +25,9 @@ var sesVerifyCmd = &cobra.Command{
 コマンドライン引数または--fileオプションでメールアドレスを指定できます。
 --fileオプションを使う場合は、1行1メールアドレスのテキストファイルを指定してください。
 例:
-  awstk ses verify user1@example.com user2@example.com
-  awstk ses verify --file emails.txt
-  awstk ses verify user1@example.com --file emails.txt`,
+  ` + AppName + ` ses verify user1@example.com user2@example.com
+  ` + AppName + ` ses verify --file emails.txt
+  ` + AppName + ` ses verify user1@example.com --file emails.txt`,
 	Args: cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var emails []string

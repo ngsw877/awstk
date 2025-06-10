@@ -20,8 +20,8 @@ var secretsManagerGetCmd = &cobra.Command{
 	Long: `指定したSecrets Managerのシークレット名またはARNから全ての値を取得し、標準出力にJSON形式で出力します。
 
 【使用例】
-  awstk secrets get my-secret-name
-  awstk secrets get arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:my-secret-abc123
+  ` + AppName + ` secrets get my-secret-name
+  ` + AppName + ` secrets get arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:my-secret-abc123
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

@@ -20,10 +20,10 @@ var CleanupCmd = &cobra.Command{
 !!! 注意 !!! このコマンドはリソースを完全に削除します。実行には十分注意してください。
 
 例:
-  awstk cleanup --profile my-profile --region us-east-1 --keyword my-search-string
-  awstk cleanup -P my-profile -r us-east-1 -k my-search-string
-  awstk cleanup --profile my-profile --stack my-stack
-  awstk cleanup -P my-profile -S my-stack`,
+  ` + AppName + ` cleanup --profile my-profile --region us-east-1 --keyword my-search-string
+  ` + AppName + ` cleanup -P my-profile -r us-east-1 -k my-search-string
+  ` + AppName + ` cleanup --profile my-profile --stack my-stack
+  ` + AppName + ` cleanup -P my-profile -S my-stack`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		searchString, err = cmd.Flags().GetString("keyword")

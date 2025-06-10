@@ -24,8 +24,8 @@ var auroraStartClusterCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、クラスター識別子を直接指定することができます。
 
 例:
-  awstk aurora start -P my-profile -S my-stack
-  awstk aurora start -P my-profile -c my-aurora-cluster`,
+  ` + AppName + ` aurora start -P my-profile -S my-stack
+  ` + AppName + ` aurora start -P my-profile -c my-aurora-cluster`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 
@@ -65,8 +65,8 @@ var auroraStopClusterCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、クラスター識別子を直接指定することができます。
 
 例:
-  awstk aurora stop -P my-profile -S my-stack
-  awstk aurora stop -P my-profile -c my-aurora-cluster`,
+  ` + AppName + ` aurora stop -P my-profile -S my-stack
+  ` + AppName + ` aurora stop -P my-profile -c my-aurora-cluster`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 

@@ -24,8 +24,8 @@ var rdsStartCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awstk rds start -P my-profile -S my-stack
-  awstk rds start -P my-profile -i my-db-instance`,
+  ` + AppName + ` rds start -P my-profile -S my-stack
+  ` + AppName + ` rds start -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 
@@ -65,8 +65,8 @@ var rdsStopCmd = &cobra.Command{
 CloudFormationスタック名を指定するか、インスタンス識別子を直接指定することができます。
 
 例:
-  awstk rds stop -P my-profile -S my-stack
-  awstk rds stop -P my-profile -i my-db-instance`,
+  ` + AppName + ` rds stop -P my-profile -S my-stack
+  ` + AppName + ` rds stop -P my-profile -i my-db-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
 

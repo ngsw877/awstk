@@ -48,7 +48,7 @@ var cfnStartCmd = &cobra.Command{
 	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で起動します。
 
 例:
-  awstk cfn start -S <stack-name> [-P <aws-profile>]
+  ` + AppName + ` cfn start -S <stack-name> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if stackName == "" {
@@ -77,7 +77,7 @@ var cfnStopCmd = &cobra.Command{
 	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で停止します。
 
 例:
-  awstk cfn stop -S <stack-name> [-P <aws-profile>]
+  ` + AppName + ` cfn stop -S <stack-name> [-P <aws-profile>]
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if stackName == "" {
