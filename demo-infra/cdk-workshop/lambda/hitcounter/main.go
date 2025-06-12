@@ -23,7 +23,7 @@ var (
 
 func init() {
 	// AWS設定をロード（Lambda実行ロールが自動的に使われる）
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		log.Fatalf("AWS設定の読み込みに失敗: %v", err)
 	}

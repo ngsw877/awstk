@@ -40,7 +40,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 			NextToken:         nextToken,
 		}
 
-		resp, err := cfnClient.ListStacks(context.TODO(), input)
+		resp, err := cfnClient.ListStacks(context.Background(), input)
 		if err != nil {
 			return nil, fmt.Errorf("スタック一覧取得エラー: %w", err)
 		}

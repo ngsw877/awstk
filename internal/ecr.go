@@ -18,7 +18,7 @@ func getEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]
 
 	// ページネーション対応
 	for {
-		listReposOutput, err := ecrClient.DescribeRepositories(context.TODO(), listReposInput)
+		listReposOutput, err := ecrClient.DescribeRepositories(context.Background(), listReposInput)
 		if err != nil {
 			return nil, fmt.Errorf("ECRリポジトリ一覧取得エラー: %w", err)
 		}
@@ -51,7 +51,7 @@ func cleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 		imageIdsToDelete := []ecrtypes.ImageIdentifier{}
 
 		for {
-			listImagesOutput, err := ecrClient.ListImages(context.TODO(), listImagesInput)
+			listImagesOutput, err := ecrClient.ListImages(context.Background(), listImagesInput)
 			if err != nil {
 				// イメージリスト取得エラーはこのリポジトリをスキップ
 				fmt.Printf("❌ リポジトリ %s のイメージ一覧取得エラー: %v\n", repoName, err)
@@ -78,7 +78,7 @@ func cleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 				batch := imageIdsToDelete[i:end]
 
 				fmt.Printf("  %d件のイメージを削除中...\n", len(batch))
-				_, err := ecrClient.BatchDeleteImage(context.TODO(), &ecr.BatchDeleteImageInput{
+				_, err := ecrClient.BatchDeleteImage(context.Background(), &ecr.BatchDeleteImageInput{
 					RepositoryName: aws.String(repoName),
 					ImageIds:       batch,
 				})
@@ -93,7 +93,7 @@ func cleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 
 		// リポジトリの削除
 		fmt.Printf("  リポジトリ削除中: %s\n", repoName)
-		_, err := ecrClient.DeleteRepository(context.TODO(), &ecr.DeleteRepositoryInput{
+		_, err := ecrClient.DeleteRepository(context.Background(), &ecr.DeleteRepositoryInput{
 			RepositoryName: aws.String(repoName),
 			Force:          true, // 強制削除
 		})

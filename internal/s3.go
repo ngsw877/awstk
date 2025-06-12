@@ -32,7 +32,7 @@ func ListS3Buckets(s3Client *s3.Client) ([]string, error) {
 // getS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
 func getS3BucketsByKeyword(s3Client *s3.Client, searchString string) ([]string, error) {
 	// バケット一覧を取得
-	listBucketsOutput, err := s3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+	listBucketsOutput, err := s3Client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("S3バケット一覧取得エラー: %w", err)
 	}
@@ -63,7 +63,7 @@ func cleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
 
 		// バケットの削除
 		fmt.Printf("  バケット削除中: %s\n", bucket)
-		_, err = s3Client.DeleteBucket(context.TODO(), &s3.DeleteBucketInput{
+		_, err = s3Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{
 			Bucket: aws.String(bucket),
 		})
 		if err != nil {
@@ -78,7 +78,7 @@ func cleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
 // emptyS3Bucket は指定したS3バケットの中身をすべて削除します (バージョン管理対応)
 func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 	// バケット内のオブジェクトとバージョンをリスト
-	listVersionsOutput, err := s3Client.ListObjectVersions(context.TODO(), &s3.ListObjectVersionsInput{
+	listVersionsOutput, err := s3Client.ListObjectVersions(context.Background(), &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 		batch := deleteObjects[i:end]
 
 		fmt.Printf("  %d件のオブジェクトを削除中...\n", len(batch))
-		_, err = s3Client.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
+		_, err = s3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
 			Bucket: aws.String(bucketName),
 			Delete: &types.Delete{
 				Objects: batch,
@@ -138,7 +138,7 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 	// 実際にはListObjectVersionsのNextTokenを使うのが正しいが、今回は簡易実装
 	// TODO: ページネーション対応
 	time.Sleep(1 * time.Second) // 反映を待つ
-	remainingObjects, err := s3Client.ListObjectVersions(context.TODO(), &s3.ListObjectVersionsInput{
+	remainingObjects, err := s3Client.ListObjectVersions(context.Background(), &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
@@ -278,7 +278,7 @@ func listS3Objects(s3Client *s3.Client, bucketName string, prefix string) ([]S3O
 	})
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.TODO())
+		page, err := paginator.NextPage(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("S3オブジェクト一覧取得エラー: %w", err)
 		}

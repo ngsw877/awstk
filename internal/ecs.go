@@ -149,7 +149,7 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 	fmt.Println("🔍 実行中のタスクを検索中...")
 
 	// タスク一覧を取得
-	taskList, err := ecsClient.ListTasks(context.TODO(), &ecs.ListTasksInput{
+	taskList, err := ecsClient.ListTasks(context.Background(), &ecs.ListTasksInput{
 		Cluster:     aws.String(clusterName),
 		ServiceName: aws.String(serviceName),
 	})
@@ -202,7 +202,7 @@ func SetEcsServiceCapacity(autoScalingClient *applicationautoscaling.Client, opt
 	resourceId := fmt.Sprintf("service/%s/%s", opts.ClusterName, opts.ServiceName)
 
 	// スケーラブルターゲットを登録
-	_, err := autoScalingClient.RegisterScalableTarget(context.TODO(), &applicationautoscaling.RegisterScalableTargetInput{
+	_, err := autoScalingClient.RegisterScalableTarget(context.Background(), &applicationautoscaling.RegisterScalableTargetInput{
 		ServiceNamespace:  "ecs",
 		ScalableDimension: "ecs:service:DesiredCount",
 		ResourceId:        &resourceId,
@@ -282,7 +282,7 @@ type RunAndWaitForTaskOptions struct {
 // describeService はECSサービスの詳細情報を取得します
 func describeService(ecsClient *ecs.Client, clusterName, serviceName string) (*types.Service, error) {
 	// サービスの詳細を取得
-	resp, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+	resp, err := ecsClient.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
 		Cluster:  aws.String(clusterName),
 		Services: []string{serviceName},
 	})
@@ -310,7 +310,7 @@ func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerNa
 		select {
 		case <-ticker.C:
 			// タスクの状態を確認
-			resp, err := ecsClient.DescribeTasks(context.TODO(), &ecs.DescribeTasksInput{
+			resp, err := ecsClient.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
 				Cluster: aws.String(clusterName),
 				Tasks:   []string{taskArn},
 			})
@@ -418,7 +418,7 @@ func RunAndWaitForTask(ecsClient *ecs.Client, opts RunAndWaitForTaskOptions) (in
 
 	// タスクを実行
 	fmt.Println("🚀 タスクを実行中...")
-	runResult, err := ecsClient.RunTask(context.TODO(), runTaskInput)
+	runResult, err := ecsClient.RunTask(context.Background(), runTaskInput)
 	if err != nil {
 		return -1, fmt.Errorf("タスクの実行に失敗しました: %w", err)
 	}
@@ -449,7 +449,7 @@ func ForceRedeployService(ecsClient *ecs.Client, clusterName, serviceName string
 		ForceNewDeployment: true,
 	}
 
-	_, err := ecsClient.UpdateService(context.TODO(), updateInput)
+	_, err := ecsClient.UpdateService(context.Background(), updateInput)
 
 	if err != nil {
 		return fmt.Errorf("サービスの強制再デプロイに失敗しました: %w", err)
@@ -472,7 +472,7 @@ func WaitForDeploymentComplete(ecsClient *ecs.Client, clusterName, serviceName s
 		<-ticker.C
 
 		// サービスの詳細を取得
-		resp, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
+		resp, err := ecsClient.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
 			Cluster:  aws.String(clusterName),
 			Services: []string{serviceName},
 		})
