@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/spf13/cobra"
 )
 
@@ -72,7 +73,14 @@ var sesVerifyCmd = &cobra.Command{
 		}
 
 		awsCtx := getAwsContext()
-		failedEmails, err := internal.VerifySesEmails(awsCtx, filtered)
+		// AWS設定を読み込んでSESクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		sesClient := ses.NewFromConfig(cfg)
+
+		failedEmails, err := internal.VerifySesEmails(sesClient, filtered)
 		if err != nil {
 			return err
 		}

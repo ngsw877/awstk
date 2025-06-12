@@ -6,12 +6,15 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
 // ListCfnStacks はアクティブなCloudFormationスタック名一覧を返す
-func ListCfnStacks(awsCtx AwsContext) ([]string, error) {
+func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 	activeStatusStrs := []string{
 		"CREATE_COMPLETE",
 		"UPDATE_COMPLETE",
@@ -23,13 +26,6 @@ func ListCfnStacks(awsCtx AwsContext) ([]string, error) {
 	for _, s := range activeStatusStrs {
 		activeStatuses = append(activeStatuses, types.StackStatus(s))
 	}
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	client := cloudformation.NewFromConfig(cfg)
 
 	// すべてのスタックを格納するスライス
 	var allStackNames []string
@@ -44,7 +40,7 @@ func ListCfnStacks(awsCtx AwsContext) ([]string, error) {
 			NextToken:         nextToken,
 		}
 
-		resp, err := client.ListStacks(context.TODO(), input)
+		resp, err := cfnClient.ListStacks(context.TODO(), input)
 		if err != nil {
 			return nil, fmt.Errorf("スタック一覧取得エラー: %w", err)
 		}
@@ -205,56 +201,73 @@ func StartAllStackResources(awsCtx AwsContext, stackName string) error {
 
 	errorsOccurred := false
 
+	// 必要に応じて各種クライアントを作成
+	cfg, err := LoadAwsConfig(awsCtx)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+
 	// EC2インスタンスを起動
-	for _, instanceId := range resources.Ec2InstanceIds {
-		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", instanceId)
-		if err := StartEc2Instance(awsCtx, instanceId); err != nil {
-			fmt.Printf("❌ EC2インスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ EC2インスタンス (%s) の起動を開始しました\n", instanceId)
+	if len(resources.Ec2InstanceIds) > 0 {
+		ec2Client := ec2.NewFromConfig(cfg)
+		for _, instanceId := range resources.Ec2InstanceIds {
+			fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", instanceId)
+			if err := StartEc2Instance(ec2Client, instanceId); err != nil {
+				fmt.Printf("❌ EC2インスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ EC2インスタンス (%s) の起動を開始しました\n", instanceId)
+			}
 		}
 	}
 
-	// RDSインスタンスを起動
-	for _, instanceId := range resources.RdsInstanceIds {
-		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
-		if err := StartRdsInstance(awsCtx, instanceId); err != nil {
-			fmt.Printf("❌ RDSインスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceId)
-		}
-	}
+	// RDSインスタンスとAuroraクラスターを起動
+	if len(resources.RdsInstanceIds) > 0 || len(resources.AuroraClusterIds) > 0 {
+		rdsClient := rds.NewFromConfig(cfg)
 
-	// Auroraクラスターを起動
-	for _, clusterId := range resources.AuroraClusterIds {
-		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterId)
-		if err := StartAuroraCluster(awsCtx, clusterId); err != nil {
-			fmt.Printf("❌ Aurora DBクラスター (%s) の起動中にエラーが発生しました: %v\n", clusterId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ Aurora DBクラスター (%s) の起動を開始しました\n", clusterId)
+		// RDSインスタンスを起動
+		for _, instanceId := range resources.RdsInstanceIds {
+			fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
+			if err := StartRdsInstance(rdsClient, instanceId); err != nil {
+				fmt.Printf("❌ RDSインスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceId)
+			}
+		}
+
+		// Auroraクラスターを起動
+		for _, clusterId := range resources.AuroraClusterIds {
+			fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterId)
+			if err := StartAuroraCluster(rdsClient, clusterId); err != nil {
+				fmt.Printf("❌ Aurora DBクラスター (%s) の起動中にエラーが発生しました: %v\n", clusterId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ Aurora DBクラスター (%s) の起動を開始しました\n", clusterId)
+			}
 		}
 	}
 
 	// ECSサービスを起動
-	for _, ecsInfo := range resources.EcsServiceInfo {
-		fmt.Printf("🚀 ECSサービス (%s/%s) を起動します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
-		opts := ServiceCapacityOptions{
-			ClusterName: ecsInfo.ClusterName,
-			ServiceName: ecsInfo.ServiceName,
-			MinCapacity: 1, // デフォルト値として1を使用
-			MaxCapacity: 2, // デフォルト値として2を使用
-		}
+	if len(resources.EcsServiceInfo) > 0 {
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		for _, ecsInfo := range resources.EcsServiceInfo {
+			fmt.Printf("🚀 ECSサービス (%s/%s) を起動します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
+			opts := ServiceCapacityOptions{
+				ClusterName: ecsInfo.ClusterName,
+				ServiceName: ecsInfo.ServiceName,
+				MinCapacity: 1, // デフォルト値として1を使用
+				MaxCapacity: 2, // デフォルト値として2を使用
+			}
 
-		if err := SetEcsServiceCapacity(awsCtx, opts); err != nil {
-			fmt.Printf("❌ ECSサービス (%s/%s) の起動中にエラーが発生しました: %v\n",
-				ecsInfo.ClusterName, ecsInfo.ServiceName, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ ECSサービス (%s/%s) の起動を開始しました\n",
-				ecsInfo.ClusterName, ecsInfo.ServiceName)
+			if err := SetEcsServiceCapacity(autoScalingClient, opts); err != nil {
+				fmt.Printf("❌ ECSサービス (%s/%s) の起動中にエラーが発生しました: %v\n",
+					ecsInfo.ClusterName, ecsInfo.ServiceName, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ ECSサービス (%s/%s) の起動を開始しました\n",
+					ecsInfo.ClusterName, ecsInfo.ServiceName)
+			}
 		}
 	}
 
@@ -277,56 +290,73 @@ func StopAllStackResources(awsCtx AwsContext, stackName string) error {
 
 	errorsOccurred := false
 
-	// ECSサービスを停止（他のリソースより先に停止）
-	for _, ecsInfo := range resources.EcsServiceInfo {
-		fmt.Printf("🛑 ECSサービス (%s/%s) を停止します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
-		opts := ServiceCapacityOptions{
-			ClusterName: ecsInfo.ClusterName,
-			ServiceName: ecsInfo.ServiceName,
-			MinCapacity: 0,
-			MaxCapacity: 0,
-		}
+	// 必要に応じて各種クライアントを作成
+	cfg, err := LoadAwsConfig(awsCtx)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
 
-		if err := SetEcsServiceCapacity(awsCtx, opts); err != nil {
-			fmt.Printf("❌ ECSサービス (%s/%s) の停止中にエラーが発生しました: %v\n",
-				ecsInfo.ClusterName, ecsInfo.ServiceName, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ ECSサービス (%s/%s) の停止を開始しました\n",
-				ecsInfo.ClusterName, ecsInfo.ServiceName)
+	// ECSサービスを停止（他のリソースより先に停止）
+	if len(resources.EcsServiceInfo) > 0 {
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		for _, ecsInfo := range resources.EcsServiceInfo {
+			fmt.Printf("🛑 ECSサービス (%s/%s) を停止します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
+			opts := ServiceCapacityOptions{
+				ClusterName: ecsInfo.ClusterName,
+				ServiceName: ecsInfo.ServiceName,
+				MinCapacity: 0,
+				MaxCapacity: 0,
+			}
+
+			if err := SetEcsServiceCapacity(autoScalingClient, opts); err != nil {
+				fmt.Printf("❌ ECSサービス (%s/%s) の停止中にエラーが発生しました: %v\n",
+					ecsInfo.ClusterName, ecsInfo.ServiceName, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ ECSサービス (%s/%s) の停止を開始しました\n",
+					ecsInfo.ClusterName, ecsInfo.ServiceName)
+			}
 		}
 	}
 
 	// EC2インスタンスを停止
-	for _, instanceId := range resources.Ec2InstanceIds {
-		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", instanceId)
-		if err := StopEc2Instance(awsCtx, instanceId); err != nil {
-			fmt.Printf("❌ EC2インスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ EC2インスタンス (%s) の停止を開始しました\n", instanceId)
+	if len(resources.Ec2InstanceIds) > 0 {
+		ec2Client := ec2.NewFromConfig(cfg)
+		for _, instanceId := range resources.Ec2InstanceIds {
+			fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", instanceId)
+			if err := StopEc2Instance(ec2Client, instanceId); err != nil {
+				fmt.Printf("❌ EC2インスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ EC2インスタンス (%s) の停止を開始しました\n", instanceId)
+			}
 		}
 	}
 
-	// RDSインスタンスを停止
-	for _, instanceId := range resources.RdsInstanceIds {
-		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
-		if err := StopRdsInstance(awsCtx, instanceId); err != nil {
-			fmt.Printf("❌ RDSインスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceId)
-		}
-	}
+	// RDSインスタンスとAuroraクラスターを停止
+	if len(resources.RdsInstanceIds) > 0 || len(resources.AuroraClusterIds) > 0 {
+		rdsClient := rds.NewFromConfig(cfg)
 
-	// Auroraクラスターを停止
-	for _, clusterId := range resources.AuroraClusterIds {
-		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterId)
-		if err := StopAuroraCluster(awsCtx, clusterId); err != nil {
-			fmt.Printf("❌ Aurora DBクラスター (%s) の停止中にエラーが発生しました: %v\n", clusterId, err)
-			errorsOccurred = true
-		} else {
-			fmt.Printf("✅ Aurora DBクラスター (%s) の停止を開始しました\n", clusterId)
+		// RDSインスタンスを停止
+		for _, instanceId := range resources.RdsInstanceIds {
+			fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
+			if err := StopRdsInstance(rdsClient, instanceId); err != nil {
+				fmt.Printf("❌ RDSインスタンス (%s) の停止中にエラーが発生しました: %v\n", instanceId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceId)
+			}
+		}
+
+		// Auroraクラスターを停止
+		for _, clusterId := range resources.AuroraClusterIds {
+			fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterId)
+			if err := StopAuroraCluster(rdsClient, clusterId); err != nil {
+				fmt.Printf("❌ Aurora DBクラスター (%s) の停止中にエラーが発生しました: %v\n", clusterId, err)
+				errorsOccurred = true
+			} else {
+				fmt.Printf("✅ Aurora DBクラスター (%s) の停止を開始しました\n", clusterId)
+			}
 		}
 	}
 

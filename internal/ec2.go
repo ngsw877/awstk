@@ -20,14 +20,8 @@ type Ec2Instance struct {
 }
 
 // ListEc2Instances 現在のリージョンのEC2インスタンス一覧を取得する
-func ListEc2Instances(awsCtx AwsContext) ([]Ec2Instance, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := ec2.NewFromConfig(cfg)
-	result, err := client.DescribeInstances(context.Background(), &ec2.DescribeInstancesInput{})
+func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
+	result, err := ec2Client.DescribeInstances(context.Background(), &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, fmt.Errorf("EC2インスタンス一覧の取得に失敗: %w", err)
 	}
@@ -61,14 +55,8 @@ func ListEc2Instances(awsCtx AwsContext) ([]Ec2Instance, error) {
 }
 
 // StartEc2Instance EC2インスタンスを起動する
-func StartEc2Instance(awsCtx AwsContext, instanceId string) error {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := ec2.NewFromConfig(cfg)
-	_, err = client.StartInstances(context.Background(), &ec2.StartInstancesInput{
+func StartEc2Instance(ec2Client *ec2.Client, instanceId string) error {
+	_, err := ec2Client.StartInstances(context.Background(), &ec2.StartInstancesInput{
 		InstanceIds: []string{instanceId},
 	})
 	if err != nil {
@@ -78,14 +66,8 @@ func StartEc2Instance(awsCtx AwsContext, instanceId string) error {
 }
 
 // StopEc2Instance EC2インスタンスを停止する
-func StopEc2Instance(awsCtx AwsContext, instanceId string) error {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := ec2.NewFromConfig(cfg)
-	_, err = client.StopInstances(context.Background(), &ec2.StopInstancesInput{
+func StopEc2Instance(ec2Client *ec2.Client, instanceId string) error {
+	_, err := ec2Client.StopInstances(context.Background(), &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceId},
 	})
 	if err != nil {
@@ -98,7 +80,13 @@ func StopEc2Instance(awsCtx AwsContext, instanceId string) error {
 func SelectInstanceInteractively(awsCtx AwsContext) (string, error) {
 	fmt.Println("EC2インスタンス一覧を取得中...")
 
-	instances, err := ListEc2Instances(awsCtx)
+	cfg, err := LoadAwsConfig(awsCtx)
+	if err != nil {
+		return "", fmt.Errorf("AWS設定のロードに失敗: %w", err)
+	}
+	ec2Client := ec2.NewFromConfig(cfg)
+
+	instances, err := ListEc2Instances(ec2Client)
 	if err != nil {
 		return "", fmt.Errorf("❌ EC2インスタンス一覧の取得に失敗: %w", err)
 	}

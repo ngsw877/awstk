@@ -5,31 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-// GetSecretValues は指定したシークレット名から全ての値を取得して返す
-func GetSecretValues(awsCtx AwsContext, secretName string) (map[string]interface{}, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, err
-	}
-	client := secretsmanager.NewFromConfig(cfg)
+// GetSecretValues Secrets Managerからシークレット値を取得してMapで返す
+func GetSecretValues(secretsClient *secretsmanager.Client, secretName string) (map[string]interface{}, error) {
 	input := &secretsmanager.GetSecretValueInput{
-		SecretId: &secretName,
+		SecretId: aws.String(secretName),
 	}
-	result, err := client.GetSecretValue(context.Background(), input)
+
+	result, err := secretsClient.GetSecretValue(context.Background(), input)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("シークレット取得に失敗: %w", err)
 	}
 
-	if result.SecretString == nil {
-		return nil, fmt.Errorf("SecretString is nil")
-	}
-
+	// シークレット値をJSONとしてパース
 	var secretMap map[string]interface{}
-	if err := json.Unmarshal([]byte(*result.SecretString), &secretMap); err != nil {
-		return nil, err
+	err = json.Unmarshal([]byte(*result.SecretString), &secretMap)
+	if err != nil {
+		return nil, fmt.Errorf("シークレットのJSON解析に失敗: %w", err)
 	}
 
 	return secretMap, nil

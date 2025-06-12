@@ -2,6 +2,9 @@ package internal
 
 import (
 	"fmt"
+
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // CleanupOptions はクリーンアップ処理のパラメータを格納する構造体
@@ -21,8 +24,14 @@ func CleanupResources(opts CleanupOptions) error {
 
 	fmt.Printf("AWS Profile: %s\n", opts.Profile)
 
+	cfg, err := LoadAwsConfig(opts.AwsContext)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+	s3Client := s3.NewFromConfig(cfg)
+	ecrClient := ecr.NewFromConfig(cfg)
+
 	var s3BucketNames, ecrRepoNames []string
-	var err error
 
 	// 検索方法によって取得ロジックを分岐
 	if opts.StackName != "" {
@@ -41,7 +50,7 @@ func CleanupResources(opts CleanupOptions) error {
 		fmt.Println("検索文字列に一致するリソースの削除を開始します...")
 
 		// S3バケット名を取得
-		s3BucketNames, err = getS3BucketsByKeyword(opts)
+		s3BucketNames, err = getS3BucketsByKeyword(s3Client, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ S3バケット一覧取得中にエラーが発生しました: %v\n", err)
 			// エラーが発生しても続行
@@ -49,7 +58,7 @@ func CleanupResources(opts CleanupOptions) error {
 		}
 
 		// ECRリポジトリ名を取得
-		ecrRepoNames, err = getEcrRepositoriesByKeyword(opts)
+		ecrRepoNames, err = getEcrRepositoriesByKeyword(ecrClient, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
 			// エラーが発生しても続行
@@ -60,7 +69,7 @@ func CleanupResources(opts CleanupOptions) error {
 	// S3バケットの削除（共通処理）
 	fmt.Println("S3バケットの削除を開始...")
 	if len(s3BucketNames) > 0 {
-		err = cleanupS3Buckets(opts, s3BucketNames)
+		err = cleanupS3Buckets(s3Client, s3BucketNames)
 		if err != nil {
 			fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
 		}
@@ -75,7 +84,7 @@ func CleanupResources(opts CleanupOptions) error {
 	// ECRリポジトリの削除（共通処理）
 	fmt.Println("ECRリポジトリの削除を開始...")
 	if len(ecrRepoNames) > 0 {
-		err = cleanupEcrRepositories(opts, ecrRepoNames)
+		err = cleanupEcrRepositories(ecrClient, ecrRepoNames)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
 		}

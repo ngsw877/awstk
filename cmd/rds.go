@@ -4,6 +4,7 @@ import (
 	"awstk/internal"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
 
@@ -46,8 +47,15 @@ CloudFormationスタック名を指定するか、インスタンス識別子を
 			return fmt.Errorf("❌ エラー: スタック名 (-S) またはRDSインスタンス識別子 (-i) が必須です")
 		}
 
+		// AWS設定を読み込んでRDSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		rdsClient := rds.NewFromConfig(cfg)
+
 		fmt.Printf("🚀 RDSインスタンス '%s' を起動します...\n", instanceId)
-		err = internal.StartRdsInstance(awsCtx, instanceId)
+		err = internal.StartRdsInstance(rdsClient, instanceId)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -87,8 +95,15 @@ CloudFormationスタック名を指定するか、インスタンス識別子を
 			return fmt.Errorf("❌ エラー: スタック名 (-S) またはRDSインスタンス識別子 (-i) が必須です")
 		}
 
+		// AWS設定を読み込んでRDSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		rdsClient := rds.NewFromConfig(cfg)
+
 		fmt.Printf("🛑 RDSインスタンス '%s' を停止します...\n", instanceId)
-		err = internal.StopRdsInstance(awsCtx, instanceId)
+		err = internal.StopRdsInstance(rdsClient, instanceId)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}

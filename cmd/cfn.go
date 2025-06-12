@@ -4,6 +4,7 @@ import (
 	"awstk/internal"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,14 @@ var cfnLsCmd = &cobra.Command{
 		fmt.Println("CloudFormationスタックを取得中...")
 
 		awsCtx := getAwsContext()
-		stackNames, err := internal.ListCfnStacks(awsCtx)
+		// AWS設定を読み込んでCloudFormationクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
+
+		stackNames, err := internal.ListCfnStacks(cfnClient)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}

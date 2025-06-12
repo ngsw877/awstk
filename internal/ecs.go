@@ -29,7 +29,7 @@ type EcsServiceInfo struct {
 }
 
 func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error) {
-	services, err := GetAllEcsFromStack(awsCtx, stackName)
+	services, err := getAllEcsFromStack(awsCtx, stackName)
 	if err != nil {
 		return EcsServiceInfo{}, err
 	}
@@ -39,7 +39,7 @@ func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error
 }
 
 // GetAllEcsFromStack はスタック内のすべてのECSサービス情報を取得します
-func GetAllEcsFromStack(awsCtx AwsContext, stackName string) ([]EcsServiceInfo, error) {
+func getAllEcsFromStack(awsCtx AwsContext, stackName string) ([]EcsServiceInfo, error) {
 	var results []EcsServiceInfo
 
 	stackResources, err := getStackResources(awsCtx, stackName)
@@ -145,16 +145,8 @@ func selectEcsServiceInfo(services []EcsServiceInfo) (EcsServiceInfo, error) {
 	return services[selectedIndex], nil
 }
 
-func GetRunningTask(awsCtx AwsContext, clusterName, serviceName string) (string, error) {
+func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (string, error) {
 	fmt.Println("🔍 実行中のタスクを検索中...")
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return "", fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECSクライアントを作成
-	ecsClient := ecs.NewFromConfig(cfg)
 
 	// タスク一覧を取得
 	taskList, err := ecsClient.ListTasks(context.TODO(), &ecs.ListTasksInput{
@@ -202,23 +194,15 @@ func ExecuteCommand(awsCtx AwsContext, clusterName, taskId, containerName string
 }
 
 // SetEcsServiceCapacity はECSサービスの最小・最大キャパシティを設定します
-func SetEcsServiceCapacity(awsCtx AwsContext, opts ServiceCapacityOptions) error {
+func SetEcsServiceCapacity(autoScalingClient *applicationautoscaling.Client, opts ServiceCapacityOptions) error {
 	fmt.Printf("🔍 🚀 Fargate (ECSサービス: %s) のDesiredCountを%d～%dに設定します...\n",
 		opts.ServiceName, opts.MinCapacity, opts.MaxCapacity)
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// Application Auto Scalingクライアントを作成
-	client := applicationautoscaling.NewFromConfig(cfg)
 
 	// リソースIDを構築
 	resourceId := fmt.Sprintf("service/%s/%s", opts.ClusterName, opts.ServiceName)
 
 	// スケーラブルターゲットを登録
-	_, err = client.RegisterScalableTarget(context.TODO(), &applicationautoscaling.RegisterScalableTargetInput{
+	_, err := autoScalingClient.RegisterScalableTarget(context.TODO(), &applicationautoscaling.RegisterScalableTargetInput{
 		ServiceNamespace:  "ecs",
 		ScalableDimension: "ecs:service:DesiredCount",
 		ResourceId:        &resourceId,
@@ -236,7 +220,7 @@ func SetEcsServiceCapacity(awsCtx AwsContext, opts ServiceCapacityOptions) error
 }
 
 // WaitForServiceStatus はECSサービスの状態が目標とする状態になるまで待機します
-func WaitForServiceStatus(awsCtx AwsContext, opts ServiceCapacityOptions, targetRunningCount int, timeoutSeconds int) error {
+func WaitForServiceStatus(ecsClient *ecs.Client, opts ServiceCapacityOptions, targetRunningCount int, timeoutSeconds int) error {
 	var status string
 	if targetRunningCount == 0 {
 		status = "停止"
@@ -253,7 +237,7 @@ func WaitForServiceStatus(awsCtx AwsContext, opts ServiceCapacityOptions, target
 	for {
 		<-ticker.C
 		// サービスの状態を取得
-		service, err := describeService(awsCtx, opts.ClusterName, opts.ServiceName)
+		service, err := describeService(ecsClient, opts.ClusterName, opts.ServiceName)
 		if err != nil {
 			return fmt.Errorf("サービス情報の取得に失敗しました: %w", err)
 		}
@@ -296,15 +280,7 @@ type RunAndWaitForTaskOptions struct {
 }
 
 // describeService はECSサービスの詳細情報を取得します
-func describeService(awsCtx AwsContext, clusterName, serviceName string) (*types.Service, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECSクライアントを作成
-	ecsClient := ecs.NewFromConfig(cfg)
-
+func describeService(ecsClient *ecs.Client, clusterName, serviceName string) (*types.Service, error) {
 	// サービスの詳細を取得
 	resp, err := ecsClient.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
 		Cluster:  aws.String(clusterName),
@@ -322,16 +298,8 @@ func describeService(awsCtx AwsContext, clusterName, serviceName string) (*types
 }
 
 // waitForTaskStopped はタスクが停止するまで待機し、コンテナの終了コードを返します
-func waitForTaskStopped(awsCtx AwsContext, clusterName, taskArn, containerName string, timeoutSeconds int) (int, error) {
+func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerName string, timeoutSeconds int) (int, error) {
 	fmt.Println("⏳ タスクの完了を待機中...")
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return -1, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECSクライアントを作成
-	ecsClient := ecs.NewFromConfig(cfg)
 
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	ticker := time.NewTicker(5 * time.Second)
@@ -389,15 +357,7 @@ func waitForTaskStopped(awsCtx AwsContext, clusterName, taskArn, containerName s
 }
 
 // RunAndWaitForTask はECSタスクを実行し、完了するまで待機します
-func RunAndWaitForTask(awsCtx AwsContext, opts RunAndWaitForTaskOptions) (int, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return -1, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECSクライアントを作成
-	ecsClient := ecs.NewFromConfig(cfg)
-
+func RunAndWaitForTask(ecsClient *ecs.Client, opts RunAndWaitForTaskOptions) (int, error) {
 	// タスク定義とネットワーク設定を決定
 	var taskDefArn string
 	var networkConfig *types.NetworkConfiguration
@@ -409,7 +369,7 @@ func RunAndWaitForTask(awsCtx AwsContext, opts RunAndWaitForTaskOptions) (int, e
 	} else {
 		// サービスからタスク定義を取得
 		fmt.Println("🔍 サービスの情報を取得中...")
-		service, err := describeService(awsCtx, opts.ClusterName, opts.ServiceName)
+		service, err := describeService(ecsClient, opts.ClusterName, opts.ServiceName)
 		if err != nil {
 			return -1, err
 		}
@@ -471,7 +431,7 @@ func RunAndWaitForTask(awsCtx AwsContext, opts RunAndWaitForTaskOptions) (int, e
 	fmt.Println("✅ タスクが開始されました: " + taskArn)
 
 	// タスクが停止するまで待機
-	exitCode, err := waitForTaskStopped(awsCtx, opts.ClusterName, taskArn, opts.ContainerName, opts.TimeoutSeconds)
+	exitCode, err := waitForTaskStopped(ecsClient, opts.ClusterName, taskArn, opts.ContainerName, opts.TimeoutSeconds)
 	if err != nil {
 		return -1, err
 	}
@@ -480,15 +440,8 @@ func RunAndWaitForTask(awsCtx AwsContext, opts RunAndWaitForTaskOptions) (int, e
 }
 
 // ForceRedeployService はECSサービスを強制再デプロイします
-func ForceRedeployService(awsCtx AwsContext, clusterName, serviceName string) error {
+func ForceRedeployService(ecsClient *ecs.Client, clusterName, serviceName string) error {
 	fmt.Printf("🚀 ECSサービス '%s' を強制再デプロイします...\n", serviceName)
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	ecsClient := ecs.NewFromConfig(cfg)
 
 	updateInput := &ecs.UpdateServiceInput{
 		Cluster:            aws.String(clusterName),
@@ -496,7 +449,7 @@ func ForceRedeployService(awsCtx AwsContext, clusterName, serviceName string) er
 		ForceNewDeployment: true,
 	}
 
-	_, err = ecsClient.UpdateService(context.TODO(), updateInput)
+	_, err := ecsClient.UpdateService(context.TODO(), updateInput)
 
 	if err != nil {
 		return fmt.Errorf("サービスの強制再デプロイに失敗しました: %w", err)
@@ -507,15 +460,8 @@ func ForceRedeployService(awsCtx AwsContext, clusterName, serviceName string) er
 }
 
 // WaitForDeploymentComplete はECSサービスのデプロイが完了するまで待機します
-func WaitForDeploymentComplete(awsCtx AwsContext, clusterName, serviceName string, timeoutSeconds int) error {
+func WaitForDeploymentComplete(ecsClient *ecs.Client, clusterName, serviceName string, timeoutSeconds int) error {
 	fmt.Println("⏳ デプロイ完了を待機しています...")
-
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	ecsClient := ecs.NewFromConfig(cfg)
 
 	start := time.Now()
 	timeout := time.Duration(timeoutSeconds) * time.Second

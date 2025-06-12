@@ -8,25 +8,22 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 )
 
-// VerifySesEmails はSESでメールアドレス検証リクエストを送信する
-func VerifySesEmails(awsCtx AwsContext, emails []string) ([]string, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-	client := ses.NewFromConfig(cfg)
-
+// VerifySesEmails 指定されたメールアドレス一覧をSESで検証する
+func VerifySesEmails(sesClient *ses.Client, emails []string) ([]string, error) {
 	var failedEmails []string
+
 	for _, email := range emails {
-		_, err := client.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
+		fmt.Printf("検証中: %s\n", email)
+		_, err := sesClient.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
 			EmailAddress: aws.String(email),
 		})
 		if err != nil {
-			fmt.Printf("❌ %s の検証に失敗: %v\n", email, err)
+			fmt.Printf("❌ 失敗: %s - %v\n", email, err)
 			failedEmails = append(failedEmails, email)
 		} else {
-			fmt.Printf("✅ %s の検証リクエストを送信しました\n", email)
+			fmt.Printf("✅ 成功: %s\n", email)
 		}
 	}
+
 	return failedEmails, nil
 }

@@ -4,6 +4,7 @@ import (
 	"awstk/internal"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 )
 
@@ -35,9 +36,16 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 		awsCtx := getAwsContext()
 		showTime, _ := cmdCobra.Flags().GetBool("time")
 
+		// AWS設定を読み込んでS3クライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		s3Client := s3.NewFromConfig(cfg)
+
 		if len(args) == 0 {
 			// 引数がない場合はバケット一覧表示
-			buckets, err := internal.ListS3Buckets(awsCtx)
+			buckets, err := internal.ListS3Buckets(s3Client)
 			if err != nil {
 				return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
 			}
@@ -52,7 +60,7 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 		} else {
 			// 引数がある場合は指定S3パスをツリー形式で表示
 			s3Path := args[0]
-			err := internal.ListS3TreeView(awsCtx, s3Path, showTime)
+			err := internal.ListS3TreeView(s3Client, s3Path, showTime)
 			if err != nil {
 				return fmt.Errorf("❌ %w", err)
 			}
@@ -88,8 +96,16 @@ var s3GunzipCmd = &cobra.Command{
 			outDir = "./outputs/"
 		}
 		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
+
 		awsCtx := getAwsContext()
-		if err := internal.DownloadAndExtractGzFiles(awsCtx, s3url, outDir); err != nil {
+		// AWS設定を読み込んでS3クライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		s3Client := s3.NewFromConfig(cfg)
+
+		if err := internal.DownloadAndExtractGzFiles(s3Client, s3url, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)
 		}
 		return nil

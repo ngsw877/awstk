@@ -5,6 +5,7 @@ import (
 
 	"awstk/internal"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 )
 
@@ -38,12 +39,19 @@ var regionLsCmd = &cobra.Command{
   ` + AppName + ` region ls --all`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := getAwsContext()
-		return listRegions(awsCtx, showAllRegions)
+		// AWS設定を読み込んでEC2クライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		ec2Client := ec2.NewFromConfig(cfg)
+
+		return listRegions(ec2Client, showAllRegions)
 	},
 }
 
-func listRegions(awsCtx internal.AwsContext, showAllRegions bool) error {
-	regions, err := internal.ListRegions(awsCtx, showAllRegions)
+func listRegions(ec2Client *ec2.Client, showAllRegions bool) error {
+	regions, err := internal.ListRegions(ec2Client, showAllRegions)
 	if err != nil {
 		return err
 	}
@@ -93,7 +101,14 @@ func init() {
 		// エイリアスで呼ばれた場合、lsコマンドのロジックを実行
 		if cmd.CalledAs() == regionLsAlias {
 			awsCtx := getAwsContext()
-			return listRegions(awsCtx, showAllRegions)
+			// AWS設定を読み込んでEC2クライアントを作成
+			cfg, err := internal.LoadAwsConfig(awsCtx)
+			if err != nil {
+				return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+			}
+			ec2Client := ec2.NewFromConfig(cfg)
+
+			return listRegions(ec2Client, showAllRegions)
 		}
 		// 'region' コマンドが直接呼ばれた場合はヘルプを表示
 		return cmd.Help()

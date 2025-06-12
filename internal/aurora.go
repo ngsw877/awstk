@@ -8,15 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
-// StartAuroraCluster Auroraクラスタを起動する
-func StartAuroraCluster(awsCtx AwsContext, clusterId string) error {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := rds.NewFromConfig(cfg)
-	_, err = client.StartDBCluster(context.Background(), &rds.StartDBClusterInput{
+// StartAuroraCluster Aurora DBクラスターを起動する
+func StartAuroraCluster(rdsClient *rds.Client, clusterId string) error {
+	_, err := rdsClient.StartDBCluster(context.Background(), &rds.StartDBClusterInput{
 		DBClusterIdentifier: aws.String(clusterId),
 	})
 	if err != nil {
@@ -25,15 +19,9 @@ func StartAuroraCluster(awsCtx AwsContext, clusterId string) error {
 	return nil
 }
 
-// StopAuroraCluster Auroraクラスタを停止する
-func StopAuroraCluster(awsCtx AwsContext, clusterId string) error {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := rds.NewFromConfig(cfg)
-	_, err = client.StopDBCluster(context.Background(), &rds.StopDBClusterInput{
+// StopAuroraCluster Aurora DBクラスターを停止する
+func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
+	_, err := rdsClient.StopDBCluster(context.Background(), &rds.StopDBClusterInput{
 		DBClusterIdentifier: aws.String(clusterId),
 	})
 	if err != nil {
@@ -42,7 +30,7 @@ func StopAuroraCluster(awsCtx AwsContext, clusterId string) error {
 	return nil
 }
 
-// GetAuroraFromStack はCloudFormationスタック名からAuroraクラスター識別子を取得します。
+// GetAuroraFromStack はCloudFormationスタック名からAurora DBクラスター識別子を取得します。
 func GetAuroraFromStack(awsCtx AwsContext, stackName string) (string, error) {
 	clusters, err := GetAllAuroraFromStack(awsCtx, stackName)
 	if err != nil {
@@ -50,7 +38,7 @@ func GetAuroraFromStack(awsCtx AwsContext, stackName string) (string, error) {
 	}
 
 	// 対話的選択機能を使用
-	selectedIndex, err := SelectFromOptions("複数のAuroraクラスターが見つかりました", clusters)
+	selectedIndex, err := SelectFromOptions("複数のAurora DBクラスターが見つかりました", clusters)
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +46,7 @@ func GetAuroraFromStack(awsCtx AwsContext, stackName string) (string, error) {
 	return clusters[selectedIndex], nil
 }
 
-// GetAllAuroraFromStack はスタック内のすべてのAuroraクラスター識別子を取得します
+// GetAllAuroraFromStack はスタック内のすべてのAurora DBクラスター識別子を取得します
 func GetAllAuroraFromStack(awsCtx AwsContext, stackName string) ([]string, error) {
 	var results []string
 
@@ -67,18 +55,18 @@ func GetAllAuroraFromStack(awsCtx AwsContext, stackName string) ([]string, error
 		return results, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
-	// リソースの中からAurora DBClusterを探す
+	// リソースの中からRDS DBClusterを探す
 	for _, resource := range stackResources {
 		if resource.ResourceType != nil && *resource.ResourceType == "AWS::RDS::DBCluster" {
 			if resource.PhysicalResourceId != nil && *resource.PhysicalResourceId != "" {
 				results = append(results, *resource.PhysicalResourceId)
-				fmt.Printf("🔍 検出されたAuroraクラスター: %s\n", *resource.PhysicalResourceId)
+				fmt.Printf("🔍 検出されたAurora DBクラスター: %s\n", *resource.PhysicalResourceId)
 			}
 		}
 	}
 
 	if len(results) == 0 {
-		return results, fmt.Errorf("指定されたスタック (%s) にAuroraクラスターが見つかりませんでした", stackName)
+		return results, fmt.Errorf("指定されたスタック (%s) にAurora DBクラスターが見つかりませんでした", stackName)
 	}
 
 	return results, nil

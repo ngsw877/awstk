@@ -4,6 +4,7 @@ import (
 	"awstk/internal"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
 
@@ -13,11 +14,11 @@ var (
 
 var AuroraCmd = &cobra.Command{
 	Use:   "aurora",
-	Short: "Auroraリソース操作コマンド",
-	Long:  `Auroraリソースを操作するためのコマンド群です。`,
+	Short: "Aurora DBクラスター操作コマンド",
+	Long:  `Aurora DBクラスターを操作するためのコマンド群です。`,
 }
 
-var auroraStartClusterCmd = &cobra.Command{
+var auroraStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Aurora DBクラスターを起動するコマンド",
 	Long: `Aurora DBクラスターを起動するコマンドです。
@@ -38,27 +39,34 @@ CloudFormationスタック名を指定するか、クラスター識別子を直
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
-			fmt.Printf("🔍 検出されたAuroraクラスター: %s\n", clusterId)
+			fmt.Printf("🔍 検出されたAurora DBクラスター: %s\n", clusterId)
 		} else if auroraClusterId != "" {
 			clusterId = auroraClusterId
 		} else {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名 (-S) またはAuroraクラスター識別子 (-c) が必須です")
+			return fmt.Errorf("❌ エラー: スタック名 (-S) またはAurora DBクラスター識別子 (-c) が必須です")
 		}
 
+		// AWS設定を読み込んでRDSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		rdsClient := rds.NewFromConfig(cfg)
+
 		fmt.Printf("🚀 Aurora DBクラスター '%s' を起動します...\n", clusterId)
-		err = internal.StartAuroraCluster(awsCtx, clusterId)
+		err = internal.StartAuroraCluster(rdsClient, clusterId)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
-		fmt.Printf("✅ Aurora DBクラスター '%s' の起動を開始しました。起動完了まで数十分かかります。\n", clusterId)
+		fmt.Printf("✅ Aurora DBクラスター '%s' の起動を開始しました\n", clusterId)
 		return nil
 	},
 	SilenceUsage: true,
 }
 
-var auroraStopClusterCmd = &cobra.Command{
+var auroraStopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Aurora DBクラスターを停止するコマンド",
 	Long: `Aurora DBクラスターを停止するコマンドです。
@@ -79,16 +87,23 @@ CloudFormationスタック名を指定するか、クラスター識別子を直
 			if err != nil {
 				return fmt.Errorf("❌ エラー: %w", err)
 			}
-			fmt.Printf("🔍 検出されたAuroraクラスター: %s\n", clusterId)
+			fmt.Printf("🔍 検出されたAurora DBクラスター: %s\n", clusterId)
 		} else if auroraClusterId != "" {
 			clusterId = auroraClusterId
 		} else {
 			cmd.Help()
-			return fmt.Errorf("❌ エラー: スタック名 (-S) またはAuroraクラスター識別子 (-c) が必須です")
+			return fmt.Errorf("❌ エラー: スタック名 (-S) またはAurora DBクラスター識別子 (-c) が必須です")
 		}
 
+		// AWS設定を読み込んでRDSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		rdsClient := rds.NewFromConfig(cfg)
+
 		fmt.Printf("🛑 Aurora DBクラスター '%s' を停止します...\n", clusterId)
-		err = internal.StopAuroraCluster(awsCtx, clusterId)
+		err = internal.StopAuroraCluster(rdsClient, clusterId)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -101,14 +116,14 @@ CloudFormationスタック名を指定するか、クラスター識別子を直
 
 func init() {
 	RootCmd.AddCommand(AuroraCmd)
-	AuroraCmd.AddCommand(auroraStartClusterCmd)
-	AuroraCmd.AddCommand(auroraStopClusterCmd)
+	AuroraCmd.AddCommand(auroraStartCmd)
+	AuroraCmd.AddCommand(auroraStopCmd)
 
 	// startコマンドのフラグを設定
-	auroraStartClusterCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
-	auroraStartClusterCmd.Flags().StringVarP(&auroraClusterId, "cluster", "c", "", "Auroraクラスター識別子 (-Sが指定されていない場合に必須)")
+	auroraStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraStartCmd.Flags().StringVarP(&auroraClusterId, "cluster", "c", "", "Aurora DBクラスター識別子 (-Sが指定されていない場合に必須)")
 
 	// stopコマンドのフラグを設定
-	auroraStopClusterCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
-	auroraStopClusterCmd.Flags().StringVarP(&auroraClusterId, "cluster", "c", "", "Auroraクラスター識別子 (-Sが指定されていない場合に必須)")
+	auroraStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraStopCmd.Flags().StringVarP(&auroraClusterId, "cluster", "c", "", "Aurora DBクラスター識別子 (-Sが指定されていない場合に必須)")
 }

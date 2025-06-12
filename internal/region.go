@@ -7,57 +7,49 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-// Region はAWSリージョンの情報を格納する構造体
-type Region struct {
+// AWSRegion represents an AWS region
+type AWSRegion struct {
 	RegionName  string
 	OptInStatus string
 }
 
-// RegionGroups はリージョンを有効/無効で分類したグループ
+// RegionGroups represents grouped regions by availability
 type RegionGroups struct {
-	Available []Region // 有効なリージョン (opt-in-not-required と opted-in)
-	Disabled  []Region // 無効なリージョン (not-opted-in)
+	Available []AWSRegion
+	Disabled  []AWSRegion
 }
 
-// ListRegions は利用可能なAWSリージョン一覧を取得する
-func ListRegions(awsCtx AwsContext, showAllRegions bool) ([]Region, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
+// ListRegions retrieves all AWS regions
+func ListRegions(ec2Client *ec2.Client, showAllRegions bool) ([]AWSRegion, error) {
+	input := &ec2.DescribeRegionsInput{
+		AllRegions: &showAllRegions,
 	}
 
-	client := ec2.NewFromConfig(cfg)
-
-	// DescribeRegionsの入力パラメータを設定
-	input := &ec2.DescribeRegionsInput{}
-	if showAllRegions {
-		input.AllRegions = &showAllRegions
-	}
-
-	result, err := client.DescribeRegions(context.Background(), input)
+	result, err := ec2Client.DescribeRegions(context.Background(), input)
 	if err != nil {
 		return nil, fmt.Errorf("リージョン一覧の取得に失敗: %w", err)
 	}
 
-	var regions []Region
+	var regions []AWSRegion
 	for _, region := range result.Regions {
-		regions = append(regions, Region{
+		regions = append(regions, AWSRegion{
 			RegionName:  *region.RegionName,
-			OptInStatus: string(*region.OptInStatus),
+			OptInStatus: *region.OptInStatus,
 		})
 	}
 
 	return regions, nil
 }
 
-// GroupRegions はリージョンを有効/無効で分類する
-func GroupRegions(regions []Region) RegionGroups {
+// GroupRegions groups regions by availability
+func GroupRegions(regions []AWSRegion) RegionGroups {
 	var groups RegionGroups
 
 	for _, region := range regions {
-		if region.OptInStatus == "opt-in-not-required" || region.OptInStatus == "opted-in" {
+		switch region.OptInStatus {
+		case "opt-in-not-required", "opted-in":
 			groups.Available = append(groups.Available, region)
-		} else {
+		default:
 			groups.Disabled = append(groups.Disabled, region)
 		}
 	}

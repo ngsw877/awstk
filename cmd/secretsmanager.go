@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/spf13/cobra"
 
 	"awstk/internal"
@@ -26,7 +27,17 @@ var secretsManagerGetCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
-		secretMap, err := internal.GetSecretValues(getAwsContext(), secretName)
+
+		awsCtx := getAwsContext()
+		// AWS設定を読み込んでSecretsManagerクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			cmd.PrintErrf("AWS設定の読み込みエラー: %v\n", err)
+			return err
+		}
+		secretsClient := secretsmanager.NewFromConfig(cfg)
+
+		secretMap, err := internal.GetSecretValues(secretsClient, secretName)
 		if err != nil {
 			cmd.PrintErrf("エラー: %v\n", err)
 			return err

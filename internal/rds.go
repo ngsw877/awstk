@@ -9,14 +9,8 @@ import (
 )
 
 // StartRdsInstance RDSインスタンスを起動する
-func StartRdsInstance(awsContext AwsContext, instanceId string) error {
-	cfg, err := LoadAwsConfig(awsContext)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := rds.NewFromConfig(cfg)
-	_, err = client.StartDBInstance(context.Background(), &rds.StartDBInstanceInput{
+func StartRdsInstance(rdsClient *rds.Client, instanceId string) error {
+	_, err := rdsClient.StartDBInstance(context.Background(), &rds.StartDBInstanceInput{
 		DBInstanceIdentifier: aws.String(instanceId),
 	})
 	if err != nil {
@@ -26,14 +20,8 @@ func StartRdsInstance(awsContext AwsContext, instanceId string) error {
 }
 
 // StopRdsInstance RDSインスタンスを停止する
-func StopRdsInstance(awsContext AwsContext, instanceId string) error {
-	cfg, err := LoadAwsConfig(awsContext)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := rds.NewFromConfig(cfg)
-	_, err = client.StopDBInstance(context.Background(), &rds.StopDBInstanceInput{
+func StopRdsInstance(rdsClient *rds.Client, instanceId string) error {
+	_, err := rdsClient.StopDBInstance(context.Background(), &rds.StopDBInstanceInput{
 		DBInstanceIdentifier: aws.String(instanceId),
 	})
 	if err != nil {

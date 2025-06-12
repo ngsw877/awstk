@@ -4,6 +4,8 @@ import (
 	"awstk/internal"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/spf13/cobra"
 )
 
@@ -38,14 +40,21 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var err error
 
 		awsCtx := getAwsContext()
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
+		// AWS設定を読み込んでECSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		ecsClient := ecs.NewFromConfig(cfg)
+
 		// タスクIDを取得
-		taskId, err := internal.GetRunningTask(awsCtx, clusterName, serviceName)
+		taskId, err := internal.GetRunningTask(ecsClient, clusterName, serviceName)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -77,11 +86,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var err error
 
 		awsCtx := getAwsContext()
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
+
+		// AWS設定を読み込んでクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// キャパシティ設定オプションを作成
 		opts := internal.ServiceCapacityOptions{
@@ -92,14 +109,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// キャパシティを設定
-		fmt.Println(" サービスの起動を開始します...")
-		err = internal.SetEcsServiceCapacity(awsCtx, opts)
+		fmt.Println("🚀 サービスの起動を開始します...")
+		err = internal.SetEcsServiceCapacity(autoScalingClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// 起動完了を必ず待機
-		err = internal.WaitForServiceStatus(awsCtx, opts, minCapacity, timeoutSeconds)
+		err = internal.WaitForServiceStatus(ecsClient, opts, minCapacity, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
 		}
@@ -124,11 +141,19 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var err error
 
 		awsCtx := getAwsContext()
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
+
+		// AWS設定を読み込んでクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// キャパシティ設定オプションを作成（停止のため0に設定）
 		opts := internal.ServiceCapacityOptions{
@@ -139,14 +164,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// キャパシティを設定
-		fmt.Println(" サービスの停止を開始します...")
-		err = internal.SetEcsServiceCapacity(awsCtx, opts)
+		fmt.Println("🛑 サービスの停止を開始します...")
+		err = internal.SetEcsServiceCapacity(autoScalingClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// 停止完了を必ず待機
-		err = internal.WaitForServiceStatus(awsCtx, opts, 0, timeoutSeconds)
+		err = internal.WaitForServiceStatus(ecsClient, opts, 0, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
 		}
@@ -172,11 +197,18 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var err error
 
 		awsCtx := getAwsContext()
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
+
+		// AWS設定を読み込んでECSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// タスク実行オプションを作成
 		opts := internal.RunAndWaitForTaskOptions{
@@ -192,7 +224,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// タスクを実行して完了を待機
 		fmt.Println("🚀 ECSタスクを実行します...")
-		exitCode, err := internal.RunAndWaitForTask(awsCtx, opts)
+		exitCode, err := internal.RunAndWaitForTask(ecsClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ タスク実行エラー: %w", err)
 		}
@@ -224,14 +256,21 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		var err error
 
 		awsCtx := getAwsContext()
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
+		// AWS設定を読み込んでECSクライアントを作成
+		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		ecsClient := ecs.NewFromConfig(cfg)
+
 		// 強制再デプロイを実行
-		err = internal.ForceRedeployService(awsCtx, clusterName, serviceName)
+		err = internal.ForceRedeployService(ecsClient, clusterName, serviceName)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -239,7 +278,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		// --no-waitフラグが指定されていない場合はデプロイ完了まで待機
 		noWait, _ := cmd.Flags().GetBool("no-wait")
 		if !noWait {
-			err = internal.WaitForDeploymentComplete(awsCtx, clusterName, serviceName, timeoutSeconds)
+			err = internal.WaitForDeploymentComplete(ecsClient, clusterName, serviceName, timeoutSeconds)
 			if err != nil {
 				return fmt.Errorf("❌ デプロイ完了待機エラー: %w", err)
 			}
@@ -297,11 +336,10 @@ func init() {
 
 // resolveEcsClusterAndService はフラグの値に基づいて
 // 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
-func resolveEcsClusterAndService() (string, string, error) {
+func resolveEcsClusterAndService(awsCtx internal.AwsContext) (string, string, error) {
 	if stackName != "" {
 		fmt.Println("CloudFormationスタックからECS情報を取得します...")
-		awsContext := getAwsContext()
-		serviceInfo, stackErr := internal.GetEcsFromStack(awsContext, stackName)
+		serviceInfo, stackErr := internal.GetEcsFromStack(awsCtx, stackName)
 		if stackErr != nil {
 			return "", "", fmt.Errorf("❌ エラー: %w", stackErr)
 		}

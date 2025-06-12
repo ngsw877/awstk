@@ -11,15 +11,7 @@ import (
 )
 
 // getEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
-func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
-	cfg, err := LoadAwsConfig(AwsContext{Region: opts.Region, Profile: opts.Profile})
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECRクライアントを作成
-	ecrClient := ecr.NewFromConfig(cfg)
-
+func getEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]string, error) {
 	// リポジトリ一覧を取得
 	listReposInput := &ecr.DescribeRepositoriesInput{}
 	foundRepos := []string{}
@@ -32,7 +24,7 @@ func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
 		}
 
 		for _, repo := range listReposOutput.Repositories {
-			if strings.Contains(*repo.RepositoryName, opts.SearchString) {
+			if strings.Contains(*repo.RepositoryName, searchString) {
 				foundRepos = append(foundRepos, *repo.RepositoryName)
 				fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *repo.RepositoryName)
 			}
@@ -48,15 +40,7 @@ func getEcrRepositoriesByKeyword(opts CleanupOptions) ([]string, error) {
 }
 
 // cleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
-func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
-	cfg, err := LoadAwsConfig(AwsContext{Region: opts.Region, Profile: opts.Profile})
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// ECRクライアントを作成
-	ecrClient := ecr.NewFromConfig(cfg)
-
+func cleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 	for _, repoName := range repoNames {
 		fmt.Printf("リポジトリ %s を空にして削除中...\n", repoName)
 
@@ -94,7 +78,7 @@ func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 				batch := imageIdsToDelete[i:end]
 
 				fmt.Printf("  %d件のイメージを削除中...\n", len(batch))
-				_, err = ecrClient.BatchDeleteImage(context.TODO(), &ecr.BatchDeleteImageInput{
+				_, err := ecrClient.BatchDeleteImage(context.TODO(), &ecr.BatchDeleteImageInput{
 					RepositoryName: aws.String(repoName),
 					ImageIds:       batch,
 				})
@@ -109,7 +93,7 @@ func cleanupEcrRepositories(opts CleanupOptions, repoNames []string) error {
 
 		// リポジトリの削除
 		fmt.Printf("  リポジトリ削除中: %s\n", repoName)
-		_, err = ecrClient.DeleteRepository(context.TODO(), &ecr.DeleteRepositoryInput{
+		_, err := ecrClient.DeleteRepository(context.TODO(), &ecr.DeleteRepositoryInput{
 			RepositoryName: aws.String(repoName),
 			Force:          true, // 強制削除
 		})

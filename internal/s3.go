@@ -16,14 +16,8 @@ import (
 )
 
 // ListS3Buckets はS3バケット名の一覧を返す関数
-func ListS3Buckets(awsCtx AwsContext) ([]string, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	client := s3.NewFromConfig(cfg)
-	result, err := client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
+func ListS3Buckets(s3Client *s3.Client) ([]string, error) {
+	result, err := s3Client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -36,15 +30,7 @@ func ListS3Buckets(awsCtx AwsContext) ([]string, error) {
 }
 
 // getS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
-func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
-	cfg, err := LoadAwsConfig(opts.AwsContext)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// S3クライアントを作成
-	s3Client := s3.NewFromConfig(cfg)
-
+func getS3BucketsByKeyword(s3Client *s3.Client, searchString string) ([]string, error) {
 	// バケット一覧を取得
 	listBucketsOutput, err := s3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
 	if err != nil {
@@ -53,7 +39,7 @@ func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
 
 	foundBuckets := []string{}
 	for _, bucket := range listBucketsOutput.Buckets {
-		if strings.Contains(*bucket.Name, opts.SearchString) {
+		if strings.Contains(*bucket.Name, searchString) {
 			foundBuckets = append(foundBuckets, *bucket.Name)
 			fmt.Printf("🔍 検出されたS3バケット: %s\n", *bucket.Name)
 		}
@@ -63,15 +49,7 @@ func getS3BucketsByKeyword(opts CleanupOptions) ([]string, error) {
 }
 
 // cleanupS3Buckets は指定したS3バケット一覧を削除します
-func cleanupS3Buckets(opts CleanupOptions, bucketNames []string) error {
-	cfg, err := LoadAwsConfig(opts.AwsContext)
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-
-	// S3クライアントを作成
-	s3Client := s3.NewFromConfig(cfg)
-
+func cleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
 	for _, bucket := range bucketNames {
 		fmt.Printf("バケット %s を空にして削除中...\n", bucket)
 
@@ -177,68 +155,89 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 }
 
 // DownloadAndExtractGzFiles 指定S3パス配下の.gzファイルを一括ダウンロード＆解凍
-func DownloadAndExtractGzFiles(awsCtx AwsContext, s3url, outDir string) error {
+func DownloadAndExtractGzFiles(s3Client *s3.Client, s3url, outDir string) error {
 	ctx := context.Background()
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
 	bucket, prefix, err := parseS3Url(s3url)
 	if err != nil {
 		return err
 	}
-	client := s3.NewFromConfig(cfg)
+
 	// .gzファイル一覧取得
 	listInput := &s3.ListObjectsV2Input{
 		Bucket: &bucket,
 		Prefix: &prefix,
 	}
-	resp, err := client.ListObjectsV2(ctx, listInput)
+	resp, err := s3Client.ListObjectsV2(ctx, listInput)
 	if err != nil {
 		return fmt.Errorf("S3リスト取得失敗: %w", err)
 	}
 	if len(resp.Contents) == 0 {
-		return fmt.Errorf("指定パスに.gzファイルが見つかりませんでした")
+		return fmt.Errorf("指定されたパス配下に .gz ファイルが見つかりませんでした")
 	}
+
+	// 出力ディレクトリを作成
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return fmt.Errorf("出力ディレクトリの作成に失敗: %w", err)
+	}
+
+	gzCount := 0
 	for _, obj := range resp.Contents {
-		if !strings.HasSuffix(*obj.Key, ".gz") {
+		key := *obj.Key
+		if !strings.HasSuffix(key, ".gz") {
+			continue // .gz以外はスキップ
+		}
+		gzCount++
+
+		fmt.Printf("📦 %s をダウンロード中...\n", key)
+		// ダウンロード
+		getObjectInput := &s3.GetObjectInput{
+			Bucket: &bucket,
+			Key:    &key,
+		}
+		getResp, err := s3Client.GetObject(ctx, getObjectInput)
+		if err != nil {
+			fmt.Printf("❌ %s のダウンロードに失敗: %v\n", key, err)
 			continue
 		}
-		getObjInput := &s3.GetObjectInput{
-			Bucket: &bucket,
-			Key:    obj.Key,
-		}
-		getObjOut, err := client.GetObject(ctx, getObjInput)
+
+		// 解凍とローカル保存
+		baseKey := strings.TrimSuffix(filepath.Base(key), ".gz")
+		outPath := filepath.Join(outDir, baseKey)
+
+		// gzip解凍
+		gzr, err := gzip.NewReader(getResp.Body)
 		if err != nil {
-			return fmt.Errorf("ダウンロード失敗: %w", err)
+			fmt.Printf("❌ %s のgzip解凍に失敗: %v\n", key, err)
+			getResp.Body.Close()
+			continue
 		}
-		defer getObjOut.Body.Close()
-		// ローカルパス生成
-		relPath := strings.TrimPrefix(*obj.Key, prefix)
-		if strings.HasPrefix(relPath, "/") {
-			relPath = relPath[1:]
-		}
-		outPath := filepath.Join(outDir, strings.TrimSuffix(relPath, ".gz"))
-		if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
-			return fmt.Errorf("ディレクトリ作成失敗: %w", err)
-		}
-		// 解凍して保存
-		gzr, err := gzip.NewReader(getObjOut.Body)
+
+		// ファイル作成
+		outFile, err := os.Create(outPath)
 		if err != nil {
-			return fmt.Errorf("gzip解凍失敗: %w", err)
+			fmt.Printf("❌ %s のファイル作成に失敗: %v\n", outPath, err)
+			gzr.Close()
+			getResp.Body.Close()
+			continue
 		}
-		f, err := os.Create(outPath)
-		if err != nil {
-			return fmt.Errorf("ファイル作成失敗: %w", err)
-		}
-		_, err = io.Copy(f, gzr)
+
+		// 解凍データをファイルに書き込み
+		_, err = io.Copy(outFile, gzr)
 		gzr.Close()
-		f.Close()
+		outFile.Close()
 		if err != nil {
-			return fmt.Errorf("ファイル書き込み失敗: %w", err)
+			fmt.Printf("❌ %s の書き込みに失敗: %v\n", outPath, err)
+			getResp.Body.Close()
+			continue
 		}
-		fmt.Printf("✅ %s を %s に保存しました\n", *obj.Key, outPath)
+		getResp.Body.Close()
+		fmt.Printf("✅ %s → %s\n", key, outPath)
 	}
+
+	if gzCount == 0 {
+		return fmt.Errorf("指定されたパス配下に .gz ファイルが見つかりませんでした")
+	}
+	fmt.Printf("🎉 %d個の .gz ファイルの処理が完了しました\n", gzCount)
 	return nil
 }
 
@@ -268,41 +267,28 @@ type S3Object struct {
 	LastModified time.Time
 }
 
-// listS3Objects 指定されたバケット内のオブジェクト一覧を再帰的に取得します
-func listS3Objects(awsCtx AwsContext, bucketName string, prefix string) ([]S3Object, error) {
-	cfg, err := LoadAwsConfig(awsCtx)
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	client := s3.NewFromConfig(cfg)
-
+// listS3Objects はS3バケット内のオブジェクト一覧を取得します
+func listS3Objects(s3Client *s3.Client, bucketName string, prefix string) ([]S3Object, error) {
 	var objects []S3Object
 
-	// ListObjectsV2Inputを使って再帰的にオブジェクト一覧を取得
-	input := &s3.ListObjectsV2Input{
+	// ListObjectsV2を使用してオブジェクト一覧を取得
+	paginator := s3.NewListObjectsV2Paginator(s3Client, &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),
 		Prefix: aws.String(prefix),
-		// Delimiterを指定しないことで再帰的に全オブジェクトを取得
-	}
-
-	// ページネーションを考慮して、全オブジェクトを取得
-	paginator := s3.NewListObjectsV2Paginator(client, input)
+	})
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
+		page, err := paginator.NextPage(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("S3オブジェクト一覧のページ取得に失敗: %w", err)
+			return nil, fmt.Errorf("S3オブジェクト一覧取得エラー: %w", err)
 		}
 
 		for _, obj := range page.Contents {
-			if obj.Key != nil {
-				objects = append(objects, S3Object{
-					Key:          *obj.Key,
-					Size:         *obj.Size,
-					LastModified: *obj.LastModified,
-				})
-			}
+			objects = append(objects, S3Object{
+				Key:          *obj.Key,
+				Size:         *obj.Size,
+				LastModified: *obj.LastModified,
+			})
 		}
 	}
 
@@ -469,35 +455,29 @@ func formatFileSize(size int64) string {
 }
 
 // ListS3TreeView 指定されたS3パスをツリー形式で表示します
-func ListS3TreeView(awsCtx AwsContext, s3Path string, showTime bool) error {
-	bucketName, prefix, err := parseS3Url(s3Path)
+func ListS3TreeView(s3Client *s3.Client, s3Path string, showTime bool) error {
+	bucket, prefix, err := parseS3Url(s3Path)
 	if err != nil {
-		return fmt.Errorf("S3パスの形式が不正です: %w", err)
+		return err
 	}
 
-	// ParseS3Urlは末尾に"/"を追加するので、必要に応じて除去
-	prefix = strings.TrimSuffix(prefix, "/")
-
-	if showTime {
-		fmt.Printf("S3パス '%s' の中身 (サイズ + 更新日時):\n", s3Path)
-	} else {
-		fmt.Printf("S3パス '%s' の中身:\n", s3Path)
-	}
-
-	objects, err := listS3Objects(awsCtx, bucketName, prefix)
+	// S3オブジェクト一覧を取得
+	objects, err := listS3Objects(s3Client, bucket, prefix)
 	if err != nil {
-		return fmt.Errorf("S3オブジェクト一覧取得でエラー: %w", err)
+		return err
 	}
 
 	if len(objects) == 0 {
-		fmt.Println("オブジェクトが見つかりませんでした")
+		fmt.Printf("🔍 %s には何も見つかりませんでした\n", s3Path)
 		return nil
 	}
 
-	// ツリー構造を構築して表示
+	// ツリー構造を構築
 	tree := buildTreeFromObjects(objects, prefix)
+
+	// ツリーを表示
+	fmt.Printf("📁 %s\n", s3Path)
 	displayTree(tree, "", true, true, showTime)
 
-	fmt.Printf("\n📊 合計: %d オブジェクト\n", len(objects))
 	return nil
 }
