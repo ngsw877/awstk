@@ -207,12 +207,56 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	SilenceUsage: true,
 }
 
+// ecsRedeployCmd はECSサービスを強制再デプロイするコマンドです
+var ecsRedeployCmd = &cobra.Command{
+	Use:   "redeploy",
+	Short: "ECSサービスを強制再デプロイするコマンド",
+	Long: `ECSサービスを強制再デプロイするコマンドです。
+パラメータストアの値を更新した後などに、新しい設定でタスクを再起動したい場合に使用します。
+CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
+デフォルトでデプロイ完了まで待機します。--no-waitフラグを指定すると、待機せずに即座に終了します。
+
+例:
+  ` + AppName + ` ecs redeploy -P my-profile -S my-stack
+  ` + AppName + ` ecs redeploy -P my-profile -c my-cluster -s my-service
+  ` + AppName + ` ecs redeploy -P my-profile -S my-stack --no-wait`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+
+		awsCtx := getAwsContext()
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
+			cmd.Help()
+			return err
+		}
+
+		// 強制再デプロイを実行
+		err = internal.ForceRedeployService(awsCtx, clusterName, serviceName)
+		if err != nil {
+			return fmt.Errorf("❌ エラー: %w", err)
+		}
+
+		// --no-waitフラグが指定されていない場合はデプロイ完了まで待機
+		noWait, _ := cmd.Flags().GetBool("no-wait")
+		if !noWait {
+			err = internal.WaitForDeploymentComplete(awsCtx, clusterName, serviceName, timeoutSeconds)
+			if err != nil {
+				return fmt.Errorf("❌ デプロイ完了待機エラー: %w", err)
+			}
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(EcsCmd)
 	EcsCmd.AddCommand(ecsExecCmd)
 	EcsCmd.AddCommand(ecsStartCmd)
 	EcsCmd.AddCommand(ecsStopCmd)
 	EcsCmd.AddCommand(ecsRunCmd)
+	EcsCmd.AddCommand(ecsRedeployCmd)
 
 	// execコマンドのフラグを設定
 	ecsExecCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -242,6 +286,13 @@ func init() {
 	ecsRunCmd.Flags().StringVarP(&taskDefinition, "task-definition", "d", "", "タスク定義 (指定しない場合はサービスのタスク定義を使用)")
 	ecsRunCmd.Flags().StringVarP(&commandString, "command", "C", "", "実行するコマンド")
 	ecsRunCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+
+	// redeployコマンドのフラグを設定
+	ecsRedeployCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsRedeployCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
+	ecsRedeployCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
+	ecsRedeployCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+	ecsRedeployCmd.Flags().Bool("no-wait", false, "デプロイ完了を待機せずに即座に終了する")
 }
 
 // resolveEcsClusterAndService はフラグの値に基づいて
