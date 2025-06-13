@@ -1,4 +1,4 @@
-package internal
+package service
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	awsinternal "awstk/internal/aws"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -28,18 +30,23 @@ type EcsServiceInfo struct {
 	ServiceName string
 }
 
-func GetEcsFromStack(awsCtx AwsContext, stackName string) (EcsServiceInfo, error) {
-	services, err := getAllEcsFromStack(awsCtx, stackName)
+// GetEcsFromStack はCloudFormationスタックからECSサービス情報を取得します
+func GetEcsFromStack(awsCtx awsinternal.AwsContext, stackName string) (EcsServiceInfo, error) {
+	allServices, err := getAllEcsFromStack(awsCtx, stackName)
 	if err != nil {
 		return EcsServiceInfo{}, err
 	}
 
-	// 対話的選択機能を使用
-	return selectEcsServiceInfo(services)
+	if len(allServices) == 0 {
+		return EcsServiceInfo{}, fmt.Errorf("スタック '%s' にECSサービスが見つかりませんでした", stackName)
+	}
+
+	// 複数のサービスがある場合は最初の要素を返す
+	return allServices[0], nil
 }
 
 // GetAllEcsFromStack はスタック内のすべてのECSサービス情報を取得します
-func getAllEcsFromStack(awsCtx AwsContext, stackName string) ([]EcsServiceInfo, error) {
+func getAllEcsFromStack(awsCtx awsinternal.AwsContext, stackName string) ([]EcsServiceInfo, error) {
 	var results []EcsServiceInfo
 
 	stackResources, err := getStackResources(awsCtx, stackName)
@@ -120,31 +127,6 @@ func getAllEcsFromStack(awsCtx AwsContext, stackName string) ([]EcsServiceInfo, 
 	return results, nil
 }
 
-// selectEcsServiceInfo は複数のECSサービス情報から1つを選択させるプライベート関数
-func selectEcsServiceInfo(services []EcsServiceInfo) (EcsServiceInfo, error) {
-	if len(services) == 0 {
-		return EcsServiceInfo{}, fmt.Errorf("ECSサービスが見つかりません")
-	}
-
-	if len(services) == 1 {
-		fmt.Printf("✅ ECSサービス: %s/%s (自動選択)\n", services[0].ClusterName, services[0].ServiceName)
-		return services[0], nil
-	}
-
-	// 選択肢の文字列配列を作成
-	options := make([]string, len(services))
-	for i, service := range services {
-		options[i] = fmt.Sprintf("%s/%s", service.ClusterName, service.ServiceName)
-	}
-
-	selectedIndex, err := SelectFromOptions("複数のECSサービスが見つかりました", options)
-	if err != nil {
-		return EcsServiceInfo{}, err
-	}
-
-	return services[selectedIndex], nil
-}
-
 func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (string, error) {
 	fmt.Println("🔍 実行中のタスクを検索中...")
 
@@ -168,7 +150,7 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 	return taskId, nil
 }
 
-func ExecuteCommand(awsCtx AwsContext, clusterName, taskId, containerName string) error {
+func ExecuteCommand(awsCtx awsinternal.AwsContext, clusterName, taskId, containerName string) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",

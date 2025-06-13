@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"awstk/internal"
+	"awstk/internal/aws"
+	"awstk/internal/service"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/cobra"
 )
 
@@ -12,25 +12,22 @@ import (
 var CfnCmd = &cobra.Command{
 	Use:   "cfn",
 	Short: "CloudFormationリソース操作コマンド",
-	Long:  "CloudFormationスタックおよびスタック内リソースを操作するCLIコマンド群です。",
+	Long:  `CloudFormationリソースを操作するためのコマンド群です。`,
 }
 
-// lsCmd represents the ls command
 var cfnLsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "CloudFormationスタック一覧を表示するコマンド",
-	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		fmt.Println("CloudFormationスタックを取得中...")
-
-		awsCtx := getAwsContext()
-		// AWS設定を読み込んでCloudFormationクライアントを作成
-		cfg, err := internal.LoadAwsConfig(awsCtx)
+	Long:  `CloudFormationスタック一覧を表示します。`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-		cfnClient := cloudformation.NewFromConfig(cfg)
 
-		stackNames, err := internal.ListCfnStacks(cfnClient)
+		cfnClient := awsClients.Cfn()
+
+		stackNames, err := service.ListCfnStacks(cfnClient)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}
@@ -44,64 +41,7 @@ var cfnLsCmd = &cobra.Command{
 		for i, name := range stackNames {
 			fmt.Printf("  %3d. %s\n", i+1, name)
 		}
-		return nil
-	},
-	SilenceUsage: true,
-}
 
-// cfnStartCmd はCloudFormationスタック内のリソースを一括起動するコマンド
-var cfnStartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "スタック内のリソースを一括起動するコマンド",
-	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で起動します。
-
-例:
-  ` + AppName + ` cfn start -S <stack-name> [-P <aws-profile>]
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if stackName == "" {
-			return fmt.Errorf("❌ エラー: CloudFormationスタック名は必須です (-S で指定)")
-		}
-
-		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括起動します...\n", stackName)
-
-		awsCtx := getAwsContext()
-		err := internal.StartAllStackResources(awsCtx, stackName)
-		if err != nil {
-			fmt.Println("❌ スタック内の一部またはすべてのリソースの起動に失敗しました。")
-			return err
-		}
-
-		fmt.Println("✅ スタック内のリソースの起動を開始しました。")
-		return nil
-	},
-	SilenceUsage: true,
-}
-
-// cfnStopCmd はCloudFormationスタック内のリソースを一括停止するコマンド
-var cfnStopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "スタック内のリソースを一括停止するコマンド",
-	Long: `指定したCloudFormationスタック内のすべての操作可能なリソース（EC2、RDS、Aurora、ECS）を一括で停止します。
-
-例:
-  ` + AppName + ` cfn stop -S <stack-name> [-P <aws-profile>]
-`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if stackName == "" {
-			return fmt.Errorf("❌ エラー: CloudFormationスタック名は必須です (-S で指定)")
-		}
-
-		fmt.Printf("CloudFormationスタック (%s) 内のリソースを一括停止します...\n", stackName)
-
-		awsCtx := getAwsContext()
-		err := internal.StopAllStackResources(awsCtx, stackName)
-		if err != nil {
-			fmt.Println("❌ スタック内の一部またはすべてのリソースの停止に失敗しました。")
-			return err
-		}
-
-		fmt.Println("✅ スタック内のリソースの停止を開始しました。")
 		return nil
 	},
 	SilenceUsage: true,
@@ -110,9 +50,4 @@ var cfnStopCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
-	CfnCmd.AddCommand(cfnStartCmd)
-	CfnCmd.AddCommand(cfnStopCmd)
-
-	// スタック名フラグを追加
-	CfnCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

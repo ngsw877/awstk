@@ -1,97 +1,74 @@
 package cmd
 
 import (
-	"awstk/internal"
+	"awstk/internal/aws"
+	"awstk/internal/service"
 	"bufio"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/spf13/cobra"
 )
 
 var emailFile string
 
+// SesCmd represents the ses command
 var SesCmd = &cobra.Command{
 	Use:   "ses",
 	Short: "SESリソース操作コマンド",
-	Long:  "AWS SES（Simple Email Service）のリソースを操作するためのコマンド群です。",
+	Long:  `SES（Simple Email Service）を操作するためのコマンド群です。`,
 }
 
 var sesVerifyCmd = &cobra.Command{
-	Use:   "verify [email1] [email2] ...",
-	Short: "メールアドレスをSESで検証する",
-	Long: `指定したメールアドレスをAWS SESで検証します。
-コマンドライン引数または--fileオプションでメールアドレスを指定できます。
---fileオプションを使う場合は、1行1メールアドレスのテキストファイルを指定してください。
+	Use:   "verify",
+	Short: "SESメールアドレス検証コマンド",
+	Long: `指定されたファイルからメールアドレス一覧を読み込み、SESで検証リクエストを送信します。
+
 例:
-  ` + AppName + ` ses verify user1@example.com user2@example.com
-  ` + AppName + ` ses verify --file emails.txt
-  ` + AppName + ` ses verify user1@example.com --file emails.txt`,
-	Args: cobra.ArbitraryArgs,
+  ` + AppName + ` ses verify -f emails.txt`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var emails []string
-
-		// --fileオプションでファイルから読み込み
-		if emailFile != "" {
-			file, err := os.Open(emailFile)
-			if err != nil {
-				return fmt.Errorf("ファイルのオープンに失敗: %w", err)
-			}
-			defer file.Close()
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				line := strings.TrimSpace(scanner.Text())
-				if line != "" {
-					emails = append(emails, line)
-				}
-			}
-			if err := scanner.Err(); err != nil {
-				return fmt.Errorf("ファイルの読み込みに失敗: %w", err)
-			}
+		if emailFile == "" {
+			return fmt.Errorf("❌ エラー: メールアドレスファイル (-f) を指定してください")
 		}
 
-		// 引数も追加
-		emails = append(emails, args...)
-
-		// 重複除去
-		uniq := make(map[string]struct{})
-		var filtered []string
-		for _, e := range emails {
-			e = strings.TrimSpace(e)
-			if e == "" {
-				continue
-			}
-			if _, ok := uniq[e]; !ok {
-				uniq[e] = struct{}{}
-				filtered = append(filtered, e)
-			}
-		}
-		if len(filtered) == 0 {
-			return fmt.Errorf("メールアドレスが指定されていません")
+		// ファイルからメールアドレスを読み込み
+		emails, err := readEmailsFromFile(emailFile)
+		if err != nil {
+			return fmt.Errorf("❌ ファイル読み込みエラー: %w", err)
 		}
 
-		awsCtx := getAwsContext()
-		// AWS設定を読み込んでSESクライアントを作成
-		cfg, err := internal.LoadAwsConfig(awsCtx)
+		if len(emails) == 0 {
+			return fmt.Errorf("❌ エラー: ファイルにメールアドレスが見つかりませんでした")
+		}
+
+		// 重複を除去
+		filtered := removeDuplicates(emails)
+		if len(filtered) != len(emails) {
+			fmt.Printf("重複するメールアドレスを除去しました: %d件 → %d件\n", len(emails), len(filtered))
+		}
+
+		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-		sesClient := ses.NewFromConfig(cfg)
 
-		failedEmails, err := internal.VerifySesEmails(sesClient, filtered)
+		sesClient := awsClients.Ses()
+
+		failedEmails, err := service.VerifySesEmails(sesClient, filtered)
 		if err != nil {
-			return err
+			return fmt.Errorf("❌ SES検証エラー: %w", err)
 		}
+
 		if len(failedEmails) > 0 {
-			fmt.Println("検証に失敗したメールアドレス:")
+			fmt.Printf("❌ 検証に失敗したメールアドレス: %d件\n", len(failedEmails))
 			for _, email := range failedEmails {
-				fmt.Println(" -", email)
+				fmt.Printf("  - %s\n", email)
 			}
-			return fmt.Errorf("一部のメールアドレスの検証に失敗しました")
+		} else {
+			fmt.Println("✅ すべてのメールアドレスの検証リクエストが完了しました")
 		}
-		fmt.Println("すべてのメールアドレスの検証が成功しました。")
+
 		return nil
 	},
 	SilenceUsage: true,
@@ -101,4 +78,43 @@ func init() {
 	RootCmd.AddCommand(SesCmd)
 	SesCmd.AddCommand(sesVerifyCmd)
 	sesVerifyCmd.Flags().StringVarP(&emailFile, "file", "f", "", "メールアドレス一覧ファイル（1行1メールアドレス）")
+}
+
+// readEmailsFromFile はファイルからメールアドレス一覧を読み込みます
+func readEmailsFromFile(filename string) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var emails []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" && strings.Contains(line, "@") {
+			emails = append(emails, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return emails, nil
+}
+
+// removeDuplicates は文字列スライスから重複を除去します
+func removeDuplicates(emails []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+
+	for _, email := range emails {
+		if !seen[email] {
+			seen[email] = true
+			result = append(result, email)
+		}
+	}
+
+	return result
 }

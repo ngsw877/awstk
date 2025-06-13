@@ -1,16 +1,18 @@
-package internal
+package service
 
 import (
 	"fmt"
+
+	"awstk/internal/aws"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // CleanupOptions はクリーンアップ処理のパラメータを格納する構造体
-// AwsContextを埋め込んで共通化
+// aws.AwsContextを埋め込んで共通化
 type CleanupOptions struct {
-	AwsContext
+	aws.AwsContext
 	SearchString string // 検索文字列
 	StackName    string // CloudFormationスタック名
 }
@@ -24,7 +26,10 @@ func CleanupResources(opts CleanupOptions) error {
 
 	fmt.Printf("AWS Profile: %s\n", opts.Profile)
 
-	cfg, err := LoadAwsConfig(opts.AwsContext)
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: opts.Profile,
+		Region:  opts.Region,
+	})
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}

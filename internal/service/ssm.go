@@ -1,12 +1,14 @@
-package internal
+package service
 
 import (
 	"os"
 	"os/exec"
+
+	"awstk/internal/aws"
 )
 
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
-func StartSsmSession(awsCtx AwsContext, instanceId string) error {
+func StartSsmSession(awsCtx aws.AwsContext, instanceId string) error {
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
 		"ssm", "start-session",

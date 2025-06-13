@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"awstk/internal"
+	"awstk/internal/aws"
+	"awstk/internal/service"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -25,11 +26,15 @@ var ssmSessionStartCmd = &cobra.Command{
   ` + AppName + ` ssm session [-P <aws-profile>]  # インスタンス一覧から選択
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		awsCtx := getAwsContext()
+		awsCtx := aws.AwsContext{Region: region, Profile: profile}
+		internalCtx := aws.AwsContext{
+			Region:  awsCtx.Region,
+			Profile: awsCtx.Profile,
+		}
 
 		// -iオプションが指定されていない場合、インスタンス一覧から選択
 		if ssmInstanceId == "" {
-			selectedInstanceId, err := internal.SelectInstanceInteractively(awsCtx)
+			selectedInstanceId, err := service.SelectInstanceInteractively(internalCtx)
 			if err != nil {
 				return err
 			}
@@ -38,7 +43,7 @@ var ssmSessionStartCmd = &cobra.Command{
 
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
-		err := internal.StartSsmSession(awsCtx, ssmInstanceId)
+		err := service.StartSsmSession(internalCtx, ssmInstanceId)
 		if err != nil {
 			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
 			return err

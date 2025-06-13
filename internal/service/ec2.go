@@ -1,4 +1,4 @@
-package internal
+package service
 
 import (
 	"bufio"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"awstk/internal/aws"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -54,33 +56,128 @@ func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
 	return instances, nil
 }
 
-// StartEc2Instance EC2インスタンスを起動する
-func StartEc2Instance(ec2Client *ec2.Client, instanceId string) error {
-	_, err := ec2Client.StartInstances(context.Background(), &ec2.StartInstancesInput{
-		InstanceIds: []string{instanceId},
-	})
+// GetEc2FromStack はCloudFormationスタックからEC2インスタンスIDを取得します
+func GetEc2FromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
+	allInstances, err := GetAllEc2FromStack(awsCtx, stackName)
 	if err != nil {
-		return fmt.Errorf("❌ EC2インスタンスの起動に失敗: %w", err)
+		return "", err
 	}
+
+	if len(allInstances) == 0 {
+		return "", fmt.Errorf("スタック '%s' にEC2インスタンスが見つかりませんでした", stackName)
+	}
+
+	// 複数のインスタンスがある場合は最初の要素を返す
+	return allInstances[0], nil
+}
+
+// GetAllEc2FromStack はCloudFormationスタックからすべてのEC2インスタンスIDを取得します
+func GetAllEc2FromStack(awsCtx aws.AwsContext, stackName string) ([]string, error) {
+	// 共通関数を使用してスタックリソースを取得
+	stackResources, err := getStackResources(awsCtx, stackName)
+	if err != nil {
+		return nil, err
+	}
+
+	var instanceIds []string
+	for _, resource := range stackResources {
+		if *resource.ResourceType == "AWS::EC2::Instance" && resource.PhysicalResourceId != nil {
+			instanceIds = append(instanceIds, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたEC2インスタンス: %s\n", *resource.PhysicalResourceId)
+		}
+	}
+
+	return instanceIds, nil
+}
+
+// StartEc2Instance はEC2インスタンスを起動します
+func StartEc2Instance(ec2Client *ec2.Client, instanceId string) error {
+	input := &ec2.StartInstancesInput{
+		InstanceIds: []string{instanceId},
+	}
+
+	_, err := ec2Client.StartInstances(context.Background(), input)
+	if err != nil {
+		return fmt.Errorf("EC2インスタンス起動エラー: %w", err)
+	}
+
 	return nil
 }
 
-// StopEc2Instance EC2インスタンスを停止する
+// StopEc2Instance はEC2インスタンスを停止します
 func StopEc2Instance(ec2Client *ec2.Client, instanceId string) error {
-	_, err := ec2Client.StopInstances(context.Background(), &ec2.StopInstancesInput{
+	input := &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceId},
+	}
+
+	_, err := ec2Client.StopInstances(context.Background(), input)
+	if err != nil {
+		return fmt.Errorf("EC2インスタンス停止エラー: %w", err)
+	}
+
+	return nil
+}
+
+// getEc2InstancesByKeyword はキーワードに一致するEC2インスタンスIDの一覧を取得します
+func getEc2InstancesByKeyword(awsCtx aws.AwsContext, searchString string) ([]string, error) {
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
 	})
 	if err != nil {
-		return fmt.Errorf("❌ EC2インスタンスの停止に失敗: %w", err)
+		return nil, fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
-	return nil
+
+	ec2Client := ec2.NewFromConfig(cfg)
+
+	// インスタンス一覧を取得
+	input := &ec2.DescribeInstancesInput{}
+	foundInstances := []string{}
+
+	// ページネーション対応
+	for {
+		result, err := ec2Client.DescribeInstances(context.Background(), input)
+		if err != nil {
+			return nil, fmt.Errorf("EC2インスタンス一覧取得エラー: %w", err)
+		}
+
+		for _, reservation := range result.Reservations {
+			for _, instance := range reservation.Instances {
+				// インスタンス名を取得
+				instanceName := ""
+				for _, tag := range instance.Tags {
+					if *tag.Key == "Name" {
+						instanceName = *tag.Value
+						break
+					}
+				}
+
+				// インスタンスIDまたは名前に検索文字列が含まれているかチェック
+				if strings.Contains(*instance.InstanceId, searchString) ||
+					strings.Contains(instanceName, searchString) {
+					foundInstances = append(foundInstances, *instance.InstanceId)
+					fmt.Printf("🔍 検出されたEC2インスタンス: %s (%s)\n", *instance.InstanceId, instanceName)
+				}
+			}
+		}
+
+		if result.NextToken == nil {
+			break
+		}
+		input.NextToken = result.NextToken
+	}
+
+	return foundInstances, nil
 }
 
 // SelectInstanceInteractively EC2インスタンス一覧を表示してユーザーに選択させる
-func SelectInstanceInteractively(awsCtx AwsContext) (string, error) {
+func SelectInstanceInteractively(awsCtx aws.AwsContext) (string, error) {
 	fmt.Println("EC2インスタンス一覧を取得中...")
 
-	cfg, err := LoadAwsConfig(awsCtx)
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
 	if err != nil {
 		return "", fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}

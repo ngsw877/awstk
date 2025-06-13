@@ -1,11 +1,12 @@
-package internal
+package service
 
 import (
+	"awstk/internal/aws"
 	"context"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -47,7 +48,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 
 		// 現在のページのスタック名をスライスに追加
 		for _, summary := range resp.StackSummaries {
-			allStackNames = append(allStackNames, aws.ToString(summary.StackName))
+			allStackNames = append(allStackNames, awssdk.ToString(summary.StackName))
 		}
 
 		// 次のページがあるかチェック
@@ -61,9 +62,12 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 }
 
 // 共通処理：スタックからリソース一覧を取得する内部関数
-func getStackResources(awsCtx AwsContext, stackName string) ([]types.StackResource, error) {
+func getStackResources(awsCtx aws.AwsContext, stackName string) ([]types.StackResource, error) {
 	ctx := context.Background()
-	cfg, err := LoadAwsConfig(awsCtx)
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
 	}
@@ -74,7 +78,7 @@ func getStackResources(awsCtx AwsContext, stackName string) ([]types.StackResour
 	// スタックからリソースを取得
 	fmt.Printf("🔍 スタック '%s' からリソースを検索中...\n", stackName)
 	resp, err := cfnClient.DescribeStackResources(ctx, &cloudformation.DescribeStackResourcesInput{
-		StackName: aws.String(stackName),
+		StackName: awssdk.String(stackName),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
@@ -129,7 +133,7 @@ type StackResources struct {
 }
 
 // GetStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
-func GetStartStopResourcesFromStack(awsCtx AwsContext, stackName string) (StackResources, error) {
+func GetStartStopResourcesFromStack(awsCtx aws.AwsContext, stackName string) (StackResources, error) {
 	var result StackResources
 
 	// 共通関数を使用してスタックリソースを取得
@@ -189,7 +193,7 @@ func GetStartStopResourcesFromStack(awsCtx AwsContext, stackName string) (StackR
 }
 
 // StartAllStackResources はスタック内のすべてのリソースを起動します
-func StartAllStackResources(awsCtx AwsContext, stackName string) error {
+func StartAllStackResources(awsCtx aws.AwsContext, stackName string) error {
 	// スタックからリソースを取得（名前変更された関数を使用）
 	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
 	if err != nil {
@@ -202,7 +206,10 @@ func StartAllStackResources(awsCtx AwsContext, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := LoadAwsConfig(awsCtx)
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
@@ -278,7 +285,7 @@ func StartAllStackResources(awsCtx AwsContext, stackName string) error {
 }
 
 // StopAllStackResources はスタック内のすべてのリソースを停止します
-func StopAllStackResources(awsCtx AwsContext, stackName string) error {
+func StopAllStackResources(awsCtx aws.AwsContext, stackName string) error {
 	// スタックからリソースを取得（名前変更された関数を使用）
 	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
 	if err != nil {
@@ -291,7 +298,10 @@ func StopAllStackResources(awsCtx AwsContext, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := LoadAwsConfig(awsCtx)
+	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
