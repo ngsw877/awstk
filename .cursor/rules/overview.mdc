@@ -1,0 +1,56 @@
+---
+description: awstk プロジェクト概要（目的・構成）
+globs: "**/*.go"
+alwaysApply: true
+---
+
+# awstk とは？
+
+**awstk** は Go 言語 + Cobra で実装した AWS リソース操作用 CLI です。
+S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理・クリーンアップできることを目的としています。
+
+---
+
+## 技術スタック
+
+- Go **1.24+**
+- AWS SDK for Go v2
+- Cobra CLI フレームワーク
+- CDK for Go (検証用テンプレートは `demo-infra/` に同梱)
+
+---
+
+## ディレクトリ構成と責務
+
+| ディレクトリ | 役割 (一行要約) |
+|--------------|----------------|
+| `cmd/` | CLI コマンド定義とフラグ処理 |
+| `internal/aws/` | AWS 設定ロード・共通クライアント |
+| `internal/service/` | 各 AWS リソース操作ロジック |
+| `demo-infra/` | Go CDKによる検証スタック |
+| `main.go` | エントリーポイント (`cmd.Execute()`) |
+
+---
+
+## 設計方針（要点）
+
+1. **CLI 層 (`cmd/`) とロジック層 (`internal/`) の分離**
+2. **依存方向は一方向**： `cmd/` → `internal/`
+3. **エラーはラップして伝播し、CLI 層でユーザ向け文言に整形**
+4. CDK テンプレはアプリ本体とは依存せず `demo-infra/` 内で完結
+
+---
+
+## 主要機能例
+
+- **クリーンアップ**：S3 バケット / ECR リポジトリ / CloudFormation スタックをまとめて削除
+- **ECS 操作**：Fargate コンテナにシェル接続、サービスの再起動など
+- **デモインフラ**：CDK テンプレ (`awstk‑lab`, `cdk‑workshop`) を自動デプロイ
+
+---
+
+## 参考ドキュメント
+
+- **README.md**：セットアップ手順とコマンド使用例
+- **style.mdc**：命名規約・コーディングスタイル
+- **base.mdc**：AI アシスタント向けワークフロー指示
