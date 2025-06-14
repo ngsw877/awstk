@@ -57,7 +57,7 @@ func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
 }
 
 // GetEc2FromStack はCloudFormationスタックからEC2インスタンスIDを取得します
-func GetEc2FromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
+func GetEc2FromStack(awsCtx aws.Context, stackName string) (string, error) {
 	allInstances, err := GetAllEc2FromStack(awsCtx, stackName)
 	if err != nil {
 		return "", err
@@ -72,7 +72,7 @@ func GetEc2FromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
 }
 
 // GetAllEc2FromStack はCloudFormationスタックからすべてのEC2インスタンスIDを取得します
-func GetAllEc2FromStack(awsCtx aws.AwsContext, stackName string) ([]string, error) {
+func GetAllEc2FromStack(awsCtx aws.Context, stackName string) ([]string, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {
@@ -119,8 +119,8 @@ func StopEc2Instance(ec2Client *ec2.Client, instanceId string) error {
 }
 
 // getEc2InstancesByKeyword はキーワードに一致するEC2インスタンスIDの一覧を取得します
-func getEc2InstancesByKeyword(awsCtx aws.AwsContext, searchString string) ([]string, error) {
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+func getEc2InstancesByKeyword(awsCtx aws.Context, searchString string) ([]string, error) {
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: awsCtx.Profile,
 		Region:  awsCtx.Region,
 	})
@@ -171,10 +171,10 @@ func getEc2InstancesByKeyword(awsCtx aws.AwsContext, searchString string) ([]str
 }
 
 // SelectInstanceInteractively EC2インスタンス一覧を表示してユーザーに選択させる
-func SelectInstanceInteractively(awsCtx aws.AwsContext) (string, error) {
+func SelectInstanceInteractively(awsCtx aws.Context) (string, error) {
 	fmt.Println("EC2インスタンス一覧を取得中...")
 
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: awsCtx.Profile,
 		Region:  awsCtx.Region,
 	})

@@ -28,7 +28,7 @@ var secretsManagerGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

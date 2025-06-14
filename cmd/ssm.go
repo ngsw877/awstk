@@ -26,8 +26,8 @@ var ssmSessionStartCmd = &cobra.Command{
   ` + AppName + ` ssm session [-P <aws-profile>]  # インスタンス一覧から選択
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		awsCtx := aws.AwsContext{Region: region, Profile: profile}
-		internalCtx := aws.AwsContext{
+		awsCtx := aws.Context{Region: region, Profile: profile}
+		internalCtx := aws.Context{
 			Region:  awsCtx.Region,
 			Profile: awsCtx.Profile,
 		}

@@ -28,7 +28,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		instanceName, _ := cmd.Flags().GetString("instance")
 		stackName, _ := cmd.Flags().GetString("stack")
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -38,8 +38,8 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		// インスタンス名の解決
 		if instanceName == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
-			awsCtx := aws.AwsContext{Region: region, Profile: profile}
-			instanceName, err = service.GetRdsFromStack(aws.AwsContext{
+			awsCtx := aws.Context{Region: region, Profile: profile}
+			instanceName, err = service.GetRdsFromStack(aws.Context{
 				Region:  awsCtx.Region,
 				Profile: awsCtx.Profile,
 			}, stackName)
@@ -77,7 +77,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		instanceName, _ := cmd.Flags().GetString("instance")
 		stackName, _ := cmd.Flags().GetString("stack")
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -87,8 +87,8 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		// インスタンス名の解決
 		if instanceName == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
-			awsCtx := aws.AwsContext{Region: region, Profile: profile}
-			instanceName, err = service.GetRdsFromStack(aws.AwsContext{
+			awsCtx := aws.Context{Region: region, Profile: profile}
+			instanceName, err = service.GetRdsFromStack(aws.Context{
 				Region:  awsCtx.Region,
 				Profile: awsCtx.Profile,
 			}, stackName)

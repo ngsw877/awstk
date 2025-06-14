@@ -38,7 +38,7 @@ func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 }
 
 // GetAuroraFromStack はCloudFormationスタックからAurora DBクラスター識別子を取得します
-func GetAuroraFromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
+func GetAuroraFromStack(awsCtx aws.Context, stackName string) (string, error) {
 	allClusters, err := GetAllAuroraFromStack(awsCtx, stackName)
 	if err != nil {
 		return "", err
@@ -53,7 +53,7 @@ func GetAuroraFromStack(awsCtx aws.AwsContext, stackName string) (string, error)
 }
 
 // GetAllAuroraFromStack はCloudFormationスタックからすべてのAurora DBクラスター識別子を取得します
-func GetAllAuroraFromStack(awsCtx aws.AwsContext, stackName string) ([]string, error) {
+func GetAllAuroraFromStack(awsCtx aws.Context, stackName string) ([]string, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {

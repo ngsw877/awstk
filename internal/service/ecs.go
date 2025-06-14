@@ -31,7 +31,7 @@ type EcsServiceInfo struct {
 }
 
 // GetEcsFromStack はCloudFormationスタックからECSサービス情報を取得します
-func GetEcsFromStack(awsCtx awsinternal.AwsContext, stackName string) (EcsServiceInfo, error) {
+func GetEcsFromStack(awsCtx awsinternal.Context, stackName string) (EcsServiceInfo, error) {
 	allServices, err := getAllEcsFromStack(awsCtx, stackName)
 	if err != nil {
 		return EcsServiceInfo{}, err
@@ -46,7 +46,7 @@ func GetEcsFromStack(awsCtx awsinternal.AwsContext, stackName string) (EcsServic
 }
 
 // GetAllEcsFromStack はスタック内のすべてのECSサービス情報を取得します
-func getAllEcsFromStack(awsCtx awsinternal.AwsContext, stackName string) ([]EcsServiceInfo, error) {
+func getAllEcsFromStack(awsCtx awsinternal.Context, stackName string) ([]EcsServiceInfo, error) {
 	var results []EcsServiceInfo
 
 	stackResources, err := getStackResources(awsCtx, stackName)
@@ -150,7 +150,7 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 	return taskId, nil
 }
 
-func ExecuteCommand(awsCtx awsinternal.AwsContext, clusterName, taskId, containerName string) error {
+func ExecuteCommand(awsCtx awsinternal.Context, clusterName, taskId, containerName string) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",

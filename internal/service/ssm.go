@@ -8,7 +8,7 @@ import (
 )
 
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
-func StartSsmSession(awsCtx aws.AwsContext, instanceId string) error {
+func StartSsmSession(awsCtx aws.Context, instanceId string) error {
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
 		"ssm", "start-session",

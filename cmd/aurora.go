@@ -28,7 +28,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		stackName, _ := cmd.Flags().GetString("stack")
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -38,7 +38,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		// クラスター名の解決
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(aws.AwsContext{
+			clusterName, err = service.GetAuroraFromStack(aws.Context{
 				Region:  region,
 				Profile: profile,
 			}, stackName)
@@ -76,7 +76,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		stackName, _ := cmd.Flags().GetString("stack")
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -86,7 +86,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		// クラスター名の解決
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(aws.AwsContext{
+			clusterName, err = service.GetAuroraFromStack(aws.Context{
 				Region:  region,
 				Profile: profile,
 			}, stackName)

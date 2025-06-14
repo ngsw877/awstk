@@ -32,7 +32,7 @@ var ec2StartCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -64,7 +64,7 @@ var ec2StopCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.AwsContext{Region: region, Profile: profile})
+		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

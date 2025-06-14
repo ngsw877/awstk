@@ -27,11 +27,10 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 		}
 
 		// クリーンアップオプションを作成（既存の構造体に合わせる）
-		awsCtx := aws.AwsContext{Region: region, Profile: profile}
 		opts := service.CleanupOptions{
-			AwsContext: aws.AwsContext{
-				Region:  awsCtx.Region,
-				Profile: awsCtx.Profile,
+			Context: aws.Context{
+				Region:  region,
+				Profile: profile,
 			},
 			SearchString: keyword,
 			StackName:    stackName,

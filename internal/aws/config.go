@@ -8,7 +8,7 @@ import (
 )
 
 // LoadAwsConfig は認証情報からAWS設定を読み込む（既存のutils.goから移植）
-func LoadAwsConfig(ctx AwsContext) (aws.Config, error) {
+func LoadAwsConfig(ctx Context) (aws.Config, error) {
 	opts := make([]func(*config.LoadOptions) error, 0)
 
 	if ctx.Profile != "" {

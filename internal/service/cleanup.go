@@ -12,7 +12,7 @@ import (
 // CleanupOptions はクリーンアップ処理のパラメータを格納する構造体
 // aws.AwsContextを埋め込んで共通化
 type CleanupOptions struct {
-	aws.AwsContext
+	aws.Context
 	SearchString string // 検索文字列
 	StackName    string // CloudFormationスタック名
 }
@@ -26,7 +26,7 @@ func CleanupResources(opts CleanupOptions) error {
 
 	fmt.Printf("AWS Profile: %s\n", opts.Profile)
 
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: opts.Profile,
 		Region:  opts.Region,
 	})

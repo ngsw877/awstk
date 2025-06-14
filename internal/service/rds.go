@@ -38,7 +38,7 @@ func StopRdsInstance(rdsClient *rds.Client, instanceId string) error {
 }
 
 // GetRdsFromStack はCloudFormationスタックからRDSインスタンス識別子を取得します
-func GetRdsFromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
+func GetRdsFromStack(awsCtx aws.Context, stackName string) (string, error) {
 	allInstances, err := GetAllRdsFromStack(awsCtx, stackName)
 	if err != nil {
 		return "", err
@@ -53,7 +53,7 @@ func GetRdsFromStack(awsCtx aws.AwsContext, stackName string) (string, error) {
 }
 
 // GetAllRdsFromStack はCloudFormationスタックからすべてのRDSインスタンス識別子を取得します
-func GetAllRdsFromStack(awsCtx aws.AwsContext, stackName string) ([]string, error) {
+func GetAllRdsFromStack(awsCtx aws.Context, stackName string) ([]string, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := getStackResources(awsCtx, stackName)
 	if err != nil {

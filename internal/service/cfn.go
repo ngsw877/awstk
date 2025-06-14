@@ -62,9 +62,9 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 }
 
 // 共通処理：スタックからリソース一覧を取得する内部関数
-func getStackResources(awsCtx aws.AwsContext, stackName string) ([]types.StackResource, error) {
+func getStackResources(awsCtx aws.Context, stackName string) ([]types.StackResource, error) {
 	ctx := context.Background()
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: awsCtx.Profile,
 		Region:  awsCtx.Region,
 	})
@@ -95,7 +95,7 @@ func getStackResources(awsCtx aws.AwsContext, stackName string) ([]types.StackRe
 // getCleanupResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
 func getCleanupResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
 	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(opts.AwsContext, opts.StackName)
+	stackResources, err := getStackResources(opts.Context, opts.StackName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,7 +133,7 @@ type StackResources struct {
 }
 
 // GetStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
-func GetStartStopResourcesFromStack(awsCtx aws.AwsContext, stackName string) (StackResources, error) {
+func GetStartStopResourcesFromStack(awsCtx aws.Context, stackName string) (StackResources, error) {
 	var result StackResources
 
 	// 共通関数を使用してスタックリソースを取得
@@ -193,7 +193,7 @@ func GetStartStopResourcesFromStack(awsCtx aws.AwsContext, stackName string) (St
 }
 
 // StartAllStackResources はスタック内のすべてのリソースを起動します
-func StartAllStackResources(awsCtx aws.AwsContext, stackName string) error {
+func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 	// スタックからリソースを取得（名前変更された関数を使用）
 	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
 	if err != nil {
@@ -206,7 +206,7 @@ func StartAllStackResources(awsCtx aws.AwsContext, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: awsCtx.Profile,
 		Region:  awsCtx.Region,
 	})
@@ -285,7 +285,7 @@ func StartAllStackResources(awsCtx aws.AwsContext, stackName string) error {
 }
 
 // StopAllStackResources はスタック内のすべてのリソースを停止します
-func StopAllStackResources(awsCtx aws.AwsContext, stackName string) error {
+func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 	// スタックからリソースを取得（名前変更された関数を使用）
 	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
 	if err != nil {
@@ -298,7 +298,7 @@ func StopAllStackResources(awsCtx aws.AwsContext, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := aws.LoadAwsConfig(aws.AwsContext{
+	cfg, err := aws.LoadAwsConfig(aws.Context{
 		Profile: awsCtx.Profile,
 		Region:  awsCtx.Region,
 	})

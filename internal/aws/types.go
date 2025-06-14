@@ -1,7 +1,7 @@
 package aws
 
-// AwsContext は認証情報を保持
-type AwsContext struct {
+// Context AwsContext は認証情報を保持
+type Context struct {
 	Profile string
 	Region  string
 }
