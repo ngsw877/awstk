@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
 
@@ -27,15 +28,8 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
-		rdsClient := awsClients.Rds()
-
-		// クラスター名の解決
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
 			clusterName, err = service.GetAuroraFromStack(aws.Context{
@@ -49,6 +43,11 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 
 		if clusterName == "" {
 			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
+		}
+
+		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
 		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterName)
@@ -75,15 +74,8 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
-		rdsClient := awsClients.Rds()
-
-		// クラスター名の解決
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
 			clusterName, err = service.GetAuroraFromStack(aws.Context{
@@ -97,6 +89,11 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 
 		if clusterName == "" {
 			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
+		}
+
+		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
 		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterName)

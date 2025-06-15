@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/cobra"
 )
 
@@ -20,12 +21,10 @@ var cfnLsCmd = &cobra.Command{
 	Short: "CloudFormationスタック一覧を表示するコマンド",
 	Long:  `CloudFormationスタック一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		cfnClient, err := aws.NewClient[*cloudformation.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		cfnClient := awsClients.Cfn()
 
 		stackNames, err := service.ListCfnStacks(cfnClient)
 		if err != nil {

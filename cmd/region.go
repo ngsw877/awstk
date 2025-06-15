@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 )
 
@@ -20,31 +21,24 @@ var regionLsCmd = &cobra.Command{
 	Short: "利用可能なAWSリージョン一覧を表示するコマンド",
 	Long:  `利用可能なAWSリージョンの一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ec2Client, err := aws.NewClient[*ec2.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		ec2Client := awsClients.Ec2()
-
-		// 既存の関数シグネチャに合わせてboolパラメータを追加
 		regions, err := service.ListRegions(ec2Client, false)
 		if err != nil {
 			return fmt.Errorf("❌ リージョン一覧取得でエラー: %w", err)
 		}
 
 		if len(regions) == 0 {
-			fmt.Println("利用可能なリージョンが見つかりませんでした")
+			fmt.Println("リージョンが見つかりませんでした")
 			return nil
 		}
 
-		// リージョンを有効/無効で分類
-		groups := service.GroupRegions(regions)
-
-		// 有効なリージョンの表示
-		fmt.Printf("利用可能なAWSリージョン一覧: (全%d件)\n", len(groups.Available))
-		for i, region := range groups.Available {
-			fmt.Printf("  %3d. %-20s (%s)\n", i+1, region.RegionName, region.OptInStatus)
+		fmt.Printf("利用可能なリージョン一覧: (全%d件)\n", len(regions))
+		for i, regionName := range regions {
+			fmt.Printf("  %3d. %s\n", i+1, regionName)
 		}
 
 		return nil

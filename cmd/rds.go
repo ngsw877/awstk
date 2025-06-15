@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
 
@@ -25,21 +26,14 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds start -P my-profile -S my-stack
   ` + AppName + ` rds start -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceName, _ := cmd.Flags().GetString("instance")
+		rdsInstanceId, _ := cmd.Flags().GetString("instance")
 		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
-		rdsClient := awsClients.Rds()
-
-		// インスタンス名の解決
-		if instanceName == "" && stackName != "" {
+		if rdsInstanceId == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
 			awsCtx := aws.Context{Region: region, Profile: profile}
-			instanceName, err = service.GetRdsFromStack(aws.Context{
+			rdsInstanceId, err = service.GetRdsFromStack(aws.Context{
 				Region:  awsCtx.Region,
 				Profile: awsCtx.Profile,
 			}, stackName)
@@ -48,17 +42,22 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 			}
 		}
 
-		if instanceName == "" {
-			return fmt.Errorf("❌ エラー: インスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		if rdsInstanceId == "" {
+			return fmt.Errorf("❌ エラー: RDSインスタンスID (-i) を指定してください")
 		}
 
-		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceName)
-		err = service.StartRdsInstance(rdsClient, instanceName)
+		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
+		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", rdsInstanceId)
+		err = service.StartRdsInstance(rdsClient, rdsInstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス起動エラー: %w", err)
 		}
 
-		fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceName)
+		fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", rdsInstanceId)
 		return nil
 	},
 	SilenceUsage: true,
@@ -74,21 +73,14 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds stop -P my-profile -S my-stack
   ` + AppName + ` rds stop -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceName, _ := cmd.Flags().GetString("instance")
+		rdsInstanceId, _ := cmd.Flags().GetString("instance")
 		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
-		rdsClient := awsClients.Rds()
-
-		// インスタンス名の解決
-		if instanceName == "" && stackName != "" {
+		if rdsInstanceId == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
 			awsCtx := aws.Context{Region: region, Profile: profile}
-			instanceName, err = service.GetRdsFromStack(aws.Context{
+			rdsInstanceId, err = service.GetRdsFromStack(aws.Context{
 				Region:  awsCtx.Region,
 				Profile: awsCtx.Profile,
 			}, stackName)
@@ -97,17 +89,22 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 			}
 		}
 
-		if instanceName == "" {
-			return fmt.Errorf("❌ エラー: インスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		if rdsInstanceId == "" {
+			return fmt.Errorf("❌ エラー: RDSインスタンスID (-i) を指定してください")
 		}
 
-		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceName)
-		err = service.StopRdsInstance(rdsClient, instanceName)
+		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
+		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", rdsInstanceId)
+		err = service.StopRdsInstance(rdsClient, rdsInstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス停止エラー: %w", err)
 		}
 
-		fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceName)
+		fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", rdsInstanceId)
 		return nil
 	},
 	SilenceUsage: true,

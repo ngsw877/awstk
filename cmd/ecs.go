@@ -5,6 +5,8 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/spf13/cobra"
 )
 
@@ -48,12 +50,10 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ecsClient := awsClients.Ecs()
 
 		// タスクIDを取得
 		taskId, err := service.GetRunningTask(ecsClient, clusterName, serviceName)
@@ -100,12 +100,11 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		autoScalingClient := awsClients.AutoScaling()
 		opts := service.ServiceCapacityOptions{
 			ClusterName: clusterName,
 			ServiceName: serviceName,
@@ -119,7 +118,11 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
-		ecsClient := awsClients.Ecs()
+		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		err = service.WaitForServiceStatus(ecsClient, opts, minCapacity, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
@@ -154,13 +157,15 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		autoScalingClient := awsClients.AutoScaling()
-		ecsClient := awsClients.Ecs()
+		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
 
 		// キャパシティ設定オプションを作成（停止のため0に設定）
 		opts := service.ServiceCapacityOptions{
@@ -213,12 +218,10 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ecsClient := awsClients.Ecs()
 
 		// タスク実行オプションを作成
 		opts := service.RunAndWaitForTaskOptions{
@@ -242,7 +245,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		fmt.Printf("✅ タスクが完了しました。終了コード: %d\n", exitCode)
 		// 終了コードが0以外の場合はエラーとして扱う
 		if exitCode != 0 {
-			return fmt.Errorf("タスクが非ゼロの終了コード %d で終了しました", exitCode)
+			return fmt.Errorf("❌ タスクが異常終了しました。終了コード: %d", exitCode)
 		}
 		return nil
 	},
@@ -275,12 +278,10 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ecsClient := awsClients.Ecs()
 
 		// 強制再デプロイを実行
 		err = service.ForceRedeployService(ecsClient, clusterName, serviceName)

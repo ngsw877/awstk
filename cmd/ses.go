@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/spf13/cobra"
 )
 
@@ -48,12 +49,10 @@ var sesVerifyCmd = &cobra.Command{
 			fmt.Printf("重複するメールアドレスを除去しました: %d件 → %d件\n", len(emails), len(filtered))
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		sesClient, err := aws.NewClient[*ses.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		sesClient := awsClients.Ses()
 
 		failedEmails, err := service.VerifySesEmails(sesClient, filtered)
 		if err != nil {

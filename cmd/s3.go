@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 )
 
@@ -35,12 +36,10 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		showTime, _ := cmdCobra.Flags().GetBool("time")
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		s3Client, err := aws.NewClient[*s3.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		s3Client := awsClients.S3()
 
 		if len(args) == 0 {
 			// 引数がない場合はバケット一覧表示
@@ -96,12 +95,10 @@ var s3GunzipCmd = &cobra.Command{
 		}
 		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		s3Client, err := aws.NewClient[*s3.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		s3Client := awsClients.S3()
 
 		if err := service.DownloadAndExtractGzFiles(s3Client, s3url, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)

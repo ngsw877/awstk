@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 )
 
@@ -32,12 +33,10 @@ var ec2StartCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ec2Client, err := aws.NewClient[*ec2.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ec2Client := awsClients.Ec2()
 
 		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
 		err = service.StartEc2Instance(ec2Client, ec2InstanceId)
@@ -64,12 +63,10 @@ var ec2StopCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		awsClients, err := aws.NewAwsClients(aws.Context{Region: region, Profile: profile})
+		ec2Client, err := aws.NewClient[*ec2.Client](aws.Context{Region: region, Profile: profile})
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ec2Client := awsClients.Ec2()
 
 		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
 		err = service.StopEc2Instance(ec2Client, ec2InstanceId)
