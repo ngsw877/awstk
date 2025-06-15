@@ -21,7 +21,7 @@ var cfnLsCmd = &cobra.Command{
 	Short: "CloudFormationスタック一覧を表示するコマンド",
 	Long:  `CloudFormationスタック一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfnClient, err := aws.NewClient[*cloudformation.Client](aws.Context{Region: region, Profile: profile})
+		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

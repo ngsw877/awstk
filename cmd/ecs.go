@@ -40,17 +40,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		awsCtx := aws.Context{Region: region, Profile: profile}
-		clusterName, serviceName, err = resolveEcsClusterAndService(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		})
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -63,10 +59,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = service.ExecuteCommand(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		}, clusterName, taskId, containerName)
+		err = service.ExecuteCommand(awsCtx, clusterName, taskId, containerName)
 		if err != nil {
 			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}
@@ -90,17 +83,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		awsCtx := aws.Context{Region: region, Profile: profile}
-		clusterName, serviceName, err = resolveEcsClusterAndService(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		})
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](aws.Context{Region: region, Profile: profile})
+		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -118,7 +107,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -147,22 +136,18 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		awsCtx := aws.Context{Region: region, Profile: profile}
-		clusterName, serviceName, err = resolveEcsClusterAndService(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		})
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](aws.Context{Region: region, Profile: profile})
+		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -208,17 +193,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		awsCtx := aws.Context{Region: region, Profile: profile}
-		clusterName, serviceName, err = resolveEcsClusterAndService(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		})
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -268,17 +249,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		awsCtx := aws.Context{Region: region, Profile: profile}
-		clusterName, serviceName, err = resolveEcsClusterAndService(aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		})
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
 		if err != nil {
 			cmd.Help()
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](aws.Context{Region: region, Profile: profile})
+		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -297,7 +274,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 				return fmt.Errorf("❌ デプロイ完了待機エラー: %w", err)
 			}
 		}
-
 		return nil
 	},
 	SilenceUsage: true,

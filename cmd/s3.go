@@ -36,7 +36,7 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		showTime, _ := cmdCobra.Flags().GetBool("time")
 
-		s3Client, err := aws.NewClient[*s3.Client](aws.Context{Region: region, Profile: profile})
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -95,7 +95,7 @@ var s3GunzipCmd = &cobra.Command{
 		}
 		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
 
-		s3Client, err := aws.NewClient[*s3.Client](aws.Context{Region: region, Profile: profile})
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

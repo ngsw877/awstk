@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/aws"
 	"errors"
 	"os"
 
@@ -11,6 +12,7 @@ const AppName = "awstk"
 
 var region string
 var profile string
+var awsCtx aws.Context
 var stackName string
 
 // RootCmd represents the base command when called without any subcommands
@@ -52,13 +54,22 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&profile, "profile", "P", "", "AWSプロファイル")
 	RootCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 
-	// コマンド実行前に共通でプロファイルチェックを行う
+	// コマンド実行前に共通でプロファイルチェックとawsCtx設定を行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// ヘルプコマンドの場合はスキップ
-		if cmd.Name() == "help" {
+		if cmd.Name() == "help" || cmd.Name() == "version" {
 			return nil
 		}
-		return checkAndSetProfile(cmd)
+
+		// プロファイルチェック
+		err := checkAndSetProfile(cmd)
+		if err != nil {
+			return err
+		}
+
+		// awsCtxを設定
+		awsCtx = aws.Context{Region: region, Profile: profile}
+
+		return nil
 	}
 }
 
@@ -77,9 +88,6 @@ func checkAndSetProfile(cmd *cobra.Command) error {
 	}
 	// 環境変数からプロファイルを設定
 	profile = envProfile
-	// versionコマンド以外の場合のみメッセージを表示
-	if cmd.Name() != "version" {
-		cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + profile + "' を使用します")
-	}
+	cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + profile + "' を使用します")
 	return nil
 }

@@ -21,7 +21,7 @@ var regionLsCmd = &cobra.Command{
 	Short: "利用可能なAWSリージョン一覧を表示するコマンド",
 	Long:  `利用可能なAWSリージョンの一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ec2Client, err := aws.NewClient[*ec2.Client](aws.Context{Region: region, Profile: profile})
+		ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

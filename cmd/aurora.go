@@ -32,10 +32,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(aws.Context{
-				Region:  region,
-				Profile: profile,
-			}, stackName)
+			clusterName, err = service.GetAuroraFromStack(awsCtx, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
 			}
@@ -45,7 +42,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -78,10 +75,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 
 		if clusterName == "" && stackName != "" {
 			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(aws.Context{
-				Region:  region,
-				Profile: profile,
-			}, stackName)
+			clusterName, err = service.GetAuroraFromStack(awsCtx, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
 			}
@@ -91,7 +85,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}

@@ -32,11 +32,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 
 		if rdsInstanceId == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
-			awsCtx := aws.Context{Region: region, Profile: profile}
-			rdsInstanceId, err = service.GetRdsFromStack(aws.Context{
-				Region:  awsCtx.Region,
-				Profile: awsCtx.Profile,
-			}, stackName)
+			rdsInstanceId, err = service.GetRdsFromStack(awsCtx, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからRDSインスタンス取得エラー: %w", err)
 			}
@@ -46,7 +42,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 			return fmt.Errorf("❌ エラー: RDSインスタンスID (-i) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
@@ -79,11 +75,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 
 		if rdsInstanceId == "" && stackName != "" {
 			// スタックからRDSインスタンス名を取得
-			awsCtx := aws.Context{Region: region, Profile: profile}
-			rdsInstanceId, err = service.GetRdsFromStack(aws.Context{
-				Region:  awsCtx.Region,
-				Profile: awsCtx.Profile,
-			}, stackName)
+			rdsInstanceId, err = service.GetRdsFromStack(awsCtx, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからRDSインスタンス取得エラー: %w", err)
 			}
@@ -93,7 +85,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 			return fmt.Errorf("❌ エラー: RDSインスタンスID (-i) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](aws.Context{Region: region, Profile: profile})
+		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
