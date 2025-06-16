@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/spf13/cobra"
 )
@@ -83,10 +84,18 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
-		if err != nil {
-			cmd.Help()
-			return err
+		if stackName != "" {
+			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+			if err != nil {
+				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+			}
+
+			serviceInfo, stackErr := service.GetEcsFromStack(cfnClient, stackName)
+			if stackErr != nil {
+				return fmt.Errorf("❌ スタックからECSサービス取得エラー: %w", stackErr)
+			}
+			clusterName = serviceInfo.ClusterName
+			serviceName = serviceInfo.ServiceName
 		}
 
 		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
@@ -328,12 +337,17 @@ func init() {
 // 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
 func resolveEcsClusterAndService(awsCtx aws.Context) (string, string, error) {
 	if stackName != "" {
-		fmt.Println("CloudFormationスタックからECS情報を取得します...")
-		serviceInfo, stackErr := service.GetEcsFromStack(awsCtx, stackName)
-		if stackErr != nil {
-			return "", "", fmt.Errorf("❌ エラー: %w", stackErr)
+		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+		if err != nil {
+			return "", "", fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 		}
-		return serviceInfo.ClusterName, serviceInfo.ServiceName, nil
+
+		serviceInfo, stackErr := service.GetEcsFromStack(cfnClient, stackName)
+		if stackErr != nil {
+			return "", "", fmt.Errorf("❌ スタックからECSサービス取得エラー: %w", stackErr)
+		}
+		clusterName = serviceInfo.ClusterName
+		serviceName = serviceInfo.ServiceName
 	}
 
 	// フラグから直接取得

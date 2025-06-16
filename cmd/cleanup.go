@@ -5,6 +5,9 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 )
 
@@ -26,20 +29,36 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 			return fmt.Errorf("❌ エラー: キーワード (-k) またはスタック名 (-S) のいずれかを指定してください")
 		}
 
-		// クリーンアップオプションを作成（既存の構造体に合わせる）
+		fmt.Printf("Profile: %s\n", awsCtx.Profile)
+		fmt.Printf("Region: %s\n", awsCtx.Region)
+
+		// 各種クライアントを作成
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("S3クライアント作成エラー: %w", err)
+		}
+
+		ecrClient, err := aws.NewClient[*ecr.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("ECRクライアント作成エラー: %w", err)
+		}
+
+		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+		}
+
 		opts := service.CleanupOptions{
-			Context: aws.Context{
-				Region:  region,
-				Profile: profile,
-			},
+			S3Client:     s3Client,
+			EcrClient:    ecrClient,
+			CfnClient:    cfnClient,
 			SearchString: keyword,
 			StackName:    stackName,
 		}
 
-		// 既存の関数をそのまま使用
-		err := service.CleanupResources(opts)
+		err = service.CleanupResources(opts)
 		if err != nil {
-			return fmt.Errorf("❌ クリーンアップ中にエラーが発生しました: %w", err)
+			return fmt.Errorf("❌ クリーンアップ処理でエラー: %w", err)
 		}
 
 		fmt.Println("✅ クリーンアップが完了しました")

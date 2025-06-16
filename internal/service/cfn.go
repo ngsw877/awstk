@@ -61,19 +61,9 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 	return allStackNames, nil
 }
 
-// 共通処理：スタックからリソース一覧を取得する内部関数
-func getStackResources(awsCtx aws.Context, stackName string) ([]types.StackResource, error) {
+// getStackResources はスタックからリソース一覧を取得する内部関数
+func getStackResources(cfnClient *cloudformation.Client, stackName string) ([]types.StackResource, error) {
 	ctx := context.Background()
-	cfg, err := aws.LoadAwsConfig(aws.Context{
-		Profile: awsCtx.Profile,
-		Region:  awsCtx.Region,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("AWS設定のロードに失敗: %w", err)
-	}
-
-	// CloudFormationクライアントを作成
-	cfnClient := cloudformation.NewFromConfig(cfg)
 
 	// スタックからリソースを取得
 	fmt.Printf("🔍 スタック '%s' からリソースを検索中...\n", stackName)
@@ -93,9 +83,9 @@ func getStackResources(awsCtx aws.Context, stackName string) ([]types.StackResou
 }
 
 // getCleanupResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
-func getCleanupResourcesFromStack(opts CleanupOptions) ([]string, []string, error) {
+func getCleanupResourcesFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, []string, error) {
 	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(opts.Context, opts.StackName)
+	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,11 +123,11 @@ type StackResources struct {
 }
 
 // GetStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
-func GetStartStopResourcesFromStack(awsCtx aws.Context, stackName string) (StackResources, error) {
+func GetStartStopResourcesFromStack(cfnClient *cloudformation.Client, stackName string) (StackResources, error) {
 	var result StackResources
 
 	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(awsCtx, stackName)
+	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
 		return result, err
 	}
@@ -194,8 +184,18 @@ func GetStartStopResourcesFromStack(awsCtx aws.Context, stackName string) (Stack
 
 // StartAllStackResources はスタック内のすべてのリソースを起動します
 func StartAllStackResources(awsCtx aws.Context, stackName string) error {
+	// CloudFormationクライアントを作成
+	cfg, err := aws.LoadAwsConfig(aws.Context{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+	cfnClient := cloudformation.NewFromConfig(cfg)
+
 	// スタックからリソースを取得（名前変更された関数を使用）
-	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
+	resources, err := GetStartStopResourcesFromStack(cfnClient, stackName)
 	if err != nil {
 		return err
 	}
@@ -206,17 +206,12 @@ func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := aws.LoadAwsConfig(aws.Context{
-		Profile: awsCtx.Profile,
-		Region:  awsCtx.Region,
-	})
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
+	ec2Client := ec2.NewFromConfig(cfg)
+	rdsClient := rds.NewFromConfig(cfg)
+	autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 
 	// EC2インスタンスを起動
 	if len(resources.Ec2InstanceIds) > 0 {
-		ec2Client := ec2.NewFromConfig(cfg)
 		for _, instanceId := range resources.Ec2InstanceIds {
 			fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", instanceId)
 			if err := StartEc2Instance(ec2Client, instanceId); err != nil {
@@ -230,8 +225,6 @@ func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 
 	// RDSインスタンスとAuroraクラスターを起動
 	if len(resources.RdsInstanceIds) > 0 || len(resources.AuroraClusterIds) > 0 {
-		rdsClient := rds.NewFromConfig(cfg)
-
 		// RDSインスタンスを起動
 		for _, instanceId := range resources.RdsInstanceIds {
 			fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
@@ -257,7 +250,6 @@ func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 
 	// ECSサービスを起動
 	if len(resources.EcsServiceInfo) > 0 {
-		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 		for _, ecsInfo := range resources.EcsServiceInfo {
 			fmt.Printf("🚀 ECSサービス (%s/%s) を起動します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
 			opts := ServiceCapacityOptions{
@@ -286,8 +278,18 @@ func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 
 // StopAllStackResources はスタック内のすべてのリソースを停止します
 func StopAllStackResources(awsCtx aws.Context, stackName string) error {
+	// CloudFormationクライアントを作成
+	cfg, err := aws.LoadAwsConfig(aws.Context{
+		Profile: awsCtx.Profile,
+		Region:  awsCtx.Region,
+	})
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+	}
+	cfnClient := cloudformation.NewFromConfig(cfg)
+
 	// スタックからリソースを取得（名前変更された関数を使用）
-	resources, err := GetStartStopResourcesFromStack(awsCtx, stackName)
+	resources, err := GetStartStopResourcesFromStack(cfnClient, stackName)
 	if err != nil {
 		return err
 	}
@@ -298,17 +300,12 @@ func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 	errorsOccurred := false
 
 	// 必要に応じて各種クライアントを作成
-	cfg, err := aws.LoadAwsConfig(aws.Context{
-		Profile: awsCtx.Profile,
-		Region:  awsCtx.Region,
-	})
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
+	ec2Client := ec2.NewFromConfig(cfg)
+	rdsClient := rds.NewFromConfig(cfg)
+	autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 
 	// ECSサービスを停止（他のリソースより先に停止）
 	if len(resources.EcsServiceInfo) > 0 {
-		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 		for _, ecsInfo := range resources.EcsServiceInfo {
 			fmt.Printf("🛑 ECSサービス (%s/%s) を停止します...\n", ecsInfo.ClusterName, ecsInfo.ServiceName)
 			opts := ServiceCapacityOptions{
@@ -331,7 +328,6 @@ func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 
 	// EC2インスタンスを停止
 	if len(resources.Ec2InstanceIds) > 0 {
-		ec2Client := ec2.NewFromConfig(cfg)
 		for _, instanceId := range resources.Ec2InstanceIds {
 			fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", instanceId)
 			if err := StopEc2Instance(ec2Client, instanceId); err != nil {
@@ -345,9 +341,6 @@ func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 
 	// RDSインスタンスとAuroraクラスターを停止
 	if len(resources.RdsInstanceIds) > 0 || len(resources.AuroraClusterIds) > 0 {
-		rdsClient := rds.NewFromConfig(cfg)
-
-		// RDSインスタンスを停止
 		for _, instanceId := range resources.RdsInstanceIds {
 			fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
 			if err := StopRdsInstance(rdsClient, instanceId); err != nil {
@@ -358,7 +351,6 @@ func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 			}
 		}
 
-		// Auroraクラスターを停止
 		for _, clusterId := range resources.AuroraClusterIds {
 			fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterId)
 			if err := StopAuroraCluster(rdsClient, clusterId); err != nil {

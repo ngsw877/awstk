@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"awstk/internal/aws"
-
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
@@ -37,25 +36,25 @@ func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 	return nil
 }
 
-// GetAuroraFromStack はCloudFormationスタックからAurora DBクラスター識別子を取得します
-func GetAuroraFromStack(awsCtx aws.Context, stackName string) (string, error) {
-	allClusters, err := GetAllAuroraFromStack(awsCtx, stackName)
+// GetAuroraFromStack はCloudFormationスタックからAuroraクラスター識別子を取得します
+func GetAuroraFromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
+	allClusters, err := GetAllAuroraFromStack(cfnClient, stackName)
 	if err != nil {
 		return "", err
 	}
 
 	if len(allClusters) == 0 {
-		return "", fmt.Errorf("スタック '%s' にAurora DBクラスターが見つかりませんでした", stackName)
+		return "", fmt.Errorf("スタック '%s' にAuroraクラスターが見つかりませんでした", stackName)
 	}
 
 	// 複数のクラスターがある場合は最初の要素を返す
 	return allClusters[0], nil
 }
 
-// GetAllAuroraFromStack はCloudFormationスタックからすべてのAurora DBクラスター識別子を取得します
-func GetAllAuroraFromStack(awsCtx aws.Context, stackName string) ([]string, error) {
+// GetAllAuroraFromStack はCloudFormationスタックからすべてのAuroraクラスター識別子を取得します
+func GetAllAuroraFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
 	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(awsCtx, stackName)
+	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +63,7 @@ func GetAllAuroraFromStack(awsCtx aws.Context, stackName string) ([]string, erro
 	for _, resource := range stackResources {
 		if *resource.ResourceType == "AWS::RDS::DBCluster" && resource.PhysicalResourceId != nil {
 			clusterIds = append(clusterIds, *resource.PhysicalResourceId)
-			fmt.Printf("🔍 検出されたAurora DBクラスター: %s\n", *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたAuroraクラスター: %s\n", *resource.PhysicalResourceId)
 		}
 	}
 

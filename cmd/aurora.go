@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
@@ -30,16 +31,18 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		if clusterName == "" && stackName != "" {
-			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(awsCtx, stackName)
+		if stackName != "" {
+			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+			if err != nil {
+				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+			}
+
+			clusterName, err = service.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
 			}
-		}
-
-		if clusterName == "" {
-			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
+		} else if clusterName == "" {
+			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
 		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
@@ -73,16 +76,18 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		if clusterName == "" && stackName != "" {
-			// スタックからAuroraクラスター名を取得
-			clusterName, err = service.GetAuroraFromStack(awsCtx, stackName)
+		if stackName != "" {
+			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+			if err != nil {
+				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+			}
+
+			clusterName, err = service.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
 			}
-		}
-
-		if clusterName == "" {
-			return fmt.Errorf("❌ エラー: クラスター名 (-c) またはスタック名 (-S) を指定してください")
+		} else if clusterName == "" {
+			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
 		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)

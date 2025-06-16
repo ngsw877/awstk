@@ -5,6 +5,7 @@ import (
 	"awstk/internal/service"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 )
 
@@ -27,23 +28,33 @@ var ssmSessionStartCmd = &cobra.Command{
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := aws.Context{Region: region, Profile: profile}
-		internalCtx := aws.Context{
-			Region:  awsCtx.Region,
-			Profile: awsCtx.Profile,
-		}
 
 		// -iオプションが指定されていない場合、インスタンス一覧から選択
 		if ssmInstanceId == "" {
-			selectedInstanceId, err := service.SelectInstanceInteractively(internalCtx)
+			// インタラクティブモードでインスタンスを選択
+			fmt.Println("🖥️  利用可能なEC2インスタンスから選択してください:")
+
+			ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
 			if err != nil {
-				return err
+				return fmt.Errorf("EC2クライアント作成エラー: %w", err)
+			}
+
+			selectedInstanceId, err := service.SelectInstanceInteractively(ec2Client)
+			if err != nil {
+				return fmt.Errorf("❌ インスタンス選択でエラー: %w", err)
 			}
 			ssmInstanceId = selectedInstanceId
 		}
 
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
-		err := service.StartSsmSession(internalCtx, ssmInstanceId)
+		opts := service.SsmSessionOptions{
+			Region:     awsCtx.Region,
+			Profile:    awsCtx.Profile,
+			InstanceId: ssmInstanceId,
+		}
+
+		err := service.StartSsmSession(opts)
 		if err != nil {
 			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
 			return err

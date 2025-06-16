@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
@@ -31,8 +32,8 @@ type EcsServiceInfo struct {
 }
 
 // GetEcsFromStack はCloudFormationスタックからECSサービス情報を取得します
-func GetEcsFromStack(awsCtx awsinternal.Context, stackName string) (EcsServiceInfo, error) {
-	allServices, err := getAllEcsFromStack(awsCtx, stackName)
+func GetEcsFromStack(cfnClient *cloudformation.Client, stackName string) (EcsServiceInfo, error) {
+	allServices, err := GetAllEcsFromStack(cfnClient, stackName)
 	if err != nil {
 		return EcsServiceInfo{}, err
 	}
@@ -45,14 +46,15 @@ func GetEcsFromStack(awsCtx awsinternal.Context, stackName string) (EcsServiceIn
 	return allServices[0], nil
 }
 
-// GetAllEcsFromStack はスタック内のすべてのECSサービス情報を取得します
-func getAllEcsFromStack(awsCtx awsinternal.Context, stackName string) ([]EcsServiceInfo, error) {
-	var results []EcsServiceInfo
-
-	stackResources, err := getStackResources(awsCtx, stackName)
+// GetAllEcsFromStack はCloudFormationスタックからすべてのECSサービス識別子を取得します
+func GetAllEcsFromStack(cfnClient *cloudformation.Client, stackName string) ([]EcsServiceInfo, error) {
+	// 共通関数を使用してスタックリソースを取得
+	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
-		return results, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
+		return nil, err
 	}
+
+	var results []EcsServiceInfo
 
 	// クラスターリソースをフィルタリング
 	var clusterPhysicalIds []string

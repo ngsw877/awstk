@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"awstk/internal/aws"
-
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
@@ -38,8 +37,8 @@ func StopRdsInstance(rdsClient *rds.Client, instanceId string) error {
 }
 
 // GetRdsFromStack はCloudFormationスタックからRDSインスタンス識別子を取得します
-func GetRdsFromStack(awsCtx aws.Context, stackName string) (string, error) {
-	allInstances, err := GetAllRdsFromStack(awsCtx, stackName)
+func GetRdsFromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
+	allInstances, err := GetAllRdsFromStack(cfnClient, stackName)
 	if err != nil {
 		return "", err
 	}
@@ -53,9 +52,9 @@ func GetRdsFromStack(awsCtx aws.Context, stackName string) (string, error) {
 }
 
 // GetAllRdsFromStack はCloudFormationスタックからすべてのRDSインスタンス識別子を取得します
-func GetAllRdsFromStack(awsCtx aws.Context, stackName string) ([]string, error) {
-	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(awsCtx, stackName)
+func GetAllRdsFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
+	// cfn.goで定義されている共通関数を使用
+	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
 		return nil, err
 	}

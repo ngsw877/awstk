@@ -3,20 +3,25 @@ package service
 import (
 	"os"
 	"os/exec"
-
-	"awstk/internal/aws"
 )
 
+// SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
+type SsmSessionOptions struct {
+	Region     string
+	Profile    string
+	InstanceId string
+}
+
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
-func StartSsmSession(awsCtx aws.Context, instanceId string) error {
+func StartSsmSession(opts SsmSessionOptions) error {
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
 		"ssm", "start-session",
-		"--target", instanceId,
-		"--region", awsCtx.Region,
+		"--target", opts.InstanceId,
+		"--region", opts.Region,
 	}
-	if awsCtx.Profile != "" {
-		args = append(args, "--profile", awsCtx.Profile)
+	if opts.Profile != "" {
+		args = append(args, "--profile", opts.Profile)
 	}
 
 	// コマンドを実行
