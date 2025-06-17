@@ -122,8 +122,8 @@ type StackResources struct {
 	EcsServiceInfo   []EcsServiceInfo
 }
 
-// GetStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
-func GetStartStopResourcesFromStack(cfnClient *cloudformation.Client, stackName string) (StackResources, error) {
+// getStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します
+func getStartStopResourcesFromStack(cfnClient *cloudformation.Client, stackName string) (StackResources, error) {
 	var result StackResources
 
 	// 共通関数を使用してスタックリソースを取得
@@ -195,7 +195,7 @@ func StartAllStackResources(awsCtx aws.Context, stackName string) error {
 	cfnClient := cloudformation.NewFromConfig(cfg)
 
 	// スタックからリソースを取得（名前変更された関数を使用）
-	resources, err := GetStartStopResourcesFromStack(cfnClient, stackName)
+	resources, err := getStartStopResourcesFromStack(cfnClient, stackName)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func StopAllStackResources(awsCtx aws.Context, stackName string) error {
 	cfnClient := cloudformation.NewFromConfig(cfg)
 
 	// スタックからリソースを取得（名前変更された関数を使用）
-	resources, err := GetStartStopResourcesFromStack(cfnClient, stackName)
+	resources, err := getStartStopResourcesFromStack(cfnClient, stackName)
 	if err != nil {
 		return err
 	}

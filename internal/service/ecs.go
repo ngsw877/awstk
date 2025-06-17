@@ -31,7 +31,7 @@ type EcsServiceInfo struct {
 
 // GetEcsFromStack はCloudFormationスタックからECSサービス情報を取得します
 func GetEcsFromStack(cfnClient *cloudformation.Client, stackName string) (EcsServiceInfo, error) {
-	allServices, err := GetAllEcsFromStack(cfnClient, stackName)
+	allServices, err := getAllEcsFromStack(cfnClient, stackName)
 	if err != nil {
 		return EcsServiceInfo{}, err
 	}
@@ -44,8 +44,8 @@ func GetEcsFromStack(cfnClient *cloudformation.Client, stackName string) (EcsSer
 	return allServices[0], nil
 }
 
-// GetAllEcsFromStack はCloudFormationスタックからすべてのECSサービス識別子を取得します
-func GetAllEcsFromStack(cfnClient *cloudformation.Client, stackName string) ([]EcsServiceInfo, error) {
+// getAllEcsFromStack はCloudFormationスタックからすべてのECSサービス識別子を取得します
+func getAllEcsFromStack(cfnClient *cloudformation.Client, stackName string) ([]EcsServiceInfo, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {

@@ -38,7 +38,7 @@ func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 
 // GetAuroraFromStack はCloudFormationスタックからAuroraクラスター識別子を取得します
 func GetAuroraFromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
-	allClusters, err := GetAllAuroraFromStack(cfnClient, stackName)
+	allClusters, err := getAllAuroraFromStack(cfnClient, stackName)
 	if err != nil {
 		return "", err
 	}
@@ -51,8 +51,8 @@ func GetAuroraFromStack(cfnClient *cloudformation.Client, stackName string) (str
 	return allClusters[0], nil
 }
 
-// GetAllAuroraFromStack はCloudFormationスタックからすべてのAuroraクラスター識別子を取得します
-func GetAllAuroraFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
+// getAllAuroraFromStack はCloudFormationスタックからすべてのAuroraクラスター識別子を取得します
+func getAllAuroraFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := getStackResources(cfnClient, stackName)
 	if err != nil {
