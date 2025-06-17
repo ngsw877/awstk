@@ -108,10 +108,35 @@ var s3GunzipCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+// s3AvailCmd represents the avail command
+var s3AvailCmd = &cobra.Command{
+	Use:   "avail [bucket-names...]",
+	Short: "指定したS3バケット名が利用可能かチェック",
+	Long:  `指定した複数のS3バケット名が利用可能か（未作成か）を判定します。\n\n【使い方】\n  ` + AppName + ` s3 avail bucket1 bucket2 ...\n\n【出力例】\n  [404] my-bucket-1: 利用可能\n  [200] my-bucket-2: 利用不可（すでに存在）\n  [403] my-bucket-3: 利用不可（存在するがアクセス権限なし）`,
+	Args:  cobra.MinimumNArgs(1),
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		results := service.CheckS3BucketsAvailability(s3Client, args)
+		for _, r := range results {
+			icon := "❌"
+			if r.StatusCode == 404 {
+				icon = "✅"
+			}
+			fmt.Printf("%s バケット名「%s」: %s [%d]\n", icon, r.BucketName, r.Message, r.StatusCode)
+		}
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(S3Cmd)
 	S3Cmd.AddCommand(s3LsCmd)
 	S3Cmd.AddCommand(s3GunzipCmd)
+	S3Cmd.AddCommand(s3AvailCmd)
 	s3GunzipCmd.Flags().StringP("out", "o", "", "解凍ファイルの出力先ディレクトリ (デフォルト: ./outputs/)")
 
 	// ls コマンドに --time フラグを追加
