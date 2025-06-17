@@ -3,7 +3,6 @@ description: AI アシスタントの共通ワークフロー指示
 globs: "**/*.go"
 alwaysApply: true
 ---
-
 # AI アシスタントへの共通指示
 
 ## 1. 変更の粒度とワークフロー
@@ -16,7 +15,7 @@ alwaysApply: true
 
 ## 2. コミットメッセージ提案
 
-- **AI はコミットメッセージを“提案”するだけであり、実際のコミット操作は行わない**
+- **AI はコミットメッセージを"提案"するだけであり、実際のコミット操作は行わない**
 - メッセージは Conventional Commits の prefix を付け、日本語で要点を簡潔にまとめる
   - 例: `feat: S3 バケット削除コマンドを追加`
 - Scope（`(cli)` や `(iac)` など）は必要に応じて付与してよいが必須ではない
@@ -26,8 +25,9 @@ alwaysApply: true
 | 目的 | 配置先 |
 |------|--------|
 | CLI サブコマンド | `cmd/<service>.go` |
-| AWS 操作ロジック | `internal/service/<service>.go` |
-| AWS SDK ラッパ | `internal/aws/` |
+| AWS SDK 操作ロジック | `internal/service/<service>.go` |
+| AWS CLI 実行処理 | `internal/cli/` |
+| AWS 設定・クライアント | `internal/aws/` |
 | CDK テンプレート | `demo-infra/` |
 
 ---

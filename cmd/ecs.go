@@ -60,7 +60,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = service.ExecuteCommand(awsCtx, clusterName, taskId, containerName)
+		err = service.ExecuteEcsCommand(service.EcsExecOptions{
+			Region:        awsCtx.Region,
+			Profile:       awsCtx.Profile,
+			ClusterName:   clusterName,
+			TaskId:        taskId,
+			ContainerName: containerName,
+		})
 		if err != nil {
 			return fmt.Errorf("❌ コンテナへの接続に失敗しました: %w", err)
 		}

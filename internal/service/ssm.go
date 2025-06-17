@@ -1,8 +1,7 @@
 package service
 
 import (
-	"os"
-	"os/exec"
+	"awstk/internal/cli"
 )
 
 // SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
@@ -24,11 +23,6 @@ func StartSsmSession(opts SsmSessionOptions) error {
 		args = append(args, "--profile", opts.Profile)
 	}
 
-	// コマンドを実行
-	cmd := exec.Command("aws", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
+	// cli層の共通関数を使用してコマンドを実行
+	return cli.ExecuteAwsCommand(args)
 }

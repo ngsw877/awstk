@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 	"time"
 
-	awsinternal "awstk/internal/aws"
+	"awstk/internal/cli"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -152,29 +150,33 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 	return taskId, nil
 }
 
-func ExecuteCommand(awsCtx awsinternal.Context, clusterName, taskId, containerName string) error {
+// EcsExecOptions はECS execute-commandのパラメータを格納する構造体
+type EcsExecOptions struct {
+	Region        string
+	Profile       string
+	ClusterName   string
+	TaskId        string
+	ContainerName string
+}
+
+func ExecuteEcsCommand(opts EcsExecOptions) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",
-		"--region", awsCtx.Region,
-		"--cluster", clusterName,
-		"--task", taskId,
-		"--container", containerName,
+		"--region", opts.Region,
+		"--cluster", opts.ClusterName,
+		"--task", opts.TaskId,
+		"--container", opts.ContainerName,
 		"--interactive",
 		"--command", "/bin/bash",
 	}
 
-	if awsCtx.Profile != "" {
-		args = append(args, "--profile", awsCtx.Profile)
+	if opts.Profile != "" {
+		args = append(args, "--profile", opts.Profile)
 	}
 
-	// コマンドを実行
-	cmd := exec.Command("aws", args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
+	// cli層の共通関数を使用してコマンドを実行
+	return cli.ExecuteAwsCommand(args)
 }
 
 // SetEcsServiceCapacity はECSサービスの最小・最大キャパシティを設定します
