@@ -3,6 +3,7 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"awstk/internal/service"
+	"awstk/internal/service/cfn"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -98,9 +99,9 @@ func resolveRdsInstance() (string, error) {
 			return "", fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 		}
 
-		instanceId, err := service.GetRdsFromStack(cfnClient, rdsStackName)
+		instanceId, err := cfn.GetRdsFromStack(cfnClient, rdsStackName)
 		if err != nil {
-			return "", fmt.Errorf("スタックからRDSインスタンス取得エラー: %w", err)
+			return "", fmt.Errorf("❌ CloudFormationスタックからRDSインスタンス識別子の取得に失敗: %w", err)
 		}
 		return instanceId, nil
 	}

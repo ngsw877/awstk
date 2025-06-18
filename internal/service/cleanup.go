@@ -1,6 +1,7 @@
 package service
 
 import (
+	"awstk/internal/service/cfn"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -34,7 +35,7 @@ func CleanupResources(opts CleanupOptions) error {
 		fmt.Println("スタックに関連するリソースの削除を開始します...")
 
 		// スタックからリソース情報を取得
-		s3BucketNames, ecrRepoNames, err = getCleanupResourcesFromStack(opts.CfnClient, opts.StackName)
+		s3BucketNames, ecrRepoNames, err = cfn.GetCleanupResourcesFromStack(opts.CfnClient, opts.StackName)
 		if err != nil {
 			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
 		}

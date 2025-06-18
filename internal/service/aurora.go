@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
-// StartAuroraCluster Aurora DBクラスターを起動する
+// StartAuroraCluster Auroraクラスターを起動する
 func StartAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 	input := &rds.StartDBClusterInput{
 		DBClusterIdentifier: &clusterId,
@@ -16,13 +15,13 @@ func StartAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 
 	_, err := rdsClient.StartDBCluster(context.Background(), input)
 	if err != nil {
-		return fmt.Errorf("Aurora DBクラスター起動エラー: %w", err)
+		return fmt.Errorf("Auroraクラスター起動エラー: %w", err)
 	}
 
 	return nil
 }
 
-// StopAuroraCluster Aurora DBクラスターを停止する
+// StopAuroraCluster Auroraクラスターを停止する
 func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 	input := &rds.StopDBClusterInput{
 		DBClusterIdentifier: &clusterId,
@@ -30,42 +29,8 @@ func StopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 
 	_, err := rdsClient.StopDBCluster(context.Background(), input)
 	if err != nil {
-		return fmt.Errorf("Aurora DBクラスター停止エラー: %w", err)
+		return fmt.Errorf("Auroraクラスター停止エラー: %w", err)
 	}
 
 	return nil
-}
-
-// GetAuroraFromStack はCloudFormationスタックからAuroraクラスター識別子を取得します
-func GetAuroraFromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
-	allClusters, err := getAllAuroraFromStack(cfnClient, stackName)
-	if err != nil {
-		return "", err
-	}
-
-	if len(allClusters) == 0 {
-		return "", fmt.Errorf("スタック '%s' にAuroraクラスターが見つかりませんでした", stackName)
-	}
-
-	// 複数のクラスターがある場合は最初の要素を返す
-	return allClusters[0], nil
-}
-
-// getAllAuroraFromStack はCloudFormationスタックからすべてのAuroraクラスター識別子を取得します
-func getAllAuroraFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
-	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(cfnClient, stackName)
-	if err != nil {
-		return nil, err
-	}
-
-	var clusterIds []string
-	for _, resource := range stackResources {
-		if *resource.ResourceType == "AWS::RDS::DBCluster" && resource.PhysicalResourceId != nil {
-			clusterIds = append(clusterIds, *resource.PhysicalResourceId)
-			fmt.Printf("🔍 検出されたAuroraクラスター: %s\n", *resource.PhysicalResourceId)
-		}
-	}
-
-	return clusterIds, nil
 }

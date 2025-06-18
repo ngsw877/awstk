@@ -517,7 +517,7 @@ func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) S3BucketA
 	var msg string
 	switch statusCode {
 	case 404:
-		msg = "利用可能" // ← ここ！404なら利用可能
+		msg = "利用可能"
 	case 403:
 		msg = "利用不可（存在するがアクセス権限なし）"
 	case 301:

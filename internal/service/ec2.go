@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
@@ -53,40 +52,6 @@ func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
 	}
 
 	return instances, nil
-}
-
-// GetEc2FromStack はCloudFormationスタックからEC2インスタンスIDを取得します
-func GetEc2FromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
-	allInstances, err := GetAllEc2FromStack(cfnClient, stackName)
-	if err != nil {
-		return "", err
-	}
-
-	if len(allInstances) == 0 {
-		return "", fmt.Errorf("スタック '%s' にEC2インスタンスが見つかりませんでした", stackName)
-	}
-
-	// 複数のインスタンスがある場合は最初の要素を返す
-	return allInstances[0], nil
-}
-
-// GetAllEc2FromStack はCloudFormationスタックからすべてのEC2インスタンス識別子を取得します
-func GetAllEc2FromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
-	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(cfnClient, stackName)
-	if err != nil {
-		return nil, err
-	}
-
-	var instanceIds []string
-	for _, resource := range stackResources {
-		if *resource.ResourceType == "AWS::EC2::Instance" && resource.PhysicalResourceId != nil {
-			instanceIds = append(instanceIds, *resource.PhysicalResourceId)
-			fmt.Printf("🔍 検出されたEC2インスタンス: %s\n", *resource.PhysicalResourceId)
-		}
-	}
-
-	return instanceIds, nil
 }
 
 // StartEc2Instance はEC2インスタンスを起動します

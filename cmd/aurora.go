@@ -3,6 +3,7 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"awstk/internal/service"
+	"awstk/internal/service/cfn"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -37,10 +38,11 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 			}
 
-			clusterName, err = service.GetAuroraFromStack(cfnClient, stackName)
+			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
-				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
+				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
 			}
+			fmt.Printf("✅ CloudFormationスタック '%s' からAuroraクラスター '%s' を検出しました\n", stackName, clusterName)
 		} else if clusterName == "" {
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
@@ -82,10 +84,11 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 			}
 
-			clusterName, err = service.GetAuroraFromStack(cfnClient, stackName)
+			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
-				return fmt.Errorf("❌ スタックからAuroraクラスター取得エラー: %w", err)
+				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
 			}
+			fmt.Printf("✅ CloudFormationスタック '%s' からAuroraクラスター '%s' を検出しました\n", stackName, clusterName)
 		} else if clusterName == "" {
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"awstk/internal/service"
+	"awstk/internal/service/cfn"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -96,9 +97,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 			}
 
-			serviceInfo, stackErr := service.GetEcsFromStack(cfnClient, stackName)
+			serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
 			if stackErr != nil {
-				return fmt.Errorf("❌ スタックからECSサービス取得エラー: %w", stackErr)
+				return fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", stackErr)
 			}
 			clusterName = serviceInfo.ClusterName
 			serviceName = serviceInfo.ServiceName
@@ -348,9 +349,9 @@ func resolveEcsClusterAndService(awsCtx aws.Context) (string, string, error) {
 			return "", "", fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 		}
 
-		serviceInfo, stackErr := service.GetEcsFromStack(cfnClient, stackName)
+		serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
 		if stackErr != nil {
-			return "", "", fmt.Errorf("❌ スタックからECSサービス取得エラー: %w", stackErr)
+			return "", "", fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", stackErr)
 		}
 		clusterName = serviceInfo.ClusterName
 		serviceName = serviceInfo.ServiceName

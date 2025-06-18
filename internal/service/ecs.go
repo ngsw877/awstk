@@ -1,22 +1,20 @@
 package service
 
 import (
+	"awstk/internal/cli"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"awstk/internal/cli"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
-	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
 
-// ServiceCapacityOptions はECSサービスキャパシティ設定のパラメータを格納する構造体
+// ServiceCapacityOptions はECSサービスのキャパシティ設定用パラメータを格納する構造体
 type ServiceCapacityOptions struct {
 	ClusterName string
 	ServiceName string
@@ -24,109 +22,7 @@ type ServiceCapacityOptions struct {
 	MaxCapacity int
 }
 
-type EcsServiceInfo struct {
-	ClusterName string
-	ServiceName string
-}
-
-// GetEcsFromStack はCloudFormationスタックからECSサービス情報を取得します
-func GetEcsFromStack(cfnClient *cloudformation.Client, stackName string) (EcsServiceInfo, error) {
-	allServices, err := getAllEcsFromStack(cfnClient, stackName)
-	if err != nil {
-		return EcsServiceInfo{}, err
-	}
-
-	if len(allServices) == 0 {
-		return EcsServiceInfo{}, fmt.Errorf("スタック '%s' にECSサービスが見つかりませんでした", stackName)
-	}
-
-	// 複数のサービスがある場合は最初の要素を返す
-	return allServices[0], nil
-}
-
-// getAllEcsFromStack はCloudFormationスタックからすべてのECSサービス識別子を取得します
-func getAllEcsFromStack(cfnClient *cloudformation.Client, stackName string) ([]EcsServiceInfo, error) {
-	// 共通関数を使用してスタックリソースを取得
-	stackResources, err := getStackResources(cfnClient, stackName)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []EcsServiceInfo
-
-	// クラスターリソースをフィルタリング
-	var clusterPhysicalIds []string
-	for _, resource := range stackResources {
-		if *resource.ResourceType == "AWS::ECS::Cluster" {
-			clusterPhysicalIds = append(clusterPhysicalIds, *resource.PhysicalResourceId)
-			fmt.Printf("🔍 検出されたECSクラスター: %s\n", *resource.PhysicalResourceId)
-		}
-	}
-
-	if len(clusterPhysicalIds) == 0 {
-		return results, errors.New("スタック '" + stackName + "' からECSクラスターを検出できませんでした")
-	}
-
-	// サービスリソースをフィルタリング
-	fmt.Println("🔍 スタック '" + stackName + "' からECSサービスを検索中...")
-	var servicePhysicalIds []string
-	for _, resource := range stackResources {
-		if *resource.ResourceType == "AWS::ECS::Service" {
-			servicePhysicalIds = append(servicePhysicalIds, *resource.PhysicalResourceId)
-		}
-	}
-
-	if len(servicePhysicalIds) == 0 {
-		return results, errors.New("スタック '" + stackName + "' からECSサービスを検出できませんでした")
-	}
-
-	// 各サービスについてクラスターとの組み合わせを作成
-	for _, serviceArn := range servicePhysicalIds {
-		// サービス名を抽出 (形式: arn:aws:ecs:REGION:ACCOUNT:service/CLUSTER/SERVICE_NAME)
-		parts := strings.Split(serviceArn, "/")
-		if len(parts) < 2 {
-			continue // 不正な形式はスキップ
-		}
-
-		clusterNameFromArn := parts[len(parts)-2]
-		serviceName := parts[len(parts)-1]
-
-		// ARNから抽出したクラスター名がスタック内のクラスターと一致するかチェック
-		var matchedClusterName string
-		for _, clusterId := range clusterPhysicalIds {
-			// クラスター名の完全一致またはクラスターARNの末尾一致をチェック
-			if clusterId == clusterNameFromArn || strings.HasSuffix(clusterId, "/"+clusterNameFromArn) {
-				matchedClusterName = clusterId
-				break
-			}
-		}
-
-		// マッチしたクラスターがある場合のみ追加
-		if matchedClusterName != "" {
-			// クラスター名を正規化（ARNの場合は名前部分のみ抽出）
-			displayClusterName := matchedClusterName
-			if strings.Contains(matchedClusterName, "/") {
-				clusterParts := strings.Split(matchedClusterName, "/")
-				displayClusterName = clusterParts[len(clusterParts)-1]
-			}
-
-			results = append(results, EcsServiceInfo{
-				ClusterName: displayClusterName,
-				ServiceName: serviceName,
-			})
-			fmt.Printf("🔍 検出されたECSサービス: %s/%s\n", displayClusterName, serviceName)
-		} else {
-			fmt.Printf("⚠️ 警告: サービス %s のクラスター %s がスタック内で見つかりませんでした\n", serviceName, clusterNameFromArn)
-		}
-	}
-
-	if len(results) == 0 {
-		return results, errors.New("スタック '" + stackName + "' から有効なECSサービスを検出できませんでした")
-	}
-
-	return results, nil
-}
-
+// GetRunningTask 実行中のタスクを取得する
 func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (string, error) {
 	fmt.Println("🔍 実行中のタスクを検索中...")
 
