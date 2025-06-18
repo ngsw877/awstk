@@ -24,8 +24,8 @@ import (
 func NewClient[T any](ctx Context) (T, error) {
 	var zero T
 
-	// AWS設定を読み込み
-	cfg, err := LoadAwsConfig(ctx)
+	// Context から設定を取得（初回のみ認証処理実行、以降はキャッシュ利用）
+	cfg, err := ctx.GetConfig()
 	if err != nil {
 		return zero, err
 	}
