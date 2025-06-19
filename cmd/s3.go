@@ -25,12 +25,12 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 
 【使い方】
   ` + AppName + ` s3 ls                          # バケット一覧を表示
-  ` + AppName + ` s3 ls s3://my-bucket           # バケット内をツリー形式で表示（サイズ付き）
-  ` + AppName + ` s3 ls s3://my-bucket/prefix/   # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
-  ` + AppName + ` s3 ls s3://my-bucket -t        # 更新日時も一緒に表示
+  ` + AppName + ` s3 ls my-bucket                # バケット内をツリー形式で表示（サイズ付き）
+  ` + AppName + ` s3 ls my-bucket/prefix/        # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
+  ` + AppName + ` s3 ls my-bucket -t             # 更新日時も一緒に表示
 
 【例】
-  ` + AppName + ` s3 ls s3://my-bucket/logs/ -t
+  ` + AppName + ` s3 ls my-bucket/logs/ -t
   → my-bucket/logs/ 配下のオブジェクトをツリー形式でサイズ + 更新日時付きで表示します。`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
@@ -70,16 +70,17 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 }
 
 var s3GunzipCmd = &cobra.Command{
-	Use:   "gunzip [s3パス]",
+	Use:   "gunzip [バケット名/プレフィックス]",
 	Short: "S3の.gzファイルを一括ダウンロード＆解凍するコマンド",
 	Long: `S3バケット内の指定prefix配下に存在する全ての.gzファイルを一括でダウンロードし、解凍してローカルに保存するコマンドです。
 
 【使い方】
-  ` + AppName + ` s3 gunzip s3://my-bucket/some/prefix/ [-o 出力先ディレクトリ]
+  ` + AppName + ` s3 gunzip <バケット名>[/プレフィックス] [-o 出力先ディレクトリ]
 
 【例】
-  ` + AppName + ` s3 gunzip s3://my-bucket/logs/ -o ./logs/
-  → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して ./logs/ に保存します。
+  ` + AppName + ` s3 gunzip my-bucket/logs/ -o ./logs/
+  ` + AppName + ` s3 gunzip my-bucket -o ./data/
+  → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して指定ディレクトリに保存します。
 
 出力先ディレクトリを省略した場合は ./outputs/ に保存されます。`,
 	Args: cobra.MaximumNArgs(1),
@@ -88,19 +89,20 @@ var s3GunzipCmd = &cobra.Command{
 			cmdCobra.Help()
 			return nil
 		}
-		s3url := args[0]
+		s3Path := args[0]
 		outDir, _ := cmdCobra.Flags().GetString("out")
 		if outDir == "" {
 			outDir = "./outputs/"
 		}
-		fmt.Printf("S3パス: %s\n出力先: %s\n", s3url, outDir)
+
+		fmt.Printf("S3パス: %s\n出力先: %s\n", s3Path, outDir)
 
 		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		if err := s3svc.DownloadAndExtractGzFiles(s3Client, s3url, outDir); err != nil {
+		if err := s3svc.DownloadAndExtractGzFiles(s3Client, s3Path, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)
 		}
 		return nil
