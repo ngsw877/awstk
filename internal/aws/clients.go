@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,6 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 )
 
+// ErrUnsupportedClient はサポートされていない AWS クライアント型を示すエラー
+var ErrUnsupportedClient = errors.New("aws: unsupported client type")
+
 // NewClient は指定されたAWSサービスクライアントを作成
 // 使用例:
 //
@@ -27,14 +32,14 @@ func NewClient[T any](ctx Context) (T, error) {
 	// Context から設定を取得（初回のみ認証処理実行、以降はキャッシュ利用）
 	cfg, err := ctx.GetConfig()
 	if err != nil {
-		return zero, err
+		return zero, fmt.Errorf("get AWS config: %w", err)
 	}
 
 	// クライアントを作成
 	clientType := reflect.TypeOf(zero)
 	newClient := createClient(cfg, clientType)
 	if newClient == nil {
-		return zero, nil // サポートされていない型
+		return zero, fmt.Errorf("%w: %s", ErrUnsupportedClient, clientType.String())
 	}
 
 	return newClient.(T), nil
