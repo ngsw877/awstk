@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
 	"awstk/internal/service/cfn"
+	ecssvc "awstk/internal/service/ecs"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -54,14 +54,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// タスクIDを取得
-		taskId, err := service.GetRunningTask(ecsClient, clusterName, serviceName)
+		taskId, err := ecssvc.GetRunningTask(ecsClient, clusterName, serviceName)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = service.ExecuteEcsCommand(service.EcsExecOptions{
+		err = ecssvc.ExecuteEcsCommand(ecssvc.EcsExecOptions{
 			Region:        awsCtx.Region,
 			Profile:       awsCtx.Profile,
 			ClusterName:   clusterName,
@@ -110,7 +110,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		opts := service.ServiceCapacityOptions{
+		opts := ecssvc.ServiceCapacityOptions{
 			ClusterName: clusterName,
 			ServiceName: serviceName,
 			MinCapacity: minCapacity,
@@ -118,7 +118,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		fmt.Println("🚀 サービスの起動を開始します...")
-		err = service.SetEcsServiceCapacity(autoScalingClient, opts)
+		err = ecssvc.SetEcsServiceCapacity(autoScalingClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -128,7 +128,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		err = service.WaitForServiceStatus(ecsClient, opts, minCapacity, timeoutSeconds)
+		err = ecssvc.WaitForServiceStatus(ecsClient, opts, minCapacity, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
 		}
@@ -169,7 +169,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// キャパシティ設定オプションを作成（停止のため0に設定）
-		opts := service.ServiceCapacityOptions{
+		opts := ecssvc.ServiceCapacityOptions{
 			ClusterName: clusterName,
 			ServiceName: serviceName,
 			MinCapacity: 0,
@@ -178,13 +178,13 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// キャパシティを設定
 		fmt.Println("🛑 サービスの停止を開始します...")
-		err = service.SetEcsServiceCapacity(autoScalingClient, opts)
+		err = ecssvc.SetEcsServiceCapacity(autoScalingClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
 
 		// 停止完了を必ず待機
-		err = service.WaitForServiceStatus(ecsClient, opts, 0, timeoutSeconds)
+		err = ecssvc.WaitForServiceStatus(ecsClient, opts, 0, timeoutSeconds)
 		if err != nil {
 			return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
 		}
@@ -221,7 +221,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// タスク実行オプションを作成
-		opts := service.RunAndWaitForTaskOptions{
+		opts := ecssvc.RunAndWaitForTaskOptions{
 			ClusterName:    clusterName,
 			ServiceName:    serviceName,
 			TaskDefinition: taskDefinition,
@@ -234,7 +234,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// タスクを実行して完了を待機
 		fmt.Println("🚀 ECSタスクを実行します...")
-		exitCode, err := service.RunAndWaitForTask(ecsClient, opts)
+		exitCode, err := ecssvc.RunAndWaitForTask(ecsClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ タスク実行エラー: %w", err)
 		}
@@ -277,7 +277,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		}
 
 		// 強制再デプロイを実行
-		err = service.ForceRedeployService(ecsClient, clusterName, serviceName)
+		err = ecssvc.ForceRedeployService(ecsClient, clusterName, serviceName)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -285,7 +285,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		// --no-waitフラグが指定されていない場合はデプロイ完了まで待機
 		noWait, _ := cmd.Flags().GetBool("no-wait")
 		if !noWait {
-			err = service.WaitForDeploymentComplete(ecsClient, clusterName, serviceName, timeoutSeconds)
+			err = ecssvc.WaitForDeploymentComplete(ecsClient, clusterName, serviceName, timeoutSeconds)
 			if err != nil {
 				return fmt.Errorf("❌ デプロイ完了待機エラー: %w", err)
 			}
