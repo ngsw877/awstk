@@ -91,18 +91,10 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if stackName != "" {
-			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-			if err != nil {
-				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-			}
-
-			serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
-			if stackErr != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", stackErr)
-			}
-			clusterName = serviceInfo.ClusterName
-			serviceName = serviceInfo.ServiceName
+		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		if err != nil {
+			cmd.Help()
+			return err
 		}
 
 		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
@@ -110,27 +102,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		opts := ecssvc.ServiceCapacityOptions{
-			ClusterName: clusterName,
-			ServiceName: serviceName,
-			MinCapacity: minCapacity,
-			MaxCapacity: maxCapacity,
-		}
-
-		fmt.Println("🚀 サービスの起動を開始します...")
-		err = ecssvc.SetEcsServiceCapacity(autoScalingClient, opts)
-		if err != nil {
-			return fmt.Errorf("❌ エラー: %w", err)
-		}
-
 		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		err = ecssvc.WaitForServiceStatus(ecsClient, opts, minCapacity, timeoutSeconds)
+		err = ecssvc.StartEcsService(autoScalingClient, ecsClient, clusterName, serviceName, minCapacity, maxCapacity, timeoutSeconds)
 		if err != nil {
-			return fmt.Errorf("❌ サービス起動監視エラー: %w", err)
+			return err
 		}
 		return nil
 	},
@@ -168,25 +147,9 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		// キャパシティ設定オプションを作成（停止のため0に設定）
-		opts := ecssvc.ServiceCapacityOptions{
-			ClusterName: clusterName,
-			ServiceName: serviceName,
-			MinCapacity: 0,
-			MaxCapacity: 0,
-		}
-
-		// キャパシティを設定
-		fmt.Println("🛑 サービスの停止を開始します...")
-		err = ecssvc.SetEcsServiceCapacity(autoScalingClient, opts)
+		err = ecssvc.StopEcsService(autoScalingClient, ecsClient, clusterName, serviceName, timeoutSeconds)
 		if err != nil {
-			return fmt.Errorf("❌ エラー: %w", err)
-		}
-
-		// 停止完了を必ず待機
-		err = ecssvc.WaitForServiceStatus(ecsClient, opts, 0, timeoutSeconds)
-		if err != nil {
-			return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
+			return err
 		}
 		return nil
 	},
