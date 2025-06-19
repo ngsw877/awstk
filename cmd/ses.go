@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	sesSvc "awstk/internal/service/ses"
 	"bufio"
 	"fmt"
 	"os"
@@ -54,7 +54,7 @@ var sesVerifyCmd = &cobra.Command{
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		failedEmails, err := service.VerifySesEmails(sesClient, filtered)
+		failedEmails, err := sesSvc.VerifySesEmails(sesClient, filtered)
 		if err != nil {
 			return fmt.Errorf("❌ SES検証エラー: %w", err)
 		}

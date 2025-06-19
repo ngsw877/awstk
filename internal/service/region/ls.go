@@ -1,4 +1,4 @@
-package service
+package region
 
 import (
 	"context"
@@ -7,18 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
-
-// awsRegion represents an AWS region
-type awsRegion struct {
-	regionName  string
-	optInStatus string
-}
-
-// regionGroups represents grouped regions by availability (private)
-type regionGroups struct {
-	available []awsRegion
-	disabled  []awsRegion
-}
 
 // GetFormattedRegionList retrieves and formats region list as string for display
 func GetFormattedRegionList(ec2Client *ec2.Client, showAllRegions bool) (string, error) {

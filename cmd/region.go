@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	regionSvc "awstk/internal/service/region"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -48,7 +48,7 @@ func listRegions(showAllRegions bool) error {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
 
-	output, err := service.GetFormattedRegionList(ec2Client, showAllRegions)
+	output, err := regionSvc.GetFormattedRegionList(ec2Client, showAllRegions)
 	if err != nil {
 		return fmt.Errorf("❌ リージョン一覧取得でエラー: %w", err)
 	}

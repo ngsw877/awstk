@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"awstk/internal/aws"
+	secretsmgrSvc "awstk/internal/service/secretsmanager"
+	"encoding/json"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/spf13/cobra"
 )
 
@@ -25,13 +29,25 @@ var secretsManagerGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
 
-		if secretName == "" {
-			return fmt.Errorf("❌ エラー: シークレット名 (-n) を指定してください")
+		secretsClient, err := aws.NewClient[*secretsmanager.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
 		fmt.Printf("🔍 シークレット (%s) の値を取得します...\n", secretName)
-		// TODO: service.GetSecretValue関数を実装する必要があります
-		fmt.Printf("⚠️ SecretsManager取得機能は未実装です\n")
+
+		secretMap, err := secretsmgrSvc.GetSecretValues(secretsClient, secretName)
+		if err != nil {
+			return fmt.Errorf("❌ シークレット取得エラー: %w", err)
+		}
+
+		// JSON形式で整形して出力
+		jsonBytes, err := json.MarshalIndent(secretMap, "", "  ")
+		if err != nil {
+			return fmt.Errorf("❌ JSON変換エラー: %w", err)
+		}
+
+		fmt.Println(string(jsonBytes))
 		return nil
 	},
 	SilenceUsage: true,

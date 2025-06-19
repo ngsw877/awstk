@@ -3,6 +3,7 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"awstk/internal/service"
+	"awstk/internal/service/ssm"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -48,13 +49,13 @@ var ssmSessionStartCmd = &cobra.Command{
 
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
-		opts := service.SsmSessionOptions{
+		opts := ssm.SsmSessionOptions{
 			Region:     awsCtx.Region,
 			Profile:    awsCtx.Profile,
 			InstanceId: ssmInstanceId,
 		}
 
-		err := service.StartSsmSession(opts)
+		err := ssm.StartSsmSession(opts)
 		if err != nil {
 			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
 			return err

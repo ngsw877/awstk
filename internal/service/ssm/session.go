@@ -1,15 +1,8 @@
-package service
+package ssm
 
 import (
 	"awstk/internal/cli"
 )
-
-// SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
-type SsmSessionOptions struct {
-	Region     string
-	Profile    string
-	InstanceId string
-}
 
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
 func StartSsmSession(opts SsmSessionOptions) error {
