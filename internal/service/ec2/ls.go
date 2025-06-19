@@ -1,4 +1,4 @@
-package service
+package ec2
 
 import (
 	"bufio"
@@ -11,13 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
-
-// Ec2Instance EC2インスタンスの情報を格納する構造体
-type Ec2Instance struct {
-	InstanceId   string
-	InstanceName string
-	State        string
-}
 
 // ListEc2Instances 現在のリージョンのEC2インスタンス一覧を取得する
 func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
@@ -52,76 +45,6 @@ func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
 	}
 
 	return instances, nil
-}
-
-// StartEc2Instance はEC2インスタンスを起動します
-func StartEc2Instance(ec2Client *ec2.Client, instanceId string) error {
-	input := &ec2.StartInstancesInput{
-		InstanceIds: []string{instanceId},
-	}
-
-	_, err := ec2Client.StartInstances(context.Background(), input)
-	if err != nil {
-		return fmt.Errorf("EC2インスタンス起動エラー: %w", err)
-	}
-
-	return nil
-}
-
-// StopEc2Instance はEC2インスタンスを停止します
-func StopEc2Instance(ec2Client *ec2.Client, instanceId string) error {
-	input := &ec2.StopInstancesInput{
-		InstanceIds: []string{instanceId},
-	}
-
-	_, err := ec2Client.StopInstances(context.Background(), input)
-	if err != nil {
-		return fmt.Errorf("EC2インスタンス停止エラー: %w", err)
-	}
-
-	return nil
-}
-
-// getEc2InstancesByKeyword はキーワードに一致するEC2インスタンスIDの一覧を取得します
-func getEc2InstancesByKeyword(ec2Client *ec2.Client, searchString string) ([]string, error) {
-	// インスタンス一覧を取得
-	input := &ec2.DescribeInstancesInput{}
-	foundInstances := []string{}
-
-	// ページネーション対応
-	for {
-		result, err := ec2Client.DescribeInstances(context.Background(), input)
-		if err != nil {
-			return nil, fmt.Errorf("EC2インスタンス一覧取得エラー: %w", err)
-		}
-
-		for _, reservation := range result.Reservations {
-			for _, instance := range reservation.Instances {
-				// インスタンス名を取得
-				instanceName := ""
-				for _, tag := range instance.Tags {
-					if *tag.Key == "Name" {
-						instanceName = *tag.Value
-						break
-					}
-				}
-
-				// インスタンスIDまたは名前に検索文字列が含まれているかチェック
-				if strings.Contains(*instance.InstanceId, searchString) ||
-					strings.Contains(instanceName, searchString) {
-					foundInstances = append(foundInstances, *instance.InstanceId)
-					fmt.Printf("🔍 検出されたEC2インスタンス: %s (%s)\n", *instance.InstanceId, instanceName)
-				}
-			}
-		}
-
-		if result.NextToken == nil {
-			break
-		}
-		input.NextToken = result.NextToken
-	}
-
-	return foundInstances, nil
 }
 
 // SelectInstanceInteractively EC2インスタンス一覧を表示してユーザーに選択させる

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -39,7 +39,7 @@ var ec2StartCmd = &cobra.Command{
 		}
 
 		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
-		err = service.StartEc2Instance(ec2Client, ec2InstanceId)
+		err = ec2svc.StartEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ EC2インスタンス起動エラー: %w", err)
 		}
@@ -69,7 +69,7 @@ var ec2StopCmd = &cobra.Command{
 		}
 
 		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
-		err = service.StopEc2Instance(ec2Client, ec2InstanceId)
+		err = ec2svc.StopEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ EC2インスタンス停止エラー: %w", err)
 		}

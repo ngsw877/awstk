@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	s3svc "awstk/internal/service/s3"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -43,7 +43,7 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 
 		if len(args) == 0 {
 			// 引数がない場合はバケット一覧表示
-			buckets, err := service.ListS3Buckets(s3Client)
+			buckets, err := s3svc.ListS3Buckets(s3Client)
 			if err != nil {
 				return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
 			}
@@ -58,7 +58,7 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 		} else {
 			// 引数がある場合は指定S3パスをツリー形式で表示
 			s3Path := args[0]
-			err := service.ListS3TreeView(s3Client, s3Path, showTime)
+			err := s3svc.ListS3TreeView(s3Client, s3Path, showTime)
 			if err != nil {
 				return fmt.Errorf("❌ %w", err)
 			}
@@ -100,7 +100,7 @@ var s3GunzipCmd = &cobra.Command{
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		if err := service.DownloadAndExtractGzFiles(s3Client, s3url, outDir); err != nil {
+		if err := s3svc.DownloadAndExtractGzFiles(s3Client, s3url, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)
 		}
 		return nil
@@ -119,7 +119,7 @@ var s3AvailCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-		results := service.CheckS3BucketsAvailability(s3Client, args)
+		results := s3svc.CheckS3BucketsAvailability(s3Client, args)
 		for _, r := range results {
 			icon := "❌"
 			if r.StatusCode == 404 {

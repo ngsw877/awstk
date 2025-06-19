@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
 	"awstk/internal/service/cfn"
+	rdssvc "awstk/internal/service/rds"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -44,7 +44,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		}
 
 		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
-		err = service.StartRdsInstance(rdsClient, instanceId)
+		err = rdssvc.StartRdsInstance(rdsClient, instanceId)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス起動エラー: %w", err)
 		}
@@ -76,7 +76,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		}
 
 		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
-		err = service.StopRdsInstance(rdsClient, instanceId)
+		err = rdssvc.StopRdsInstance(rdsClient, instanceId)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス停止エラー: %w", err)
 		}

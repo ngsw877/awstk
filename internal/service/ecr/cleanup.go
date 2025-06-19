@@ -1,4 +1,4 @@
-package service
+package ecr
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
-// getEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
-func getEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]string, error) {
+// GetEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
+func GetEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]string, error) {
 	// リポジトリ一覧を取得
 	listReposInput := &ecr.DescribeRepositoriesInput{}
 	foundRepos := []string{}
@@ -39,8 +39,8 @@ func getEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]
 	return foundRepos, nil
 }
 
-// cleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
-func cleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
+// CleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
+func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 	for _, repoName := range repoNames {
 		fmt.Printf("リポジトリ %s を空にして削除中...\n", repoName)
 

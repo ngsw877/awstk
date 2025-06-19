@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	"awstk/internal/service/aurora"
 	"awstk/internal/service/cfn"
 	"fmt"
 
@@ -53,7 +53,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		}
 
 		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterName)
-		err = service.StartAuroraCluster(rdsClient, clusterName)
+		err = aurora.StartAuroraCluster(rdsClient, clusterName)
 		if err != nil {
 			return fmt.Errorf("❌ Aurora DBクラスター起動エラー: %w", err)
 		}
@@ -99,7 +99,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		}
 
 		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterName)
-		err = service.StopAuroraCluster(rdsClient, clusterName)
+		err = aurora.StopAuroraCluster(rdsClient, clusterName)
 		if err != nil {
 			return fmt.Errorf("❌ Aurora DBクラスター停止エラー: %w", err)
 		}

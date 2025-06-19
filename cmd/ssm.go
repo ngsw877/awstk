@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	ec2svc "awstk/internal/service/ec2"
 	"awstk/internal/service/ssm"
 	"fmt"
 
@@ -40,7 +40,7 @@ var ssmSessionStartCmd = &cobra.Command{
 				return fmt.Errorf("EC2クライアント作成エラー: %w", err)
 			}
 
-			selectedInstanceId, err := service.SelectInstanceInteractively(ec2Client)
+			selectedInstanceId, err := ec2svc.SelectInstanceInteractively(ec2Client)
 			if err != nil {
 				return fmt.Errorf("❌ インスタンス選択でエラー: %w", err)
 			}

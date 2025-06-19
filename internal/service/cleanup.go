@@ -2,6 +2,8 @@ package service
 
 import (
 	"awstk/internal/service/cfn"
+	ecrsvc "awstk/internal/service/ecr"
+	s3svc "awstk/internal/service/s3"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -45,7 +47,7 @@ func CleanupResources(opts CleanupOptions) error {
 		fmt.Println("検索文字列に一致するリソースの削除を開始します...")
 
 		// S3バケット名を取得
-		s3BucketNames, err = getS3BucketsByKeyword(opts.S3Client, opts.SearchString)
+		s3BucketNames, err = s3svc.GetS3BucketsByKeyword(opts.S3Client, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ S3バケット一覧取得中にエラーが発生しました: %v\n", err)
 			// エラーが発生しても続行
@@ -53,7 +55,7 @@ func CleanupResources(opts CleanupOptions) error {
 		}
 
 		// ECRリポジトリ名を取得
-		ecrRepoNames, err = getEcrRepositoriesByKeyword(opts.EcrClient, opts.SearchString)
+		ecrRepoNames, err = ecrsvc.GetEcrRepositoriesByKeyword(opts.EcrClient, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
 			// エラーが発生しても続行
@@ -64,7 +66,7 @@ func CleanupResources(opts CleanupOptions) error {
 	// S3バケットの削除（共通処理）
 	fmt.Println("S3バケットの削除を開始...")
 	if len(s3BucketNames) > 0 {
-		err = cleanupS3Buckets(opts.S3Client, s3BucketNames)
+		err = s3svc.CleanupS3Buckets(opts.S3Client, s3BucketNames)
 		if err != nil {
 			fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
 		}
@@ -79,7 +81,7 @@ func CleanupResources(opts CleanupOptions) error {
 	// ECRリポジトリの削除（共通処理）
 	fmt.Println("ECRリポジトリの削除を開始...")
 	if len(ecrRepoNames) > 0 {
-		err = cleanupEcrRepositories(opts.EcrClient, ecrRepoNames)
+		err = ecrsvc.CleanupEcrRepositories(opts.EcrClient, ecrRepoNames)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
 		}
