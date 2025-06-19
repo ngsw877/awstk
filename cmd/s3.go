@@ -132,13 +132,63 @@ var s3AvailCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+// s3CleanupCmd represents the cleanup command
+var s3CleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "S3バケットを削除するコマンド",
+	Long: `指定したキーワードを含むS3バケットを削除します。
+
+例:
+  ` + AppName + ` s3 cleanup -k "test-bucket" -P my-profile`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		keyword, _ := cmd.Flags().GetString("keyword")
+		if keyword == "" {
+			return fmt.Errorf("❌ エラー: キーワード (-k) を指定してください")
+		}
+
+		fmt.Printf("Profile: %s\n", awsCtx.Profile)
+		fmt.Printf("Region: %s\n", awsCtx.Region)
+		fmt.Printf("検索文字列: %s\n", keyword)
+
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("S3クライアント作成エラー: %w", err)
+		}
+
+		// キーワードに一致するバケットを取得
+		buckets, err := s3svc.GetS3BucketsByKeyword(s3Client, keyword)
+		if err != nil {
+			return fmt.Errorf("❌ S3バケット一覧取得エラー: %w", err)
+		}
+
+		if len(buckets) == 0 {
+			fmt.Printf("キーワード '%s' に一致するS3バケットが見つかりませんでした\n", keyword)
+			return nil
+		}
+
+		// バケットを削除
+		err = s3svc.CleanupS3Buckets(s3Client, buckets)
+		if err != nil {
+			return fmt.Errorf("❌ S3バケット削除エラー: %w", err)
+		}
+
+		fmt.Println("✅ S3バケットの削除が完了しました")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(S3Cmd)
 	S3Cmd.AddCommand(s3LsCmd)
 	S3Cmd.AddCommand(s3GunzipCmd)
 	S3Cmd.AddCommand(s3AvailCmd)
+	S3Cmd.AddCommand(s3CleanupCmd)
 	s3GunzipCmd.Flags().StringP("out", "o", "", "解凍ファイルの出力先ディレクトリ (デフォルト: ./outputs/)")
 
 	// ls コマンドに --time フラグを追加
 	s3LsCmd.Flags().BoolP("time", "t", false, "ファイルの更新日時も一緒に表示")
+
+	// cleanup コマンドのフラグ
+	s3CleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
 }

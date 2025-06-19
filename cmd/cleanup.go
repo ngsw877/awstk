@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	"awstk/internal/service"
+	cleanup "awstk/internal/service/cleanup"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -15,12 +15,19 @@ import (
 var cleanupCmd = &cobra.Command{
 	Use:   "cleanup",
 	Short: "AWSリソースのクリーンアップコマンド",
+	Long:  `AWSリソースを削除するためのコマンド群です。`,
+}
+
+// allCleanupCmd represents the all subcommand
+var allCleanupCmd = &cobra.Command{
+	Use:   "all",
+	Short: "S3バケットとECRリポジトリを横断削除",
 	Long: `指定した文字列を含むS3バケットやECRリポジトリを一括削除するコマンドです。
 CloudFormationスタック名を指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
-  ` + AppName + ` cleanup -k "test" -P my-profile
-  ` + AppName + ` cleanup -S my-stack -P my-profile`,
+  ` + AppName + ` cleanup all -k "test" -P my-profile
+  ` + AppName + ` cleanup all -S my-stack -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyword, _ := cmd.Flags().GetString("keyword")
 		stackName, _ := cmd.Flags().GetString("stack")
@@ -48,7 +55,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
 		}
 
-		opts := service.CleanupOptions{
+		opts := cleanup.CleanupOptions{
 			S3Client:     s3Client,
 			EcrClient:    ecrClient,
 			CfnClient:    cfnClient,
@@ -56,7 +63,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 			StackName:    stackName,
 		}
 
-		err = service.CleanupResources(opts)
+		err = cleanup.CleanupResources(opts)
 		if err != nil {
 			return fmt.Errorf("❌ クリーンアップ処理でエラー: %w", err)
 		}
@@ -69,6 +76,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 
 func init() {
 	RootCmd.AddCommand(cleanupCmd)
-	cleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
-	cleanupCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+	cleanupCmd.AddCommand(allCleanupCmd)
+	allCleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
+	allCleanupCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 }

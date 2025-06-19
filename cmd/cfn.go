@@ -3,12 +3,16 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"awstk/internal/service/cfn"
+	ecrsvc "awstk/internal/service/ecr"
+	s3svc "awstk/internal/service/s3"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 )
 
@@ -167,13 +171,85 @@ var cfnStopCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var cfnCleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "CloudFormationスタック内のS3/ECRリソースを削除",
+	Long: `指定したCloudFormationスタック内のS3バケットとECRリポジトリを削除します。
+
+例:
+  ` + AppName + ` cfn cleanup -S my-stack -P my-profile`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		stackName, _ := cmd.Flags().GetString("stack")
+		if stackName == "" {
+			return fmt.Errorf("❌ エラー: スタック名 (-S) を指定してください")
+		}
+
+		fmt.Printf("Profile: %s\n", awsCtx.Profile)
+		fmt.Printf("Region: %s\n", awsCtx.Region)
+		fmt.Printf("Stack: %s\n", stackName)
+
+		// 各種クライアントを作成
+		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+		}
+
+		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("S3クライアント作成エラー: %w", err)
+		}
+
+		ecrClient, err := aws.NewClient[*ecr.Client](awsCtx)
+		if err != nil {
+			return fmt.Errorf("ECRクライアント作成エラー: %w", err)
+		}
+
+		// スタックからリソース情報を取得
+		fmt.Println("スタックに関連するリソースの削除を開始します...")
+		s3BucketNames, ecrRepoNames, err := cfn.GetCleanupResourcesFromStack(cfnClient, stackName)
+		if err != nil {
+			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
+		}
+
+		// S3バケットの削除
+		if len(s3BucketNames) > 0 {
+			fmt.Println("S3バケットの削除を開始...")
+			err = s3svc.CleanupS3Buckets(s3Client, s3BucketNames)
+			if err != nil {
+				fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
+			}
+		} else {
+			fmt.Println("スタックに関連するS3バケットは見つかりませんでした。")
+		}
+
+		// ECRリポジトリの削除
+		if len(ecrRepoNames) > 0 {
+			fmt.Println("ECRリポジトリの削除を開始...")
+			err = ecrsvc.CleanupEcrRepositories(ecrClient, ecrRepoNames)
+			if err != nil {
+				fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
+			}
+		} else {
+			fmt.Println("スタックに関連するECRリポジトリは見つかりませんでした。")
+		}
+
+		fmt.Println("✅ クリーンアップが完了しました")
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
 	CfnCmd.AddCommand(cfnStartCmd)
 	CfnCmd.AddCommand(cfnStopCmd)
+	CfnCmd.AddCommand(cfnCleanupCmd)
 
 	// cfn start/stopコマンド用のフラグ
 	cfnStartCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 	cfnStopCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+
+	// cfn cleanupコマンド用のフラグ
+	cfnCleanupCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 }
