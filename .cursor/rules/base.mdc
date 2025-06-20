@@ -20,14 +20,14 @@ alwaysApply: true
   - 例: `feat: S3 バケット削除コマンドを追加`
 - Scope（`(cli)` や `(iac)` など）は必要に応じて付与してよいが必須ではない
 
-## 3. ファイル配置ガイド
+## 3. 基本的なファイル配置
 
-| 目的 | 配置先 |
-|------|--------|
-| CLI サブコマンド | `cmd/<service>.go` |
-| AWS SDK 操作ロジック | `internal/service/<service>.go` |
-| AWS CLI 実行処理 | `internal/cli/` |
-| AWS 設定・クライアント | `internal/aws/` |
-| CDK テンプレート | `demo-infra/` |
+- **CLI コマンド**: `cmd/<service>.go`
+- **AWS SDK 操作**: `internal/service/s3/`, `internal/service/ecr/` など
+- **AWS CLI 実行**: `internal/cli/`
+- **AWS 設定**: `internal/aws/`
+- **CDK テンプレート**: `demo-infra/`
+
+詳細なディレクトリ構成と責務分離については `overview.mdc` を参照してください。
 
 ---

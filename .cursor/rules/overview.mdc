@@ -21,38 +21,57 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 
 ## ディレクトリ構成と責務
 
-| ディレクトリ | 役割 (一行要約) |
-|--------------|----------------|
-| `cmd/` | CLI コマンド定義とフラグ処理 |
-| `internal/aws/` | AWS 設定ロード・共通クライアント |
-| `internal/service/` | 各 AWS リソース操作ロジック |
-| `internal/cli/` | AWS CLI 実行処理の共通化 |
-| `demo-infra/` | Go CDKによる検証スタック |
-| `main.go` | エントリーポイント (`cmd.Execute()`) |
+```
+.
+├── cmd/                    # CLI コマンド定義 (サービス別)
+├── internal/
+│   ├── aws/               # AWS 設定・共通クライアント
+│   ├── cli/               # AWS CLI 実行処理
+│   └── service/           # AWS SDK 操作ロジック
+│       ├── cleanup/       # 横断クリーンアップ機能
+│       ├── s3/            # S3 関連操作
+│       ├── ecr/           # ECR 関連操作
+│       ├── ecs/           # ECS 関連操作
+│       ├── cfn/           # CloudFormation 関連操作
+│       └── (その他サービス)/
+├── demo-infra/            # CDK テンプレート
+└── main.go               # エントリーポイント
+```
+
+### 責務分離の原則
+
+| 層 | 責務 | 配置例 |
+|---|------|--------|
+| **CLI層** | コマンド定義・フラグ処理 | `cmd/<service>.go` |
+| **サービス層** | AWS SDK操作・ビジネスロジック | `internal/service/<service>/` |
+| **AWS層** | AWS設定・クライアント管理 | `internal/aws/` |
+| **CLI実行層** | AWS CLI プロセス実行 | `internal/cli/` |
 
 ---
 
 ## 設計方針（要点）
 
-1. **CLI 層 (`cmd/`) とロジック層 (`internal/`) の分離**
-2. **依存方向は一方向**： `cmd/` → `internal/service/` (基本パターン)
-3. **特定機能のみ**: `cmd/` → `internal/service/` → `internal/cli/` (ECS exec, SSM sessionなど)
-4. **責務の明確化**：AWS SDK操作とAWS CLI実行処理を分離
-5. **エラーはラップして伝播し、CLI 層でユーザ向け文言に整形**
-6. CDK テンプレはアプリ本体とは依存せず `demo-infra/` 内で完結
+1. **CLI 層とロジック層の分離**: `cmd/` → `internal/service/` の一方向依存
+2. **サービス別パッケージ化**: 各 AWS サービスを独立したパッケージで管理
+3. **型定義の分離**: 複雑な構造体は `types.go` に集約
+4. **責務の明確化**: AWS SDK操作と AWS CLI実行処理を分離
+5. **エラーハンドリング**: 下位層でラップ、上位層でユーザー向けに整形
+6. **CDK独立性**: `demo-infra/` はアプリ本体と依存関係なし
 
 ---
 
 ## 主要機能例
 
-- **クリーンアップ**：S3 バケット / ECR リポジトリ / CloudFormation スタックをまとめて削除
-- **ECS 操作**：Fargate コンテナにシェル接続、サービスの再起動など
-- **デモインフラ**：CDK テンプレ (`awstk‑lab`, `cdk‑workshop`) を自動デプロイ
+- **横断クリーンアップ**: `cleanup all` でS3/ECRを一括削除
+- **サービス別クリーンアップ**: `s3 cleanup`, `ecr cleanup` で個別削除
+- **S3操作**: `s3 ls` (ツリー表示), `s3 gunzip` (.gz一括処理)
+- **ECS操作**: Fargate コンテナへのシェル接続、サービス再起動
+- **デモインフラ**: CDK テンプレート (`awstk-lab`, `cdk-workshop`) 自動デプロイ
 
 ---
 
 ## 参考ドキュメント
 
-- **README.md**：セットアップ手順とコマンド使用例
-- **style.mdc**：命名規約・コーディングスタイル
-- **base.mdc**：AI アシスタント向けワークフロー指示
+- **README.md**: セットアップ手順とコマンド使用例
+- **style.mdc**: 命名規約・コーディングスタイル
+- **base.mdc**: AI アシスタント向けワークフロー指示
