@@ -48,10 +48,11 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// タスクIDを取得
 		taskId, err := ecssvc.GetRunningTask(ecsClient, clusterName, serviceName)
@@ -97,15 +98,12 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		err = ecssvc.StartEcsService(autoScalingClient, ecsClient, clusterName, serviceName, minCapacity, maxCapacity, timeoutSeconds)
 		if err != nil {
@@ -137,15 +135,12 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
-
-		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		err = ecssvc.StopEcsService(autoScalingClient, ecsClient, clusterName, serviceName, timeoutSeconds)
 		if err != nil {
@@ -178,10 +173,11 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// タスク実行オプションを作成
 		opts := ecssvc.RunAndWaitForTaskOptions{
@@ -234,10 +230,11 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			return err
 		}
 
-		ecsClient, err := aws.NewClient[*ecs.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ecsClient := ecs.NewFromConfig(cfg)
 
 		// 強制再デプロイを実行
 		err = ecssvc.ForceRedeployService(ecsClient, clusterName, serviceName)
@@ -307,10 +304,11 @@ func init() {
 // 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
 func resolveEcsClusterAndService(awsCtx aws.Context) (string, string, error) {
 	if stackName != "" {
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
-			return "", "", fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+			return "", "", fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
 
 		serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
 		if stackErr != nil {

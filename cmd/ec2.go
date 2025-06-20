@@ -33,10 +33,11 @@ var ec2StartCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ec2Client := ec2.NewFromConfig(cfg)
 
 		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
 		err = ec2svc.StartEc2Instance(ec2Client, ec2InstanceId)
@@ -63,10 +64,11 @@ var ec2StopCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ec2Client := ec2.NewFromConfig(cfg)
 
 		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
 		err = ec2svc.StopEc2Instance(ec2Client, ec2InstanceId)

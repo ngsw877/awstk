@@ -32,11 +32,13 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
+		cfg, err := aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		if stackName != "" {
-			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-			if err != nil {
-				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-			}
+			cfnClient := cloudformation.NewFromConfig(cfg)
 
 			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
@@ -47,10 +49,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
+		rdsClient := rds.NewFromConfig(cfg)
 
 		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterName)
 		err = aurora.StartAuroraCluster(rdsClient, clusterName)
@@ -78,11 +77,13 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
+		cfg, err := aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		if stackName != "" {
-			cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-			if err != nil {
-				return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-			}
+			cfnClient := cloudformation.NewFromConfig(cfg)
 
 			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
@@ -93,10 +94,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
 
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
+		rdsClient := rds.NewFromConfig(cfg)
 
 		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterName)
 		err = aurora.StopAuroraCluster(rdsClient, clusterName)

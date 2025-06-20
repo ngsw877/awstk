@@ -23,7 +23,7 @@ var ecrCleanupCmd = &cobra.Command{
 	Long: `指定したキーワードを含むECRリポジトリを削除します。
 
 例:
-  ` + AppName + ` ecr cleanup -k "test-ecr-repo" -P my-profile`,
+  ` + AppName + ` ecr cleanup -k "test-repo" -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyword, _ := cmd.Flags().GetString("keyword")
 		if keyword == "" {
@@ -34,24 +34,25 @@ var ecrCleanupCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("検索文字列: %s\n", keyword)
 
-		ecrClient, err := aws.NewClient[*ecr.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
-			return fmt.Errorf("ECRクライアント作成エラー: %w", err)
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		ecrClient := ecr.NewFromConfig(cfg)
 
 		// キーワードに一致するリポジトリを取得
-		repos, err := ecrsvc.GetEcrRepositoriesByKeyword(ecrClient, keyword)
+		repositories, err := ecrsvc.GetEcrRepositoriesByKeyword(ecrClient, keyword)
 		if err != nil {
 			return fmt.Errorf("❌ ECRリポジトリ一覧取得エラー: %w", err)
 		}
 
-		if len(repos) == 0 {
+		if len(repositories) == 0 {
 			fmt.Printf("キーワード '%s' に一致するECRリポジトリが見つかりませんでした\n", keyword)
 			return nil
 		}
 
 		// リポジトリを削除
-		err = ecrsvc.CleanupEcrRepositories(ecrClient, repos)
+		err = ecrsvc.CleanupEcrRepositories(ecrClient, repositories)
 		if err != nil {
 			return fmt.Errorf("❌ ECRリポジトリ削除エラー: %w", err)
 		}

@@ -39,21 +39,16 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 		fmt.Printf("Profile: %s\n", awsCtx.Profile)
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 
+		// AWS設定を1回だけ読み込み
+		cfg, err := aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		// 各種クライアントを作成
-		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("S3クライアント作成エラー: %w", err)
-		}
-
-		ecrClient, err := aws.NewClient[*ecr.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("ECRクライアント作成エラー: %w", err)
-		}
-
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-		}
+		s3Client := s3.NewFromConfig(cfg)
+		ecrClient := ecr.NewFromConfig(cfg)
+		cfnClient := cloudformation.NewFromConfig(cfg)
 
 		opts := cleanup.CleanupOptions{
 			S3Client:     s3Client,

@@ -24,10 +24,11 @@ var cfnLsCmd = &cobra.Command{
 	Short: "CloudFormationスタック一覧を表示するコマンド",
 	Long:  `CloudFormationスタック一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
 
 		stackNames, err := cfn.ListCfnStacks(cfnClient)
 		if err != nil {
@@ -67,26 +68,17 @@ var cfnStartCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("Stack: %s\n", stackName)
 
+		// AWS設定を1回だけ読み込み
+		cfg, err := aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		// 各種クライアントを作成
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-		}
-
-		ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("EC2クライアント作成エラー: %w", err)
-		}
-
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("RDSクライアント作成エラー: %w", err)
-		}
-
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("ApplicationAutoScalingクライアント作成エラー: %w", err)
-		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
+		ec2Client := ec2.NewFromConfig(cfg)
+		rdsClient := rds.NewFromConfig(cfg)
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 
 		// start用のオプションを作成
 		startOpts := cfn.StackStartStopOptions{
@@ -126,26 +118,17 @@ var cfnStopCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("Stack: %s\n", stackName)
 
+		// AWS設定を1回だけ読み込み
+		cfg, err := aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+
 		// 各種クライアントを作成
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
-		}
-
-		ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("EC2クライアント作成エラー: %w", err)
-		}
-
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("RDSクライアント作成エラー: %w", err)
-		}
-
-		autoScalingClient, err := aws.NewClient[*applicationautoscaling.Client](awsCtx)
-		if err != nil {
-			return fmt.Errorf("ApplicationAutoScalingクライアント作成エラー: %w", err)
-		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
+		ec2Client := ec2.NewFromConfig(cfg)
+		rdsClient := rds.NewFromConfig(cfg)
+		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
 
 		// stop用のオプションを作成
 		stopOpts := cfn.StackStartStopOptions{

@@ -43,10 +43,11 @@ var regionLsCmd = &cobra.Command{
 }
 
 func listRegions(showAllRegions bool) error {
-	ec2Client, err := aws.NewClient[*ec2.Client](awsCtx)
+	cfg, err := aws.LoadAwsConfig(awsCtx)
 	if err != nil {
 		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 	}
+	ec2Client := ec2.NewFromConfig(cfg)
 
 	output, err := regionSvc.GetFormattedRegionList(ec2Client, showAllRegions)
 	if err != nil {

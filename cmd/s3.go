@@ -36,10 +36,11 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		showTime, _ := cmdCobra.Flags().GetBool("time")
 
-		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		s3Client := s3.NewFromConfig(cfg)
 
 		if len(args) == 0 {
 			// 引数がない場合はバケット一覧表示
@@ -97,10 +98,11 @@ var s3GunzipCmd = &cobra.Command{
 
 		fmt.Printf("S3パス: %s\n出力先: %s\n", s3Path, outDir)
 
-		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		s3Client := s3.NewFromConfig(cfg)
 
 		if err := s3svc.DownloadAndExtractGzFiles(s3Client, s3Path, outDir); err != nil {
 			return fmt.Errorf("❌ gunzip失敗: %w", err)
@@ -117,10 +119,12 @@ var s3AvailCmd = &cobra.Command{
 	Long:  `指定した複数のS3バケット名が利用可能か（未作成か）を判定します。\n\n【使い方】\n  ` + AppName + ` s3 avail bucket1 bucket2 ...\n\n【出力例】\n  [404] my-bucket-1: 利用可能\n  [200] my-bucket-2: 利用不可（すでに存在）\n  [403] my-bucket-3: 利用不可（存在するがアクセス権限なし）`,
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		s3Client := s3.NewFromConfig(cfg)
+
 		results := s3svc.CheckS3BucketsAvailability(s3Client, args)
 		for _, r := range results {
 			icon := "❌"
@@ -152,10 +156,11 @@ var s3CleanupCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("検索文字列: %s\n", keyword)
 
-		s3Client, err := aws.NewClient[*s3.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
-			return fmt.Errorf("S3クライアント作成エラー: %w", err)
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		s3Client := s3.NewFromConfig(cfg)
 
 		// キーワードに一致するバケットを取得
 		buckets, err := s3svc.GetS3BucketsByKeyword(s3Client, keyword)

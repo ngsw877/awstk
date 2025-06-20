@@ -49,10 +49,11 @@ var sesVerifyCmd = &cobra.Command{
 			fmt.Printf("重複するメールアドレスを除去しました: %d件 → %d件\n", len(emails), len(filtered))
 		}
 
-		sesClient, err := aws.NewClient[*ses.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		sesClient := ses.NewFromConfig(cfg)
 
 		failedEmails, err := sesSvc.VerifySesEmails(sesClient, filtered)
 		if err != nil {

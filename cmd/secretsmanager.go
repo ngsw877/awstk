@@ -29,10 +29,11 @@ var secretsManagerGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
 
-		secretsClient, err := aws.NewClient[*secretsmanager.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
+		secretsClient := secretsmanager.NewFromConfig(cfg)
 
 		fmt.Printf("🔍 シークレット (%s) の値を取得します...\n", secretName)
 

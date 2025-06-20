@@ -33,23 +33,36 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds start -P my-profile -S my-stack
   ` + AppName + ` rds start -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceId, err := resolveRdsInstance()
-		if err != nil {
-			return err
-		}
+		instanceName, _ := cmd.Flags().GetString("instance")
+		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
-		err = rdssvc.StartRdsInstance(rdsClient, instanceId)
+		if stackName != "" {
+			cfnClient := cloudformation.NewFromConfig(cfg)
+
+			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
+			}
+			fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
+		} else if instanceName == "" {
+			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		}
+
+		rdsClient := rds.NewFromConfig(cfg)
+
+		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceName)
+		err = rdssvc.StartRdsInstance(rdsClient, instanceName)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス起動エラー: %w", err)
 		}
 
-		fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceId)
+		fmt.Printf("✅ RDSインスタンス (%s) の起動を開始しました\n", instanceName)
 		return nil
 	},
 	SilenceUsage: true,
@@ -65,54 +78,77 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds stop -P my-profile -S my-stack
   ` + AppName + ` rds stop -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		instanceId, err := resolveRdsInstance()
-		if err != nil {
-			return err
-		}
+		instanceName, _ := cmd.Flags().GetString("instance")
+		stackName, _ := cmd.Flags().GetString("stack")
+		var err error
 
-		rdsClient, err := aws.NewClient[*rds.Client](awsCtx)
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
 			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
 		}
 
-		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceId)
-		err = rdssvc.StopRdsInstance(rdsClient, instanceId)
+		if stackName != "" {
+			cfnClient := cloudformation.NewFromConfig(cfg)
+
+			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
+			}
+			fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
+		} else if instanceName == "" {
+			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		}
+
+		rdsClient := rds.NewFromConfig(cfg)
+
+		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceName)
+		err = rdssvc.StopRdsInstance(rdsClient, instanceName)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス停止エラー: %w", err)
 		}
 
-		fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceId)
+		fmt.Printf("✅ RDSインスタンス (%s) の停止を開始しました\n", instanceName)
 		return nil
 	},
 	SilenceUsage: true,
 }
 
-// resolveRdsInstance はRDSインスタンスIDを解決する（直接指定またはスタックから取得）
-func resolveRdsInstance() (string, error) {
-	if rdsInstanceId != "" {
-		return rdsInstanceId, nil
-	}
-
-	if rdsStackName != "" {
-		cfnClient, err := aws.NewClient[*cloudformation.Client](awsCtx)
+var rdsLsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "RDSインスタンス一覧を表示するコマンド",
+	Long:  `RDSインスタンス一覧を表示します。`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := aws.LoadAwsConfig(awsCtx)
 		if err != nil {
-			return "", fmt.Errorf("CloudFormationクライアント作成エラー: %w", err)
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
+		cfnClient := cloudformation.NewFromConfig(cfg)
+
+		stackNames, err := cfn.ListCfnStacks(cfnClient)
+		if err != nil {
+			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}
 
-		instanceId, err := cfn.GetRdsFromStack(cfnClient, rdsStackName)
-		if err != nil {
-			return "", fmt.Errorf("❌ CloudFormationスタックからRDSインスタンス識別子の取得に失敗: %w", err)
+		if len(stackNames) == 0 {
+			fmt.Println("CloudFormationスタックが見つかりませんでした")
+			return nil
 		}
-		return instanceId, nil
-	}
 
-	return "", fmt.Errorf("RDSインスタンスID (-i) またはスタック名 (-S) を指定してください")
+		fmt.Printf("CloudFormationスタック一覧: (全%d件)\n", len(stackNames))
+		for i, name := range stackNames {
+			fmt.Printf("  %3d. %s\n", i+1, name)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
 }
 
 func init() {
 	RootCmd.AddCommand(RdsCmd)
 	RdsCmd.AddCommand(rdsStartCmd)
 	RdsCmd.AddCommand(rdsStopCmd)
+	RdsCmd.AddCommand(rdsLsCmd)
 
 	// 共通フラグをRdsCmd（親コマンド）に定義
 	RdsCmd.PersistentFlags().StringVarP(&rdsInstanceId, "instance", "i", "", "RDSインスタンス名")
