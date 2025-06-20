@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	sesSvc "awstk/internal/service/ses"
 	"bufio"
 	"fmt"
@@ -49,11 +48,7 @@ var sesVerifyCmd = &cobra.Command{
 			fmt.Printf("重複するメールアドレスを除去しました: %d件 → %d件\n", len(emails), len(filtered))
 		}
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		sesClient := ses.NewFromConfig(cfg)
+		sesClient := ses.NewFromConfig(awsCfg)
 
 		failedEmails, err := sesSvc.VerifySesEmails(sesClient, filtered)
 		if err != nil {

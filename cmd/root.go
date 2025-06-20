@@ -3,8 +3,12 @@ package cmd
 import (
 	"awstk/internal/aws"
 	"errors"
+	"fmt"
 	"os"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +17,10 @@ const AppName = "awstk"
 var region string
 var profile string
 var awsCtx aws.Context
+var awsCfg awsconfig.Config
 var stackName string
+var cfnClient *cloudformation.Client
+var rdsClient *rds.Client
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -68,6 +75,12 @@ func init() {
 
 		// awsCtxを設定
 		awsCtx = aws.Context{Region: region, Profile: profile}
+
+		// AWS設定を読み込み
+		awsCfg, err = aws.LoadAwsConfig(awsCtx)
+		if err != nil {
+			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+		}
 
 		return nil
 	}

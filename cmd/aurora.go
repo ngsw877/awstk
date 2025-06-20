@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	"awstk/internal/service/aurora"
 	"awstk/internal/service/cfn"
 	"fmt"
@@ -16,6 +15,18 @@ var AuroraCmd = &cobra.Command{
 	Use:   "aurora",
 	Short: "Aurora DBクラスター操作コマンド",
 	Long:  `Aurora DBクラスターを操作するためのコマンド群です。`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// 親のPersistentPreRunEを実行（awsCtx設定とAWS設定読み込み）
+		if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
+
+		// Aurora用クライアント生成
+		rdsClient = rds.NewFromConfig(awsCfg)
+		cfnClient = cloudformation.NewFromConfig(awsCfg)
+
+		return nil
+	},
 }
 
 var auroraStartCmd = &cobra.Command{
@@ -32,14 +43,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		if stackName != "" {
-			cfnClient := cloudformation.NewFromConfig(cfg)
-
 			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
@@ -48,8 +52,6 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		} else if clusterName == "" {
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
-
-		rdsClient := rds.NewFromConfig(cfg)
 
 		fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterName)
 		err = aurora.StartAuroraCluster(rdsClient, clusterName)
@@ -77,14 +79,7 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		if stackName != "" {
-			cfnClient := cloudformation.NewFromConfig(cfg)
-
 			clusterName, err = cfn.GetAuroraFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
@@ -93,8 +88,6 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 		} else if clusterName == "" {
 			return fmt.Errorf("❌ エラー: Auroraクラスター名 (-c) またはスタック名 (-S) を指定してください")
 		}
-
-		rdsClient := rds.NewFromConfig(cfg)
 
 		fmt.Printf("🛑 Aurora DBクラスター (%s) を停止します...\n", clusterName)
 		err = aurora.StopAuroraCluster(rdsClient, clusterName)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
@@ -11,6 +10,7 @@ import (
 
 var (
 	ec2InstanceId string
+	ec2Client     *ec2.Client
 )
 
 // Ec2Cmd represents the ec2 command
@@ -18,6 +18,17 @@ var Ec2Cmd = &cobra.Command{
 	Use:   "ec2",
 	Short: "EC2インスタンス操作コマンド",
 	Long:  `EC2インスタンスを操作するためのコマンド群です。`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// 親のPersistentPreRunEを実行（awsCtx設定とAWS設定読み込み）
+		if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
+
+		// クライアント生成
+		ec2Client = ec2.NewFromConfig(awsCfg)
+
+		return nil
+	},
 }
 
 var ec2StartCmd = &cobra.Command{
@@ -33,14 +44,8 @@ var ec2StartCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		ec2Client := ec2.NewFromConfig(cfg)
-
 		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
-		err = ec2svc.StartEc2Instance(ec2Client, ec2InstanceId)
+		err := ec2svc.StartEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ EC2インスタンス起動エラー: %w", err)
 		}
@@ -64,14 +69,8 @@ var ec2StopCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
 		}
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		ec2Client := ec2.NewFromConfig(cfg)
-
 		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
-		err = ec2svc.StopEc2Instance(ec2Client, ec2InstanceId)
+		err := ec2svc.StopEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
 			return fmt.Errorf("❌ EC2インスタンス停止エラー: %w", err)
 		}

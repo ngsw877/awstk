@@ -35,11 +35,7 @@ var ssmSessionStartCmd = &cobra.Command{
 			// インタラクティブモードでインスタンスを選択
 			fmt.Println("🖥️  利用可能なEC2インスタンスから選択してください:")
 
-			cfg, err := aws.LoadAwsConfig(awsCtx)
-			if err != nil {
-				return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-			}
-			ec2Client := ec2.NewFromConfig(cfg)
+			ec2Client := ec2.NewFromConfig(awsCfg)
 
 			selectedInstanceId, err := ec2svc.SelectInstanceInteractively(ec2Client)
 			if err != nil {

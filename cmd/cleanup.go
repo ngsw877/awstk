@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	cleanup "awstk/internal/service/cleanup"
 	"fmt"
 
@@ -39,16 +38,10 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 		fmt.Printf("Profile: %s\n", awsCtx.Profile)
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 
-		// AWS設定を1回だけ読み込み
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		// 各種クライアントを作成
-		s3Client := s3.NewFromConfig(cfg)
-		ecrClient := ecr.NewFromConfig(cfg)
-		cfnClient := cloudformation.NewFromConfig(cfg)
+		s3Client := s3.NewFromConfig(awsCfg)
+		ecrClient := ecr.NewFromConfig(awsCfg)
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
 		opts := cleanup.CleanupOptions{
 			S3Client:     s3Client,
@@ -58,7 +51,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 			StackName:    stackName,
 		}
 
-		err = cleanup.CleanupResources(opts)
+		err := cleanup.CleanupResources(opts)
 		if err != nil {
 			return fmt.Errorf("❌ クリーンアップ処理でエラー: %w", err)
 		}

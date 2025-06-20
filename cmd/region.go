@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	regionSvc "awstk/internal/service/region"
 	"fmt"
 
@@ -43,11 +42,7 @@ var regionLsCmd = &cobra.Command{
 }
 
 func listRegions(showAllRegions bool) error {
-	cfg, err := aws.LoadAwsConfig(awsCtx)
-	if err != nil {
-		return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-	}
-	ec2Client := ec2.NewFromConfig(cfg)
+	ec2Client := ec2.NewFromConfig(awsCfg)
 
 	output, err := regionSvc.GetFormattedRegionList(ec2Client, showAllRegions)
 	if err != nil {

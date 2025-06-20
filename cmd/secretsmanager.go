@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	secretsmgrSvc "awstk/internal/service/secretsmanager"
 	"encoding/json"
 	"fmt"
@@ -29,11 +28,7 @@ var secretsManagerGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		secretsClient := secretsmanager.NewFromConfig(cfg)
+		secretsClient := secretsmanager.NewFromConfig(awsCfg)
 
 		fmt.Printf("🔍 シークレット (%s) の値を取得します...\n", secretName)
 

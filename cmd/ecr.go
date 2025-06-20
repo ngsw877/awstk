@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	ecrsvc "awstk/internal/service/ecr"
 	"fmt"
 
@@ -34,11 +33,7 @@ var ecrCleanupCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("検索文字列: %s\n", keyword)
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		ecrClient := ecr.NewFromConfig(cfg)
+		ecrClient := ecr.NewFromConfig(awsCfg)
 
 		// キーワードに一致するリポジトリを取得
 		repositories, err := ecrsvc.GetEcrRepositoriesByKeyword(ecrClient, keyword)

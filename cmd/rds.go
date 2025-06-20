@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	"awstk/internal/service/cfn"
 	rdssvc "awstk/internal/service/rds"
 	"fmt"
@@ -21,6 +20,18 @@ var RdsCmd = &cobra.Command{
 	Use:   "rds",
 	Short: "RDSリソース操作コマンド",
 	Long:  `RDSインスタンスを操作するためのコマンド群です。`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// 親のPersistentPreRunEを実行（awsCtx設定とAWS設定読み込み）
+		if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
+
+		// RDS用クライアント生成
+		rdsClient = rds.NewFromConfig(awsCfg)
+		cfnClient = cloudformation.NewFromConfig(awsCfg)
+
+		return nil
+	},
 }
 
 var rdsStartCmd = &cobra.Command{
@@ -37,14 +48,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		if stackName != "" {
-			cfnClient := cloudformation.NewFromConfig(cfg)
-
 			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
@@ -53,8 +57,6 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		} else if instanceName == "" {
 			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
 		}
-
-		rdsClient := rds.NewFromConfig(cfg)
 
 		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceName)
 		err = rdssvc.StartRdsInstance(rdsClient, instanceName)
@@ -82,14 +84,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		if stackName != "" {
-			cfnClient := cloudformation.NewFromConfig(cfg)
-
 			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
 			if err != nil {
 				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
@@ -99,9 +94,7 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
 			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
 		}
 
-		rdsClient := rds.NewFromConfig(cfg)
-
-		fmt.Printf("🛑 RDSインスタンス (%s) を停止します...\n", instanceName)
+		fmt.Printf("🚀 RDSインスタンス (%s) を停止します...\n", instanceName)
 		err = rdssvc.StopRdsInstance(rdsClient, instanceName)
 		if err != nil {
 			return fmt.Errorf("❌ RDSインスタンス停止エラー: %w", err)
@@ -118,12 +111,6 @@ var rdsLsCmd = &cobra.Command{
 	Short: "RDSインスタンス一覧を表示するコマンド",
 	Long:  `RDSインスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		cfnClient := cloudformation.NewFromConfig(cfg)
-
 		stackNames, err := cfn.ListCfnStacks(cfnClient)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)

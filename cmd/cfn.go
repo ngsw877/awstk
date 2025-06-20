@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	"awstk/internal/service/cfn"
 	"fmt"
 
@@ -24,11 +23,7 @@ var cfnLsCmd = &cobra.Command{
 	Short: "CloudFormationスタック一覧を表示するコマンド",
 	Long:  `CloudFormationスタック一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-		cfnClient := cloudformation.NewFromConfig(cfg)
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
 		stackNames, err := cfn.ListCfnStacks(cfnClient)
 		if err != nil {
@@ -68,17 +63,11 @@ var cfnStartCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("Stack: %s\n", stackName)
 
-		// AWS設定を1回だけ読み込み
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		// 各種クライアントを作成
-		cfnClient := cloudformation.NewFromConfig(cfg)
-		ec2Client := ec2.NewFromConfig(cfg)
-		rdsClient := rds.NewFromConfig(cfg)
-		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		ec2Client := ec2.NewFromConfig(awsCfg)
+		rdsClient := rds.NewFromConfig(awsCfg)
+		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
 
 		// start用のオプションを作成
 		startOpts := cfn.StackStartStopOptions{
@@ -89,7 +78,7 @@ var cfnStartCmd = &cobra.Command{
 			StackName:                    stackName,
 		}
 
-		err = cfn.StartAllStackResources(startOpts)
+		err := cfn.StartAllStackResources(startOpts)
 		if err != nil {
 			return fmt.Errorf("❌ リソース起動処理でエラー: %w", err)
 		}
@@ -118,17 +107,11 @@ var cfnStopCmd = &cobra.Command{
 		fmt.Printf("Region: %s\n", awsCtx.Region)
 		fmt.Printf("Stack: %s\n", stackName)
 
-		// AWS設定を1回だけ読み込み
-		cfg, err := aws.LoadAwsConfig(awsCtx)
-		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
-		}
-
 		// 各種クライアントを作成
-		cfnClient := cloudformation.NewFromConfig(cfg)
-		ec2Client := ec2.NewFromConfig(cfg)
-		rdsClient := rds.NewFromConfig(cfg)
-		autoScalingClient := applicationautoscaling.NewFromConfig(cfg)
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		ec2Client := ec2.NewFromConfig(awsCfg)
+		rdsClient := rds.NewFromConfig(awsCfg)
+		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
 
 		// stop用のオプションを作成
 		stopOpts := cfn.StackStartStopOptions{
@@ -139,7 +122,7 @@ var cfnStopCmd = &cobra.Command{
 			StackName:                    stackName,
 		}
 
-		err = cfn.StopAllStackResources(stopOpts)
+		err := cfn.StopAllStackResources(stopOpts)
 		if err != nil {
 			return fmt.Errorf("❌ リソース停止処理でエラー: %w", err)
 		}
