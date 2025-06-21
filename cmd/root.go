@@ -59,7 +59,7 @@ func init() {
 		}
 
 		// プロファイルチェック
-		err := checkAndSetProfile(cmd)
+		err := checkProfile(cmd)
 		if err != nil {
 			return err
 		}
@@ -77,10 +77,11 @@ func init() {
 	}
 }
 
-// checkAndSetProfile はプロファイルの確認と設定を行うプライベート関数
-func checkAndSetProfile(cmd *cobra.Command) error {
-	// プロファイルがすでに指定されている場合は何もしない
+// checkProfile はプロファイルの確認のみを行うプライベート関数
+func checkProfile(cmd *cobra.Command) error {
+	// プロファイルがすでに指定されている場合は案内を出して終了
 	if profile != "" {
+		cmd.Println("🔍 -Pオプションで指定されたプロファイル '" + profile + "' を使用します")
 		return nil
 	}
 	// 環境変数からプロファイル取得を試みる
@@ -90,8 +91,6 @@ func checkAndSetProfile(cmd *cobra.Command) error {
 		cmd.SilenceUsage = true // エラー時のUsage表示を抑制
 		return errors.New("❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
 	}
-	// 環境変数からプロファイルを設定
-	profile = envProfile
-	cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + profile + "' を使用します")
+	cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + envProfile + "' を使用します")
 	return nil
 }
