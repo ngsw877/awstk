@@ -8,6 +8,8 @@ import (
 )
 
 // LoadAwsConfig は認証情報からAWS設定を読み込む
+// オプションで指定されたRegion, Profileを優先してAWS設定を読み込む
+// いずれも指定されなければconfig.LoadDefaultConfigで環境変数AWS_PROFILE等から設定を読み込む
 func LoadAwsConfig(ctx Context) (aws.Config, error) {
 	opts := make([]func(*config.LoadOptions) error, 0)
 
