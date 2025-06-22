@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/aws"
 	"awstk/internal/service/cfn"
 	ecssvc "awstk/internal/service/ecs"
 	"fmt"
@@ -54,7 +53,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
 			return err
@@ -98,7 +97,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
 			return err
@@ -131,7 +130,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
 			return err
@@ -165,7 +164,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
 			return err
@@ -216,7 +215,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService(awsCtx)
+		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
 			cmd.Help()
 			return err
@@ -286,9 +285,8 @@ func init() {
 	ecsRedeployCmd.Flags().Bool("no-wait", false, "デプロイ完了を待機せずに即座に終了する")
 }
 
-// resolveEcsClusterAndService はフラグの値に基づいて
-// 操作対象のECSクラスター名とサービス名を取得するプライベートヘルパー関数。
-func resolveEcsClusterAndService(awsCtx aws.Context) (string, string, error) {
+// resolveEcsClusterAndService はスタック名が指定されていればCloudFormationから、なければフラグ値からECSクラスター名・サービス名を取得する
+func resolveEcsClusterAndService() (string, string, error) {
 	if stackName != "" {
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
