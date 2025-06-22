@@ -285,12 +285,32 @@ func init() {
 	ecsRedeployCmd.Flags().Bool("no-wait", false, "デプロイ完了を待機せずに即座に終了する")
 }
 
-// resolveEcsClusterAndService はスタック名が指定されていればCloudFormationから、なければフラグ値からECSクラスター名・サービス名を取得する
+// validateEcsFlags はECSコマンドのフラグの組み合わせを検証します
+func validateEcsFlags() error {
+	// -S(--stack)と-c(--cluster)/-s(--service)が同時指定された場合はエラー
+	if stackName != "" && (clusterName != "" || serviceName != "") {
+		return fmt.Errorf("❌ -S(--stack)と-c(--cluster)/-s(--service)は同時に指定できません")
+	}
+	// -Sが指定されていない場合は-cと-sの両方が必要
+	if stackName == "" {
+		if clusterName == "" || serviceName == "" {
+			return fmt.Errorf("❌ -c(--cluster)と-s(--service)は両方指定してください")
+		}
+	}
+	return nil
+}
+
+// resolveEcsClusterAndService はECSクラスター名とサービス名を解決します
 func resolveEcsClusterAndService() (string, string, error) {
+	if err := validateEcsFlags(); err != nil {
+		return "", "", err
+	}
+
+	// -Sでスタック名が指定されていればCFnスタックから取得
 	if stackName != "" {
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
-
 		serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
+
 		if stackErr != nil {
 			return "", "", fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", stackErr)
 		}
@@ -298,6 +318,6 @@ func resolveEcsClusterAndService() (string, string, error) {
 		serviceName = serviceInfo.ServiceName
 	}
 
-	// フラグから直接取得
+	// スタック名が指定されていなければ、-cと-sのフラグ値をそのまま使用
 	return clusterName, serviceName, nil
 }
