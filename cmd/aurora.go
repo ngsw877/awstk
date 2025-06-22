@@ -101,14 +101,54 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
 	SilenceUsage: true,
 }
 
+var auroraLsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "Auroraクラスター一覧を表示するコマンド",
+	Long:  `Auroraクラスター一覧を表示します。`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		stackName, _ := cmd.Flags().GetString("stack")
+		var (
+			clusters []aurora.AuroraCluster
+			err      error
+		)
+
+		if stackName != "" {
+			clusters, err = aurora.ListAuroraClustersFromStack(rdsClient, cfnClient, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
+			}
+		} else {
+			clusters, err = aurora.ListAuroraClusters(rdsClient)
+			if err != nil {
+				return fmt.Errorf("❌ Auroraクラスター一覧取得でエラー: %w", err)
+			}
+		}
+
+		if len(clusters) == 0 {
+			fmt.Println("Auroraクラスターが見つかりませんでした")
+			return nil
+		}
+
+		fmt.Printf("Auroraクラスター一覧: (全%d件)\n", len(clusters))
+		for i, cl := range clusters {
+			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, cl.ClusterId, cl.Engine, cl.Status)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(AuroraCmd)
 	AuroraCmd.AddCommand(auroraStartCmd)
 	AuroraCmd.AddCommand(auroraStopCmd)
+	AuroraCmd.AddCommand(auroraLsCmd)
 
 	// フラグの追加
 	auroraStartCmd.Flags().StringP("cluster", "c", "", "Aurora DBクラスター名")
 	auroraStartCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 	auroraStopCmd.Flags().StringP("cluster", "c", "", "Aurora DBクラスター名")
 	auroraStopCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+	auroraLsCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 }

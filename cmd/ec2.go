@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"awstk/internal/service/cfn"
 	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/spf13/cobra"
 )
@@ -26,6 +28,7 @@ var Ec2Cmd = &cobra.Command{
 
 		// クライアント生成
 		ec2Client = ec2.NewFromConfig(awsCfg)
+		cfnClient = cloudformation.NewFromConfig(awsCfg)
 
 		return nil
 	},
@@ -81,10 +84,47 @@ var ec2StopCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var ec2LsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "EC2インスタンス一覧を表示するコマンド",
+	Long:  `EC2インスタンス一覧を表示します。`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var (
+			instances []ec2svc.Ec2Instance
+			err       error
+		)
+
+		if stackName != "" {
+			instances, err = ec2svc.ListEc2InstancesFromStack(ec2Client, cfnClient, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ CloudFormationスタックからインスタンスIDの取得に失敗: %w", err)
+			}
+		} else {
+			instances, err = ec2svc.ListEc2Instances(ec2Client)
+			if err != nil {
+				return fmt.Errorf("❌ EC2インスタンス一覧取得でエラー: %w", err)
+			}
+		}
+
+		if len(instances) == 0 {
+			fmt.Println("EC2インスタンスが見つかりませんでした")
+			return nil
+		}
+
+		fmt.Printf("EC2インスタンス一覧: (全%d件)\n", len(instances))
+		for i, ins := range instances {
+			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, ins.InstanceId, ins.InstanceName, ins.State)
+		}
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(Ec2Cmd)
 	Ec2Cmd.AddCommand(ec2StartCmd)
 	Ec2Cmd.AddCommand(ec2StopCmd)
+	Ec2Cmd.AddCommand(ec2LsCmd)
 
 	// フラグの追加
 	ec2StartCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")

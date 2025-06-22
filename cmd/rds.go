@@ -111,19 +111,32 @@ var rdsLsCmd = &cobra.Command{
 	Short: "RDSインスタンス一覧を表示するコマンド",
 	Long:  `RDSインスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stackNames, err := cfn.ListCfnStacks(cfnClient)
-		if err != nil {
-			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
+		stackName, _ := cmd.Flags().GetString("stack")
+		var (
+			instances []rdssvc.RdsInstance
+			err       error
+		)
+
+		if stackName != "" {
+			instances, err = rdssvc.ListRdsInstancesFromStack(rdsClient, cfnClient, stackName)
+			if err != nil {
+				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
+			}
+		} else {
+			instances, err = rdssvc.ListRdsInstances(rdsClient)
+			if err != nil {
+				return fmt.Errorf("❌ RDSインスタンス一覧取得でエラー: %w", err)
+			}
 		}
 
-		if len(stackNames) == 0 {
-			fmt.Println("CloudFormationスタックが見つかりませんでした")
+		if len(instances) == 0 {
+			fmt.Println("RDSインスタンスが見つかりませんでした")
 			return nil
 		}
 
-		fmt.Printf("CloudFormationスタック一覧: (全%d件)\n", len(stackNames))
-		for i, name := range stackNames {
-			fmt.Printf("  %3d. %s\n", i+1, name)
+		fmt.Printf("RDSインスタンス一覧: (全%d件)\n", len(instances))
+		for i, ins := range instances {
+			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, ins.InstanceId, ins.Engine, ins.Status)
 		}
 
 		return nil
