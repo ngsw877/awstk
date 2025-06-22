@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/service/cfn"
 	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
