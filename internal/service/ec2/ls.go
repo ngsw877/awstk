@@ -8,8 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+
+	"awstk/internal/service/cfn"
 )
 
 // ListEc2Instances 現在のリージョンのEC2インスタンス一覧を取得する
@@ -95,4 +98,35 @@ func SelectInstanceInteractively(ec2Client *ec2.Client) (string, error) {
 		selectedInstance.InstanceName, selectedInstance.InstanceId)
 
 	return selectedInstance.InstanceId, nil
+}
+
+// ListEc2InstancesFromStack 指定されたCloudFormationスタックに属するEC2インスタンス一覧を取得する
+func ListEc2InstancesFromStack(ec2Client *ec2.Client, cfnClient *cloudformation.Client, stackName string) ([]Ec2Instance, error) {
+	ids, err := cfn.GetAllEc2FromStack(cfnClient, stackName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ids) == 0 {
+		return []Ec2Instance{}, nil
+	}
+
+	all, err := ListEc2Instances(ec2Client)
+	if err != nil {
+		return nil, err
+	}
+
+	idSet := make(map[string]struct{}, len(ids))
+	for _, id := range ids {
+		idSet[id] = struct{}{}
+	}
+
+	var instances []Ec2Instance
+	for _, ins := range all {
+		if _, ok := idSet[ins.InstanceId]; ok {
+			instances = append(instances, ins)
+		}
+	}
+
+	return instances, nil
 }
