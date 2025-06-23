@@ -9,8 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
-// ListCfnStacks はアクティブなCloudFormationスタック名一覧を返す
-func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
+// ListCfnStacks はCloudFormationスタック名一覧を返す。
+// activeOnly が true の場合、アクティブなスタックのみを対象とする。
+func ListCfnStacks(cfnClient *cloudformation.Client, activeOnly bool) ([]string, error) {
 	activeStatusStrs := []string{
 		"CREATE_COMPLETE",
 		"UPDATE_COMPLETE",
@@ -32,8 +33,10 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 	// すべてのページを取得するまでループ
 	for {
 		input := &cloudformation.ListStacksInput{
-			StackStatusFilter: activeStatuses,
-			NextToken:         nextToken,
+			NextToken: nextToken,
+		}
+		if activeOnly {
+			input.StackStatusFilter = activeStatuses
 		}
 
 		resp, err := cfnClient.ListStacks(context.Background(), input)

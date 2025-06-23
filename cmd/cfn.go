@@ -18,6 +18,8 @@ var CfnCmd = &cobra.Command{
 	Long:  `CloudFormationリソースを操作するためのコマンド群です。`,
 }
 
+var activeOnly bool
+
 var cfnLsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "CloudFormationスタック一覧を表示するコマンド",
@@ -25,7 +27,7 @@ var cfnLsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
-		stackNames, err := cfn.ListCfnStacks(cfnClient)
+		stackNames, err := cfn.ListCfnStacks(cfnClient, activeOnly)
 		if err != nil {
 			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
 		}
@@ -142,4 +144,7 @@ func init() {
 	// cfn start/stopコマンド用のフラグ
 	cfnStartCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
 	cfnStopCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+
+	// cfn lsコマンド用のフラグ
+	cfnLsCmd.Flags().BoolVarP(&activeOnly, "active", "a", false, "アクティブなスタックのみ表示")
 }
