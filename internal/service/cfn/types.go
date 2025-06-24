@@ -23,3 +23,9 @@ type StackResources struct {
 	AuroraClusterIds []string
 	EcsServiceInfo   []EcsServiceInfo
 }
+
+// CfnStack はCloudFormationスタックの名前とステータスを表す構造体
+type CfnStack struct {
+	Name   string
+	Status string
+}

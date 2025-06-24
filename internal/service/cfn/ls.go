@@ -9,8 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
-// ListCfnStacks はアクティブなCloudFormationスタック名一覧を返す
-func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
+// ListCfnStacks はCloudFormationスタック一覧を返す
+// activeOnly が true の場合はアクティブなスタックのみを取得する
+func ListCfnStacks(cfnClient *cloudformation.Client, activeOnly bool) ([]CfnStack, error) {
 	activeStatusStrs := []string{
 		"CREATE_COMPLETE",
 		"UPDATE_COMPLETE",
@@ -23,17 +24,13 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 		activeStatuses = append(activeStatuses, types.StackStatus(s))
 	}
 
-	// すべてのスタックを格納するスライス
-	var allStackNames []string
-
-	// ページネーション用のトークン
+	var stacks []CfnStack
 	var nextToken *string
 
-	// すべてのページを取得するまでループ
 	for {
-		input := &cloudformation.ListStacksInput{
-			StackStatusFilter: activeStatuses,
-			NextToken:         nextToken,
+		input := &cloudformation.ListStacksInput{NextToken: nextToken}
+		if activeOnly {
+			input.StackStatusFilter = activeStatuses
 		}
 
 		resp, err := cfnClient.ListStacks(context.Background(), input)
@@ -41,17 +38,18 @@ func ListCfnStacks(cfnClient *cloudformation.Client) ([]string, error) {
 			return nil, fmt.Errorf("スタック一覧取得エラー: %w", err)
 		}
 
-		// 現在のページのスタック名をスライスに追加
 		for _, summary := range resp.StackSummaries {
-			allStackNames = append(allStackNames, awssdk.ToString(summary.StackName))
+			stacks = append(stacks, CfnStack{
+				Name:   awssdk.ToString(summary.StackName),
+				Status: string(summary.StackStatus),
+			})
 		}
 
-		// 次のページがあるかチェック
 		nextToken = resp.NextToken
 		if nextToken == nil {
-			// 次のページがなければループを抜ける
 			break
 		}
 	}
-	return allStackNames, nil
+
+	return stacks, nil
 }
