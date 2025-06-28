@@ -3,7 +3,6 @@ description: Go コードスタイル & 横断ルール
 globs: "**/*.go"
 alwaysApply: true
 ---
-
 # 命名規則
 
 - **パッケージ名** はすべて小文字・単数形（例: `service`, `aws`, `config`）
@@ -33,3 +32,8 @@ alwaysApply: true
 - パブリック API には GoDoc 形式のコメントを付与
   - 1 行目に概要、2 行目以降に詳細
 - コメントは「なぜ」を中心に書き、コードで「何をするか」を示す
+
+# contextの使い方
+
+- AWS SDK for Go v2 のメソッド呼び出し時は、`context.TODO()` ではなく `context.Background()` を使用すること。
+  - 理由: `TODO()`は本来「未実装」や「後で置き換える」用途のため、実運用コードでは`Background()`を使う。
