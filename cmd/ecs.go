@@ -302,6 +302,7 @@ func validateEcsFlags() error {
 
 // resolveEcsClusterAndService はECSクラスター名とサービス名を解決します
 func resolveEcsClusterAndService() (string, string, error) {
+	resolveStackName()
 	if err := validateEcsFlags(); err != nil {
 		return "", "", err
 	}

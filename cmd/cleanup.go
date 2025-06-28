@@ -28,8 +28,8 @@ CloudFormationスタック名を指定することで、スタック内のリソ
   ` + AppName + ` cleanup all -k "test" -P my-profile
   ` + AppName + ` cleanup all -S my-stack -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		resolveStackName()
 		keyword, _ := cmd.Flags().GetString("keyword")
-		stackName, _ := cmd.Flags().GetString("stack")
 
 		if keyword == "" && stackName == "" {
 			return fmt.Errorf("❌ エラー: キーワード (-k) またはスタック名 (-S) のいずれかを指定してください")

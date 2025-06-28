@@ -44,8 +44,8 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds start -P my-profile -S my-stack
   ` + AppName + ` rds start -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		resolveStackName()
 		instanceName, _ := cmd.Flags().GetString("instance")
-		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
 		if stackName != "" {
@@ -80,8 +80,8 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds stop -P my-profile -S my-stack
   ` + AppName + ` rds stop -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		resolveStackName()
 		instanceName, _ := cmd.Flags().GetString("instance")
-		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
 		if stackName != "" {
@@ -111,7 +111,7 @@ var rdsLsCmd = &cobra.Command{
 	Short: "RDSインスタンス一覧を表示するコマンド",
 	Long:  `RDSインスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stackName, _ := cmd.Flags().GetString("stack")
+		resolveStackName()
 		var (
 			instances []rdssvc.RdsInstance
 			err       error

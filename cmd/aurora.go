@@ -39,8 +39,8 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
   ` + AppName + ` aurora start -P my-profile -S my-stack
   ` + AppName + ` aurora start -P my-profile -c my-cluster`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		resolveStackName()
 		clusterName, _ := cmd.Flags().GetString("cluster")
-		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
 		if stackName != "" {
@@ -75,8 +75,8 @@ CloudFormationスタック名を指定するか、クラスター名を直接指
   ` + AppName + ` aurora stop -P my-profile -S my-stack
   ` + AppName + ` aurora stop -P my-profile -c my-cluster`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		resolveStackName()
 		clusterName, _ := cmd.Flags().GetString("cluster")
-		stackName, _ := cmd.Flags().GetString("stack")
 		var err error
 
 		if stackName != "" {
@@ -106,7 +106,7 @@ var auroraLsCmd = &cobra.Command{
 	Short: "Auroraクラスター一覧を表示するコマンド",
 	Long:  `Auroraクラスター一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stackName, _ := cmd.Flags().GetString("stack")
+		resolveStackName()
 		var (
 			clusters []aurora.AuroraCluster
 			err      error

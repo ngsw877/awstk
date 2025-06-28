@@ -56,7 +56,7 @@ var cfnStartCmd = &cobra.Command{
 例:
   ` + AppName + ` cfn start -S my-stack -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stackName, _ := cmd.Flags().GetString("stack")
+		resolveStackName()
 		if stackName == "" {
 			return fmt.Errorf("❌ エラー: スタック名 (-S) を指定してください")
 		}
@@ -100,7 +100,7 @@ var cfnStopCmd = &cobra.Command{
 例:
   ` + AppName + ` cfn stop -S my-stack -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		stackName, _ := cmd.Flags().GetString("stack")
+		resolveStackName()
 		if stackName == "" {
 			return fmt.Errorf("❌ エラー: スタック名 (-S) を指定してください")
 		}
