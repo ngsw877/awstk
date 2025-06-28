@@ -5,16 +5,26 @@ import (
 	"encoding/json"
 	"fmt"
 
-	awsSecretsManager "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/spf13/cobra"
 )
 
+var secretsmanagerClient *secretsmanager.Client
+
 // secretsmanagerCmd represents the secretsmanager command
 var secretsmanagerCmd = &cobra.Command{
-	Use:     "secrets",
-	Short:   "AWS Secrets Managerリソース操作コマンド",
-	Long:    `AWS Secrets Managerのシークレットを操作するためのコマンド群です。`,
-	Aliases: []string{"secret"},
+	Use:   "secrets",
+	Short: "AWS Secrets Managerリソース操作コマンド",
+	Long:  `AWS Secrets Managerのシークレットを操作するためのコマンド群です。`,
+	// サブコマンド実行前にクライアントを初期化
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
+			return err
+		}
+
+		secretsmanagerClient = secretsmanager.NewFromConfig(awsCfg)
+		return nil
+	},
 }
 
 var secretsmanagerGetCmd = &cobra.Command{
@@ -29,11 +39,9 @@ var secretsmanagerGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretName := args[0]
 
-		client := awsSecretsManager.NewFromConfig(awsCfg)
-
 		fmt.Printf("🔍 シークレット (%s) の値を取得します...\n", secretName)
 
-		secretMap, err := secretsmgrSvc.GetSecretValues(client, secretName)
+		secretMap, err := secretsmgrSvc.GetSecretValues(secretsmanagerClient, secretName)
 		if err != nil {
 			return fmt.Errorf("❌ シークレット取得エラー: %w", err)
 		}
@@ -61,9 +69,7 @@ var secretsmanagerDeleteCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		secretId := args[0]
 
-		client := awsSecretsManager.NewFromConfig(awsCfg)
-
-		if err := secretsmgrSvc.DeleteSecret(client, secretId); err != nil {
+		if err := secretsmgrSvc.DeleteSecret(secretsmanagerClient, secretId); err != nil {
 			return err
 		}
 
