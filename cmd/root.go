@@ -48,8 +48,8 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	RootCmd.PersistentFlags().StringVarP(&region, "region", "R", "ap-northeast-1", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&profile, "profile", "P", "", "AWSプロファイル")
+	RootCmd.PersistentFlags().StringVarP(&region, "region", "R", "", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 
 	// コマンド実行前に共通でプロファイルチェックとawsCtx設定を行う
