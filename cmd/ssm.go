@@ -15,6 +15,7 @@ import (
 var ssmInstanceId string
 var ssmParamsPrefix string
 var ssmParamsDryRun bool
+var ssmDeleteForce bool
 var ssmClient *ssm.Client
 
 var ssmCmd = &cobra.Command{
@@ -125,15 +126,63 @@ var ssmPutParamsCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var ssmDeleteParamsCmd = &cobra.Command{
+	Use:   "delete-params <file>",
+	Short: "ファイルからParameter Storeを一括削除",
+	Long: `テキストファイルに記載されたパラメータ名のリストから、AWS Systems Manager Parameter Storeのパラメータを一括削除します。
+
+ファイル形式:
+  - 1行に1つのパラメータ名を記載
+  - 空行と#で始まるコメント行は無視されます
+
+例:
+  ` + AppName + ` ssm delete-params params.txt
+  ` + AppName + ` ssm delete-params params.txt --force
+  ` + AppName + ` ssm delete-params params.txt --dry-run
+  ` + AppName + ` ssm delete-params params.txt --prefix /myapp/  # 削除対象パラメータ名に/myapp/を付加
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		filePath := args[0]
+
+		opts := ssmsvc.DeleteParamsOptions{
+			SsmClient: ssmClient,
+			FilePath:  filePath,
+			Prefix:    ssmParamsPrefix,
+			DryRun:    ssmParamsDryRun,
+			Force:     ssmDeleteForce,
+		}
+
+		err := ssmsvc.DeleteParametersFromFile(opts)
+		if err != nil {
+			return fmt.Errorf("❌ パラメータの削除に失敗しました: %w", err)
+		}
+
+		if ssmParamsDryRun {
+			fmt.Println("✅ ドライラン完了")
+		} else {
+			fmt.Println("✅ パラメータの削除が完了しました")
+		}
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(ssmCmd)
 	ssmCmd.AddCommand(ssmSessionStartCmd)
 	ssmCmd.AddCommand(ssmPutParamsCmd)
+	ssmCmd.AddCommand(ssmDeleteParamsCmd)
 
 	// session サブコマンドのフラグ
 	ssmSessionStartCmd.Flags().StringVarP(&ssmInstanceId, "instance-id", "i", "", "EC2インスタンスID（省略時は一覧から選択）")
 
 	// put-params サブコマンドのフラグ
-	ssmPutParamsCmd.Flags().StringVar(&ssmParamsPrefix, "prefix", "", "パラメータ名のプレフィックス")
-	ssmPutParamsCmd.Flags().BoolVar(&ssmParamsDryRun, "dry-run", false, "実際には登録せず、登録内容を確認")
+	ssmPutParamsCmd.Flags().StringVarP(&ssmParamsPrefix, "prefix", "p", "", "パラメータ名のプレフィックス")
+	ssmPutParamsCmd.Flags().BoolVarP(&ssmParamsDryRun, "dry-run", "d", false, "実際には登録せず、登録内容を確認")
+
+	// delete-params サブコマンドのフラグ
+	ssmDeleteParamsCmd.Flags().StringVarP(&ssmParamsPrefix, "prefix", "p", "", "パラメータ名のプレフィックス")
+	ssmDeleteParamsCmd.Flags().BoolVarP(&ssmParamsDryRun, "dry-run", "d", false, "実際には削除せず、削除対象を確認")
+	ssmDeleteParamsCmd.Flags().BoolVarP(&ssmDeleteForce, "force", "f", false, "確認プロンプトをスキップ")
 }

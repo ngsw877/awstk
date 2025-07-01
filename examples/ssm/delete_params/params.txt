@@ -1,0 +1,14 @@
+# SSM Parameter Store 削除対象パラメータリスト
+# 空行とコメント行（#で始まる行）は無視されます
+
+/myapp/database/host
+/myapp/database/port
+/myapp/database/name
+
+# API関連のパラメータ
+/myapp/api/key
+/myapp/api/secret
+
+# 設定パラメータ
+/myapp/config/timeout
+/myapp/config/retry_count

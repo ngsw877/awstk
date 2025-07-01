@@ -31,3 +31,12 @@ type parameter struct {
 type parametersFile struct {
 	Parameters []parameter `json:"parameters"`
 }
+
+// DeleteParamsOptions はパラメータ一括削除のオプション
+type DeleteParamsOptions struct {
+	SsmClient *ssm.Client
+	FilePath  string
+	Prefix    string
+	DryRun    bool
+	Force     bool
+}
