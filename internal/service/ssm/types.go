@@ -4,8 +4,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
-// SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
-type SsmSessionOptions struct {
+// SessionOptions SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
+type SessionOptions struct {
 	Region     string
 	Profile    string
 	InstanceId string

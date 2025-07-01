@@ -5,7 +5,7 @@ import (
 )
 
 // StartSsmSession 指定したEC2インスタンスIDにSSMセッションで接続する
-func StartSsmSession(opts SsmSessionOptions) error {
+func StartSsmSession(opts SessionOptions) error {
 	// AWS CLIのssm start-sessionコマンドを呼び出す
 	args := []string{
 		"ssm", "start-session",
