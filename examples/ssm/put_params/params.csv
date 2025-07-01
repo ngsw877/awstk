@@ -1,0 +1,9 @@
+name,value,type,description
+/database/host,rds.example.amazonaws.com,String,Database hostname
+/database/port,3306,String,Database port number
+/database/username,admin,String,Database username
+/database/password,mySecretPassword123,SecureString,Database password
+/api/endpoint,https://api.example.com,String,External API endpoint
+/api/key,abc123xyz789,SecureString,API authentication key
+/features/enable_new_ui,true,String,Feature flag for new UI
+/features/max_connections,100,String,Maximum number of connections

@@ -1,0 +1,52 @@
+{
+  "parameters": [
+    {
+      "name": "/database/host",
+      "value": "rds.example.amazonaws.com",
+      "type": "String",
+      "description": "Database hostname"
+    },
+    {
+      "name": "/database/port",
+      "value": "3306",
+      "type": "String",
+      "description": "Database port number"
+    },
+    {
+      "name": "/database/username",
+      "value": "admin",
+      "type": "String",
+      "description": "Database username"
+    },
+    {
+      "name": "/database/password",
+      "value": "mySecretPassword123",
+      "type": "SecureString",
+      "description": "Database password"
+    },
+    {
+      "name": "/api/endpoint",
+      "value": "https://api.example.com",
+      "type": "String",
+      "description": "External API endpoint"
+    },
+    {
+      "name": "/api/key",
+      "value": "abc123xyz789",
+      "type": "SecureString",
+      "description": "API authentication key"
+    },
+    {
+      "name": "/features/enable_new_ui",
+      "value": "true",
+      "type": "String",
+      "description": "Feature flag for new UI"
+    },
+    {
+      "name": "/features/max_connections",
+      "value": "100",
+      "type": "String",
+      "description": "Maximum number of connections"
+    }
+  ]
+}
