@@ -20,6 +20,8 @@ github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.36.4 h1:JetyQYju/
 github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.36.4/go.mod h1:T38DTrOzItEr+LJap6BHKrWN8wBrLP44+n/JY0wC2xI=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.60.3 h1:aic9qcLAqsmeYCfXElUnZOB/GRBIV2lFd1pQeJs9sVY=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.60.3/go.mod h1:xU79X14UC0F8sEJCRTWwINzlQ4jacpEFpRESLHRHfoY=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.45.3 h1:Nn3qce+OHZuMj/edx4its32uxedAmquCDxtZkrdeiD4=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.45.3/go.mod h1:aqsLGsPs+rJfwDBwWHLcIV8F7AFcikFTPLwUD4RwORQ=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.225.2 h1:IfMb3Ar8xEaWjgH/zeVHYD8izwJdQgRP5mKCTDt4GNk=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.225.2/go.mod h1:35jGWx7ECvCwTsApqicFYzZ7JFEnBc6oHUuOQ3xIS54=
 github.com/aws/aws-sdk-go-v2/service/ecr v1.45.1 h1:Bwzh202Aq7/MYnAjXA9VawCf6u+hjwMdoYmZ4HYsdf8=
