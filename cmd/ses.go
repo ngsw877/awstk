@@ -2,10 +2,7 @@ package cmd
 
 import (
 	sesSvc "awstk/internal/service/ses"
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/ses"
 	"github.com/spf13/cobra"
@@ -32,36 +29,32 @@ var sesVerifyCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: メールアドレスファイル (-f) を指定してください")
 		}
 
-		// ファイルからメールアドレスを読み込み
-		emails, err := readEmailsFromFile(emailFile)
-		if err != nil {
-			return fmt.Errorf("❌ ファイル読み込みエラー: %w", err)
-		}
-
-		if len(emails) == 0 {
-			return fmt.Errorf("❌ エラー: ファイルにメールアドレスが見つかりませんでした")
-		}
-
-		// 重複を除去
-		filtered := removeDuplicates(emails)
-		if len(filtered) != len(emails) {
-			fmt.Printf("重複するメールアドレスを除去しました: %d件 → %d件\n", len(emails), len(filtered))
-		}
-
 		sesClient := ses.NewFromConfig(awsCfg)
 
-		failedEmails, err := sesSvc.VerifySesEmails(sesClient, filtered)
-		if err != nil {
-			return fmt.Errorf("❌ SES検証エラー: %w", err)
+		opts := sesSvc.VerifyOptions{
+			SesClient: sesClient,
+			FilePath:  emailFile,
 		}
 
-		if len(failedEmails) > 0 {
-			fmt.Printf("❌ 検証に失敗したメールアドレス: %d件\n", len(failedEmails))
-			for _, email := range failedEmails {
+		result, err := sesSvc.VerifyEmailsFromFile(opts)
+		if err != nil {
+			return fmt.Errorf("❌ %v", err)
+		}
+
+		// 成功したメールアドレス
+		fmt.Printf("✅ 検証成功: %d件\n", result.SuccessfulEmails)
+		for _, detail := range result.VerificationDetails {
+			if detail.Success {
+				fmt.Printf("  - %s\n", detail.Email)
+			}
+		}
+
+		// 失敗したメールアドレス
+		if len(result.FailedEmails) > 0 {
+			fmt.Printf("\n❌ 検証失敗: %d件\n", len(result.FailedEmails))
+			for _, email := range result.FailedEmails {
 				fmt.Printf("  - %s\n", email)
 			}
-		} else {
-			fmt.Println("✅ すべてのメールアドレスの検証リクエストが完了しました")
 		}
 
 		return nil
@@ -73,43 +66,4 @@ func init() {
 	RootCmd.AddCommand(SesCmd)
 	SesCmd.AddCommand(sesVerifyCmd)
 	sesVerifyCmd.Flags().StringVarP(&emailFile, "file", "f", "", "メールアドレス一覧ファイル（1行1メールアドレス）")
-}
-
-// readEmailsFromFile はファイルからメールアドレス一覧を読み込みます
-func readEmailsFromFile(filename string) ([]string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var emails []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" && strings.Contains(line, "@") {
-			emails = append(emails, line)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return emails, nil
-}
-
-// removeDuplicates は文字列スライスから重複を除去します
-func removeDuplicates(emails []string) []string {
-	seen := make(map[string]bool)
-	var result []string
-
-	for _, email := range emails {
-		if !seen[email] {
-			seen[email] = true
-			result = append(result, email)
-		}
-	}
-
-	return result
 }
