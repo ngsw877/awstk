@@ -1,0 +1,21 @@
+# SES メールアドレス検証用サンプルファイル
+# 空行とコメント行（#で始まる行）は無視されます
+
+# 開発チーム
+dev-team@example.com
+admin@example.org
+
+# テスト用アドレス
+test1@example.net
+test2@example.invalid
+
+# 重複テスト（大文字小文字の違い）
+USER@EXAMPLE.COM
+user@example.com
+
+# 無効なアドレス例（@がない）
+# invalid-email
+
+# システム用メールアドレス
+support@example.org
+noreply@example.net
