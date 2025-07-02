@@ -13,14 +13,6 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-// ResourceCounts リソースの作成数を制御する構造体
-type ResourceCounts struct {
-	EcsCount    int
-	Ec2Count    int
-	S3Count     int
-	RdsCount    int
-	AuroraCount int
-}
 
 // DefaultResourceCounts デフォルト設定（1つずつ）
 func DefaultResourceCounts() *ResourceCounts {
@@ -44,25 +36,6 @@ func TestResourceCounts() *ResourceCounts {
 	}
 }
 
-// MultiResourceGroup 複数のAWSリソースを管理するコンストラクト
-type MultiResourceGroup struct {
-	constructs.Construct
-	EcsServices    []awsecspatterns.ApplicationLoadBalancedFargateService
-	Ec2Instances   []awsec2.BastionHostLinux
-	S3Buckets      []awss3.Bucket
-	RdsInstances   []awsrds.DatabaseInstance
-	AuroraClusters []awsrds.DatabaseCluster
-}
-
-// MultiResourceGroupProps コンストラクトのプロパティ
-type MultiResourceGroupProps struct {
-	Vpc         awsec2.Vpc
-	EcsCount    int
-	Ec2Count    int
-	S3Count     int
-	RdsCount    int
-	AuroraCount int
-}
 
 // NewMultiResourceGroup 新しいMultiResourceGroupを作成
 func NewMultiResourceGroup(scope constructs.Construct, id string, props *MultiResourceGroupProps) *MultiResourceGroup {

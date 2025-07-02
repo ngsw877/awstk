@@ -7,11 +7,6 @@ import (
 	"github.com/aws/jsii-runtime-go"
 )
 
-type AwstkLabStackProps struct {
-	awscdk.StackProps
-	ResourceCounts *ResourceCounts
-}
-
 func NewAwstkLabStack(scope constructs.Construct, id string, props *AwstkLabStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
 	if props != nil {
