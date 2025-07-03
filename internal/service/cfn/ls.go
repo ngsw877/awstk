@@ -4,24 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // ListCfnStacks はCloudFormationスタック一覧を返す
-// activeOnly が true の場合はアクティブなスタックのみを取得する
-func ListCfnStacks(cfnClient *cloudformation.Client, activeOnly bool) ([]CfnStack, error) {
-	activeStatusStrs := []string{
-		"CREATE_COMPLETE",
-		"UPDATE_COMPLETE",
-		"UPDATE_ROLLBACK_COMPLETE",
-		"ROLLBACK_COMPLETE",
-		"IMPORT_COMPLETE",
-	}
-	activeStatuses := make([]types.StackStatus, 0, len(activeStatusStrs))
-	for _, s := range activeStatusStrs {
-		activeStatuses = append(activeStatuses, types.StackStatus(s))
+// showAll が true の場合は全てのステータスのスタックを取得する
+// showAll が false の場合はアクティブなスタックのみを取得する
+func ListCfnStacks(cfnClient *cloudformation.Client, showAll bool) ([]CfnStack, error) {
+	activeStatuses := []types.StackStatus{
+		types.StackStatusCreateComplete,
+		types.StackStatusUpdateComplete,
+		types.StackStatusUpdateRollbackComplete,
+		types.StackStatusRollbackComplete,
+		types.StackStatusImportComplete,
 	}
 
 	var stacks []CfnStack
@@ -29,7 +26,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client, activeOnly bool) ([]CfnStac
 
 	for {
 		input := &cloudformation.ListStacksInput{NextToken: nextToken}
-		if activeOnly {
+		if !showAll {
 			input.StackStatusFilter = activeStatuses
 		}
 
@@ -40,7 +37,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client, activeOnly bool) ([]CfnStac
 
 		for _, summary := range resp.StackSummaries {
 			stacks = append(stacks, CfnStack{
-				Name:   awssdk.ToString(summary.StackName),
+				Name:   aws.ToString(summary.StackName),
 				Status: string(summary.StackStatus),
 			})
 		}
