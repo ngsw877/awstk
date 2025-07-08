@@ -207,3 +207,37 @@ func GetAllEcsFromStack(cfnClient *cloudformation.Client, stackName string) ([]E
 
 	return results, nil
 }
+
+// GetCloudFrontFromStack はCloudFormationスタックからCloudFrontディストリビューション識別子を取得します
+func GetCloudFrontFromStack(cfnClient *cloudformation.Client, stackName string) (string, error) {
+	allDistributions, err := GetAllCloudFrontFromStack(cfnClient, stackName)
+	if err != nil {
+		return "", err
+	}
+
+	if len(allDistributions) == 0 {
+		return "", fmt.Errorf("スタック '%s' にCloudFrontディストリビューションが見つかりませんでした", stackName)
+	}
+
+	// 複数のディストリビューションがある場合は最初の要素を返す
+	return allDistributions[0], nil
+}
+
+// GetAllCloudFrontFromStack はCloudFormationスタックからすべてのCloudFrontディストリビューション識別子を取得します
+func GetAllCloudFrontFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, error) {
+	// 共通関数を使用してスタックリソースを取得
+	stackResources, err := GetStackResources(cfnClient, stackName)
+	if err != nil {
+		return nil, err
+	}
+
+	var distributionIds []string
+	for _, resource := range stackResources {
+		if *resource.ResourceType == "AWS::CloudFront::Distribution" && resource.PhysicalResourceId != nil {
+			distributionIds = append(distributionIds, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたCloudFrontディストリビューション: %s\n", *resource.PhysicalResourceId)
+		}
+	}
+
+	return distributionIds, nil
+}
