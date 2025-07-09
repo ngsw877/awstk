@@ -2,6 +2,7 @@ package cmd
 
 import (
 	cfsvc "awstk/internal/service/cloudfront"
+	"awstk/internal/service/cloudfront/tenant"
 	"awstk/internal/service/cfn"
 	"fmt"
 
@@ -109,12 +110,127 @@ var cfInvalidateCmd = &cobra.Command{
 	},
 }
 
+// cfTenantCmd represents the tenant command
+var cfTenantCmd = &cobra.Command{
+	Use:   "tenant",
+	Short: "CloudFrontマルチテナントディストリビューション操作",
+	Long:  `CloudFrontマルチテナントディストリビューションのテナントを操作するためのコマンド群です。`,
+}
+
+// cfTenantListCmd represents the tenant list command
+var cfTenantListCmd = &cobra.Command{
+	Use:   "list <distribution-id>",
+	Short: "マルチテナントディストリビューションのテナント一覧を表示",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		distributionId := args[0]
+		
+		tenants, err := tenant.ListTenants(cfClient, distributionId)
+		if err != nil {
+			return fmt.Errorf("❌ テナント一覧取得エラー: %w", err)
+		}
+
+		if len(tenants) == 0 {
+			fmt.Println("テナントが見つかりませんでした")
+			return nil
+		}
+
+		fmt.Printf("テナント一覧 (ディストリビューション: %s): 全%d件\n", distributionId, len(tenants))
+		for i, t := range tenants {
+			fmt.Printf("  %3d. %s\n", i+1, t.Id)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
+// cfTenantInvalidateCmd represents the tenant invalidate command
+var cfTenantInvalidateCmd = &cobra.Command{
+	Use:   "invalidate [distribution-id] [tenant-id]",
+	Short: "マルチテナントディストリビューションのキャッシュを無効化",
+	Long: `CloudFrontマルチテナントディストリビューションの特定テナントまたは全テナントのキャッシュを無効化します。
+
+【使い方】
+  ` + AppName + ` cf tenant invalidate ABCD1234EFGH tenant-123     # 特定テナント
+  ` + AppName + ` cf tenant invalidate ABCD1234EFGH --all          # 全テナント
+  ` + AppName + ` cf tenant invalidate ABCD1234EFGH --list        # テナント一覧から選択
+
+【例】
+  ` + AppName + ` cf tenant invalidate E2ABC123DEF456 --all -p "/api/*"
+  → 全テナントの /api/* パスを無効化します`,
+	Args: cobra.RangeArgs(1, 2),
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		paths, _ := cmdCobra.Flags().GetStringSlice("path")
+		all, _ := cmdCobra.Flags().GetBool("all")
+		list, _ := cmdCobra.Flags().GetBool("list")
+		wait, _ := cmdCobra.Flags().GetBool("wait")
+
+		var distributionId string
+		var tenantId string
+		var err error
+
+		// ディストリビューションIDを引数から取得
+		distributionId = args[0]
+		
+		// テナントIDの処理
+		if all {
+			// 全テナント無効化
+			fmt.Printf("🚀 CloudFrontディストリビューション (%s) の全テナントのキャッシュを無効化します...\n", distributionId)
+			err = tenant.InvalidateAllTenants(cfClient, distributionId, paths, wait)
+			if err != nil {
+				return fmt.Errorf("❌ 全テナントキャッシュ無効化エラー: %w", err)
+			}
+			fmt.Println("✅ 全テナントのキャッシュ無効化を開始しました")
+		} else if list {
+			// テナント一覧から選択
+			tenantId, err = tenant.SelectTenant(cfClient, distributionId)
+			if err != nil {
+				return fmt.Errorf("❌ テナント選択エラー: %w", err)
+			}
+			err = tenant.InvalidateTenant(cfClient, distributionId, tenantId, paths, wait)
+			if err != nil {
+				return fmt.Errorf("❌ キャッシュ無効化エラー: %w", err)
+			}
+			fmt.Printf("✅ テナント '%s' のキャッシュ無効化を開始しました\n", tenantId)
+		} else {
+			// 特定テナント
+			if len(args) < 2 {
+				return fmt.Errorf("❌ エラー: テナントID、--all、または --list オプションを指定してください")
+			}
+			tenantId = args[1]
+			fmt.Printf("🚀 テナント (%s) のキャッシュを無効化します...\n", tenantId)
+			fmt.Printf("   対象パス: %v\n", paths)
+			
+			err = tenant.InvalidateTenant(cfClient, distributionId, tenantId, paths, wait)
+			if err != nil {
+				return fmt.Errorf("❌ キャッシュ無効化エラー: %w", err)
+			}
+			fmt.Printf("✅ テナント '%s' のキャッシュ無効化を開始しました\n", tenantId)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfCmd)
 	CfCmd.AddCommand(cfInvalidateCmd)
+	CfCmd.AddCommand(cfTenantCmd)
+	
+	// tenant サブコマンドに list, invalidate を追加
+	cfTenantCmd.AddCommand(cfTenantListCmd)
+	cfTenantCmd.AddCommand(cfTenantInvalidateCmd)
 
 	// フラグの追加
 	cfInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")
 	cfInvalidateCmd.Flags().BoolP("wait", "w", false, "無効化完了まで待機")
 	cfInvalidateCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+	
+	// tenant invalidate フラグ
+	cfTenantInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")
+	cfTenantInvalidateCmd.Flags().BoolP("all", "a", false, "全テナントを無効化")
+	cfTenantInvalidateCmd.Flags().BoolP("list", "l", false, "テナント一覧から選択")
+	cfTenantInvalidateCmd.Flags().BoolP("wait", "w", false, "無効化完了まで待機")
 }
