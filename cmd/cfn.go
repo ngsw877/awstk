@@ -144,6 +144,6 @@ func init() {
 	cfnLsCmd.Flags().BoolVarP(&showAll, "all", "a", false, "全てのステータスのスタックを表示")
 
 	// cfn start/stopコマンド用のフラグ
-	cfnStartCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
-	cfnStopCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+	cfnStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	cfnStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

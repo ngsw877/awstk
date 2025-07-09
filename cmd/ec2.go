@@ -128,4 +128,5 @@ func init() {
 	// フラグの追加
 	ec2StartCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")
 	ec2StopCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")
+	ec2LsCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

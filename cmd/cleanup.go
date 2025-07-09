@@ -66,5 +66,5 @@ func init() {
 	RootCmd.AddCommand(cleanupCmd)
 	cleanupCmd.AddCommand(allCleanupCmd)
 	allCleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
-	allCleanupCmd.Flags().StringP("stack", "S", "", "CloudFormationスタック名")
+	allCleanupCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

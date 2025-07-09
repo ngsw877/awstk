@@ -50,7 +50,6 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVarP(&region, "region", "R", "ap-northeast-1", "AWSリージョン")
 	RootCmd.PersistentFlags().StringVarP(&profile, "profile", "P", "", "AWSプロファイル")
-	RootCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 
 	// コマンド実行前に共通でプロファイルチェックとawsCtx設定を行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {

@@ -12,7 +12,6 @@ import (
 
 var (
 	rdsInstanceId string
-	rdsStackName  string
 )
 
 // RdsCmd represents the rds command
@@ -152,5 +151,5 @@ func init() {
 
 	// 共通フラグをRdsCmd（親コマンド）に定義
 	RdsCmd.PersistentFlags().StringVarP(&rdsInstanceId, "instance", "i", "", "RDSインスタンス名")
-	RdsCmd.PersistentFlags().StringVarP(&rdsStackName, "stack", "S", "", "CloudFormationスタック名")
+	RdsCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }
