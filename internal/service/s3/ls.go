@@ -23,6 +23,40 @@ func ListS3Buckets(s3Client *s3.Client) ([]string, error) {
 	return buckets, nil
 }
 
+// FilterEmptyBuckets は指定されたバケットの中から空のバケットのみを返す関数
+func FilterEmptyBuckets(s3Client *s3.Client, buckets []string) ([]string, error) {
+	var emptyBuckets []string
+
+	for _, bucket := range buckets {
+		// バケットが空かどうかをチェック
+		isEmpty, err := isBucketEmpty(s3Client, bucket)
+		if err != nil {
+			// エラーが発生してもスキップして続行
+			continue
+		}
+		if isEmpty {
+			emptyBuckets = append(emptyBuckets, bucket)
+		}
+	}
+
+	return emptyBuckets, nil
+}
+
+// isBucketEmpty はバケットが空かどうかをチェックする関数
+func isBucketEmpty(s3Client *s3.Client, bucketName string) (bool, error) {
+	// MaxKeys=1で最初のオブジェクトのみ取得を試みる
+	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucketName),
+		MaxKeys: aws.Int32(1),
+	})
+	if err != nil {
+		return false, err
+	}
+
+	// オブジェクトが0個なら空
+	return len(result.Contents) == 0, nil
+}
+
 // listS3Objects はS3バケット内のオブジェクト一覧を取得します
 func listS3Objects(s3Client *s3.Client, bucketName string, prefix string) ([]S3Object, error) {
 	var objects []S3Object

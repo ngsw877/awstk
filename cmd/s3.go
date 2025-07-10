@@ -37,16 +37,21 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 
 【使い方】
   ` + AppName + ` s3 ls                          # バケット一覧を表示
+  ` + AppName + ` s3 ls -e                       # 空のバケットのみを表示
   ` + AppName + ` s3 ls my-bucket                # バケット内をツリー形式で表示（サイズ付き）
   ` + AppName + ` s3 ls my-bucket/prefix/        # 指定プレフィックス以下をツリー形式で表示（サイズ付き）
   ` + AppName + ` s3 ls my-bucket -t             # 更新日時も一緒に表示
 
 【例】
+  ` + AppName + ` s3 ls -e
+  → 空のS3バケットのみを一覧表示します。
+  
   ` + AppName + ` s3 ls my-bucket/logs/ -t
   → my-bucket/logs/ 配下のオブジェクトをツリー形式でサイズ + 更新日時付きで表示します。`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		showTime, _ := cmdCobra.Flags().GetBool("time")
+		emptyOnly, _ := cmdCobra.Flags().GetBool("empty-only")
 
 		if len(args) == 0 {
 			// 引数がない場合はバケット一覧表示
@@ -58,9 +63,26 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 				fmt.Println("S3バケットが見つかりませんでした")
 				return nil
 			}
-			fmt.Println("S3バケット一覧:")
-			for _, name := range buckets {
-				fmt.Println("  -", name)
+			
+			// 空バケットのみ表示する場合
+			if emptyOnly {
+				fmt.Println("空のS3バケット一覧:")
+				emptyBuckets, err := s3svc.FilterEmptyBuckets(s3Client, buckets)
+				if err != nil {
+					return fmt.Errorf("❌ 空バケットのチェックでエラー: %w", err)
+				}
+				if len(emptyBuckets) == 0 {
+					fmt.Println("空のバケットはありませんでした")
+					return nil
+				}
+				for _, name := range emptyBuckets {
+					fmt.Println("  -", name)
+				}
+			} else {
+				fmt.Println("S3バケット一覧:")
+				for _, name := range buckets {
+					fmt.Println("  -", name)
+				}
 			}
 		} else {
 			// 引数がある場合は指定S3パスをツリー形式で表示
@@ -183,6 +205,8 @@ func init() {
 
 	// ls コマンドに --time フラグを追加
 	s3LsCmd.Flags().BoolP("time", "t", false, "ファイルの更新日時も一緒に表示")
+	// ls コマンドに --empty-only フラグを追加
+	s3LsCmd.Flags().BoolP("empty-only", "e", false, "空のバケットのみを表示")
 
 	// cleanup コマンドのフラグ
 	s3CleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
