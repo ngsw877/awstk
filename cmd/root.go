@@ -53,7 +53,15 @@ func init() {
 
 	// コマンド実行前に共通でプロファイルチェックとawsCtx設定を行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// 認証が不要なコマンドはスキップ
 		if cmd.Name() == "help" || cmd.Name() == "version" {
+			return nil
+		}
+		// envコマンドとそのサブコマンドもスキップ
+		if cmd.Name() == "env" {
+			return nil
+		}
+		if cmd.Parent() != nil && cmd.Parent().Name() == "env" {
 			return nil
 		}
 
