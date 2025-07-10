@@ -1,5 +1,9 @@
 package ecs
 
+import (
+	"awstk/internal/aws"
+)
+
 // ServiceCapacityOptions はECSサービスのキャパシティ設定用パラメータを格納する構造体
 type ServiceCapacityOptions struct {
 	ClusterName string
@@ -10,8 +14,7 @@ type ServiceCapacityOptions struct {
 
 // EcsExecOptions はECS execute-commandのパラメータを格納する構造体
 type EcsExecOptions struct {
-	Region        string
-	Profile       string
+	AwsCtx        aws.Context
 	ClusterName   string
 	TaskId        string
 	ContainerName string
@@ -24,7 +27,6 @@ type RunAndWaitForTaskOptions struct {
 	TaskDefinition string
 	ContainerName  string
 	Command        string
-	Region         string
-	Profile        string
+	AwsCtx         aws.Context
 	TimeoutSeconds int
 }

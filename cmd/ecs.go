@@ -68,8 +68,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
 		err = ecssvc.ExecuteEcsCommand(ecssvc.EcsExecOptions{
-			Region:        awsCtx.Region,
-			Profile:       awsCtx.Profile,
+			AwsCtx:        awsCtx,
 			ClusterName:   clusterName,
 			TaskId:        taskId,
 			ContainerName: containerName,
@@ -177,8 +176,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 			TaskDefinition: taskDefinition,
 			ContainerName:  containerName,
 			Command:        commandString,
-			Region:         awsCtx.Region,
-			Profile:        awsCtx.Profile,
+			AwsCtx:         awsCtx,
 			TimeoutSeconds: timeoutSeconds,
 		}
 

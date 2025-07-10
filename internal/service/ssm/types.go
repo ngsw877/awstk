@@ -1,13 +1,13 @@
 package ssm
 
 import (
+	"awstk/internal/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 // SessionOptions SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
 type SessionOptions struct {
-	Region     string
-	Profile    string
+	AwsCtx     aws.Context
 	InstanceId string
 }
 

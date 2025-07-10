@@ -64,8 +64,7 @@ var ssmSessionStartCmd = &cobra.Command{
 		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
 
 		opts := ssmsvc.SessionOptions{
-			Region:     awsCtx.Region,
-			Profile:    awsCtx.Profile,
+			AwsCtx:     awsCtx,
 			InstanceId: ssmInstanceId,
 		}
 

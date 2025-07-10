@@ -38,7 +38,6 @@ func ExecuteEcsCommand(opts EcsExecOptions) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",
-		"--region", opts.Region,
 		"--cluster", opts.ClusterName,
 		"--task", opts.TaskId,
 		"--container", opts.ContainerName,
@@ -46,10 +45,6 @@ func ExecuteEcsCommand(opts EcsExecOptions) error {
 		"--command", "/bin/bash",
 	}
 
-	if opts.Profile != "" {
-		args = append(args, "--profile", opts.Profile)
-	}
-
 	// cli層の共通関数を使用してコマンドを実行
-	return cli.ExecuteAwsCommand(args)
+	return cli.ExecuteAwsCommand(opts.AwsCtx, args)
 }

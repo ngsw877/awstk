@@ -10,12 +10,8 @@ func StartSsmSession(opts SessionOptions) error {
 	args := []string{
 		"ssm", "start-session",
 		"--target", opts.InstanceId,
-		"--region", opts.Region,
-	}
-	if opts.Profile != "" {
-		args = append(args, "--profile", opts.Profile)
 	}
 
 	// cli層の共通関数を使用してコマンドを実行
-	return cli.ExecuteAwsCommand(args)
+	return cli.ExecuteAwsCommand(opts.AwsCtx, args)
 }
