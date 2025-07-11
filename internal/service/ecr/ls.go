@@ -1,6 +1,7 @@
 package ecr
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"errors"
 	"fmt"
@@ -178,7 +179,7 @@ func DisplayRepositoryDetails(repo RepositoryInfo) {
 	fmt.Printf("  - %s\n", repo.RepositoryName)
 	fmt.Printf("    URI: %s\n", repo.RepositoryUri)
 	fmt.Printf("    イメージ数: %d個\n", repo.ImageCount)
-	fmt.Printf("    サイズ: %s\n", formatBytes(repo.SizeInBytes))
+	fmt.Printf("    サイズ: %s\n", common.FormatBytes(repo.SizeInBytes))
 	
 	if repo.CreatedAt != nil {
 		fmt.Printf("    作成日: %s\n", repo.CreatedAt.Format("2006-01-02 15:04:05"))
@@ -191,16 +192,3 @@ func DisplayRepositoryDetails(repo RepositoryInfo) {
 	fmt.Printf("    ライフサイクルポリシー: %s\n", lifecycleStatus)
 }
 
-// formatBytes はバイト数を人間が読みやすい形式に変換する関数
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}

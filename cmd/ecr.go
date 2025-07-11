@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/service/common"
 	ecrsvc "awstk/internal/service/ecr"
 	"fmt"
 
@@ -98,65 +99,65 @@ var ecrLsCmd = &cobra.Command{
 		// リポジトリ一覧を取得
 		repositories, err := ecrsvc.ListEcrRepositories(ecrClient)
 		if err != nil {
-			return fmt.Errorf("❌ リポジトリ一覧取得でエラー: %w", err)
+			return common.FormatListError("ECRリポジトリ", err)
 		}
 
 		if len(repositories) == 0 {
-			fmt.Println("ECRリポジトリが見つかりませんでした")
+			fmt.Println(common.FormatEmptyMessage("ECRリポジトリ"))
 			return nil
 		}
 
 		// フィルタリング処理
 		filteredRepos := repositories
-		var title string
 
-		// 複数フィルタの組み合わせ対応
-		if emptyOnly && noLifecycle {
-			title = "空かつライフサイクルポリシー未設定のECRリポジトリ一覧:"
+		// フィルタリング処理とタイトル生成
+		var conditions []string
+		if emptyOnly {
+			conditions = append(conditions, "空の")
 			filteredRepos, err = ecrsvc.FilterEmptyRepositories(ecrClient, filteredRepos)
 			if err != nil {
 				return fmt.Errorf("❌ 空リポジトリチェックでエラー: %w", err)
 			}
-			filteredRepos, err = ecrsvc.FilterNoLifecycleRepositories(ecrClient, filteredRepos)
-			if err != nil {
-				return fmt.Errorf("❌ ライフサイクルポリシーチェックでエラー: %w", err)
-			}
-		} else if emptyOnly {
-			title = "空のECRリポジトリ一覧:"
-			filteredRepos, err = ecrsvc.FilterEmptyRepositories(ecrClient, filteredRepos)
-			if err != nil {
-				return fmt.Errorf("❌ 空リポジトリチェックでエラー: %w", err)
-			}
-		} else if noLifecycle {
-			title = "ライフサイクルポリシー未設定のECRリポジトリ一覧:"
-			filteredRepos, err = ecrsvc.FilterNoLifecycleRepositories(ecrClient, filteredRepos)
-			if err != nil {
-				return fmt.Errorf("❌ ライフサイクルポリシーチェックでエラー: %w", err)
-			}
-		} else {
-			title = "ECRリポジトリ一覧:"
 		}
+		if noLifecycle {
+			conditions = append(conditions, "ライフサイクルポリシー未設定の")
+			filteredRepos, err = ecrsvc.FilterNoLifecycleRepositories(ecrClient, filteredRepos)
+			if err != nil {
+				return fmt.Errorf("❌ ライフサイクルポリシーチェックでエラー: %w", err)
+			}
+		}
+		
+		title := common.GenerateFilteredTitle("ECRリポジトリ", conditions...)
 
 		// 結果表示
-		fmt.Println(title)
-		if len(filteredRepos) == 0 {
-			fmt.Println("該当するリポジトリはありませんでした")
-			return nil
-		}
-
-		for i := range filteredRepos {
-			if showDetails {
-				// 詳細表示の場合のみ追加情報を取得
+		if !showDetails {
+			// シンプル表示
+			names := make([]string, len(filteredRepos))
+			for i, repo := range filteredRepos {
+				names[i] = repo.RepositoryName
+			}
+			common.PrintSimpleList(common.ListOutput{
+				Title:        title,
+				Items:        names,
+				ResourceName: "リポジトリ",
+				ShowCount:    true,
+			})
+		} else {
+			// 詳細表示
+			fmt.Printf("%s:\n", title)
+			if len(filteredRepos) == 0 {
+				fmt.Println("該当するリポジトリはありませんでした")
+				return nil
+			}
+			for i := range filteredRepos {
 				if err := ecrsvc.EnrichRepositoryDetails(ecrClient, &filteredRepos[i]); err != nil {
 					fmt.Printf("  - %s (詳細取得エラー: %v)\n", filteredRepos[i].RepositoryName, err)
 					continue
 				}
 				ecrsvc.DisplayRepositoryDetails(filteredRepos[i])
-			} else {
-				fmt.Printf("  - %s\n", filteredRepos[i].RepositoryName)
 			}
+			fmt.Printf("\n合計: %d個のリポジトリ\n", len(filteredRepos))
 		}
-		fmt.Printf("\n合計: %d個のリポジトリ\n", len(filteredRepos))
 
 		return nil
 	},

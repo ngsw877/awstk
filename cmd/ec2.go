@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/service/common"
 	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
@@ -101,19 +102,21 @@ var ec2LsCmd = &cobra.Command{
 		} else {
 			instances, err = ec2svc.ListEc2Instances(ec2Client)
 			if err != nil {
-				return fmt.Errorf("❌ EC2インスタンス一覧取得でエラー: %w", err)
+				return common.FormatListError("EC2インスタンス", err)
 			}
 		}
 
-		if len(instances) == 0 {
-			fmt.Println("EC2インスタンスが見つかりませんでした")
-			return nil
+		// 共通形式に変換
+		items := make([]common.ListItem, len(instances))
+		for i, ins := range instances {
+			items[i] = common.ListItem{
+				Name:   fmt.Sprintf("%s (%s)", ins.InstanceId, ins.InstanceName),
+				Status: ins.State,
+			}
 		}
 
-		fmt.Printf("EC2インスタンス一覧: (全%d件)\n", len(instances))
-		for i, ins := range instances {
-			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, ins.InstanceId, ins.InstanceName, ins.State)
-		}
+		// 共通関数で表示
+		common.PrintStatusList("EC2インスタンス一覧", items, "EC2インスタンス")
 		return nil
 	},
 	SilenceUsage: true,

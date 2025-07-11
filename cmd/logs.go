@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/service/common"
 	logssvc "awstk/internal/service/logs"
 	"fmt"
 
@@ -56,48 +57,54 @@ var logsLsCmd = &cobra.Command{
 		// ログループ一覧を取得
 		logGroups, err := logssvc.ListLogGroups(logsClient)
 		if err != nil {
-			return fmt.Errorf("❌ ログループ一覧取得でエラー: %w", err)
+			return common.FormatListError("CloudWatch Logsグループ", err)
 		}
 
 		if len(logGroups) == 0 {
-			fmt.Println("CloudWatch Logsグループが見つかりませんでした")
+			fmt.Println(common.FormatEmptyMessage("CloudWatch Logsグループ"))
 			return nil
 		}
 
-		// フィルタリング処理
+		// フィルタリング処理とタイトル生成
 		filteredGroups := logGroups
-		var title string
-
-		// 複数フィルタの組み合わせ対応
-		if emptyOnly && noRetention {
-			title = "空かつ保存期間未設定のCloudWatch Logsグループ一覧:"
+		var conditions []string
+		
+		if emptyOnly {
+			conditions = append(conditions, "空の")
 			filteredGroups = logssvc.FilterEmptyLogGroups(filteredGroups)
-			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
-		} else if emptyOnly {
-			title = "空のCloudWatch Logsグループ一覧:"
-			filteredGroups = logssvc.FilterEmptyLogGroups(filteredGroups)
-		} else if noRetention {
-			title = "保存期間未設定のCloudWatch Logsグループ一覧:"
-			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
-		} else {
-			title = "CloudWatch Logsグループ一覧:"
 		}
+		if noRetention {
+			conditions = append(conditions, "保存期間未設定の")
+			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
+		}
+		
+		title := common.GenerateFilteredTitle("CloudWatch Logsグループ", conditions...)
 
 		// 結果表示
-		fmt.Println(title)
-		if len(filteredGroups) == 0 {
-			fmt.Println("該当するログループはありませんでした")
-			return nil
-		}
-
-		for _, group := range filteredGroups {
-			if showDetails {
-				logssvc.DisplayLogGroupDetails(group)
-			} else {
-				fmt.Printf("  - %s\n", *group.LogGroupName)
+		if !showDetails {
+			// シンプル表示
+			names := make([]string, len(filteredGroups))
+			for i, group := range filteredGroups {
+				names[i] = *group.LogGroupName
 			}
+			common.PrintSimpleList(common.ListOutput{
+				Title:        title,
+				Items:        names,
+				ResourceName: "ログループ",
+				ShowCount:    true,
+			})
+		} else {
+			// 詳細表示
+			fmt.Printf("%s:\n", title)
+			if len(filteredGroups) == 0 {
+				fmt.Println("該当するログループはありませんでした")
+				return nil
+			}
+			for _, group := range filteredGroups {
+				logssvc.DisplayLogGroupDetails(group)
+			}
+			fmt.Printf("\n合計: %d個のログループ\n", len(filteredGroups))
 		}
-		fmt.Printf("\n合計: %d個のログループ\n", len(filteredGroups))
 
 		return nil
 	},

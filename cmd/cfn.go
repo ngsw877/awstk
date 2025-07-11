@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
@@ -29,18 +30,23 @@ var cfnLsCmd = &cobra.Command{
 
 		stacks, err := cfn.ListCfnStacks(cfnClient, showAll)
 		if err != nil {
-			return fmt.Errorf("❌ CloudFormationスタック一覧取得でエラー: %w", err)
+			return common.FormatListError("CloudFormationスタック", err)
 		}
 
 		if len(stacks) == 0 {
-			fmt.Println("CloudFormationスタックが見つかりませんでした")
+			fmt.Println(common.FormatEmptyMessage("CloudFormationスタック"))
 			return nil
 		}
 
-		fmt.Printf("CloudFormationスタック一覧: (全%d件)\n", len(stacks))
+		// ステータス付きリストとして表示
+		items := make([]common.ListItem, len(stacks))
 		for i, stk := range stacks {
-			fmt.Printf("  %3d. %s [%s]\n", i+1, stk.Name, stk.Status)
+			items[i] = common.ListItem{
+				Name:   stk.Name,
+				Status: stk.Status,
+			}
 		}
+		common.PrintStatusList("CloudFormationスタック一覧", items, "スタック")
 
 		return nil
 	},

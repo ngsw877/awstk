@@ -1,9 +1,9 @@
 package logs
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
@@ -74,14 +74,14 @@ func DisplayLogGroupDetails(group types.LogGroup) {
 	
 	// サイズ情報
 	if group.StoredBytes != nil {
-		fmt.Printf("    サイズ: %s\n", formatBytes(*group.StoredBytes))
+		fmt.Printf("    サイズ: %s\n", common.FormatBytes(*group.StoredBytes))
 	} else {
 		fmt.Printf("    サイズ: 0 B (空)\n")
 	}
 
 	// 作成日時
 	if group.CreationTime != nil {
-		fmt.Printf("    作成日: %s\n", FormatTimestamp(group.CreationTime))
+		fmt.Printf("    作成日: %s\n", common.FormatTimestamp(group.CreationTime))
 	}
 
 	// 保存期間
@@ -97,25 +97,3 @@ func DisplayLogGroupDetails(group types.LogGroup) {
 	}
 }
 
-// FormatTimestamp はUnixミリ秒のタイムスタンプをフォーマットする関数
-func FormatTimestamp(timestamp *int64) string {
-	if timestamp == nil {
-		return "不明"
-	}
-	t := time.Unix(*timestamp/1000, (*timestamp%1000)*1000000)
-	return t.Format("2006-01-02 15:04:05")
-}
-
-// formatBytes はバイト数を人間が読みやすい形式に変換する関数
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}

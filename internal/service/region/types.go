@@ -1,13 +1,13 @@
 package region
 
-// awsRegion represents an AWS region
+// awsRegion represents an AWS region (private)
 type awsRegion struct {
 	regionName  string
 	optInStatus string
 }
 
-// regionGroups represents grouped regions by availability (private)
-type regionGroups struct {
-	available []awsRegion
-	disabled  []awsRegion
+// AwsRegion represents an AWS region (public)
+type AwsRegion struct {
+	RegionName  string
+	OptInStatus string
 }

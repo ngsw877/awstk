@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/service/common"
 	regionSvc "awstk/internal/service/region"
 	"fmt"
 
@@ -44,12 +45,55 @@ var regionLsCmd = &cobra.Command{
 func listRegions(showAllRegions bool) error {
 	ec2Client := ec2.NewFromConfig(awsCfg)
 
-	output, err := regionSvc.GetFormattedRegionList(ec2Client, showAllRegions)
+	regions, err := regionSvc.ListRegions(ec2Client, showAllRegions)
 	if err != nil {
-		return fmt.Errorf("❌ リージョン一覧取得でエラー: %w", err)
+		return common.FormatListError("リージョン", err)
 	}
 
-	fmt.Print(output)
+	if showAllRegions {
+		// 有効なリージョンと無効なリージョンを分けて表示
+		available, disabled := regionSvc.GroupRegions(regions)
+		
+		fmt.Printf("AWSリージョン一覧: (全%d件)\n\n", len(regions))
+		
+		if len(available) > 0 {
+			availableNames := make([]string, len(available))
+			for i, region := range available {
+				availableNames[i] = fmt.Sprintf("%s (%s)", region.RegionName, region.OptInStatus)
+			}
+			common.PrintNumberedList(common.ListOutput{
+				Title:        fmt.Sprintf("✅ 有効なリージョン (%d件)", len(available)),
+				Items:        availableNames,
+				ResourceName: "リージョン",
+			})
+		}
+		
+		if len(disabled) > 0 {
+			fmt.Println()
+			disabledNames := make([]string, len(disabled))
+			for i, region := range disabled {
+				disabledNames[i] = fmt.Sprintf("%s (%s)", region.RegionName, region.OptInStatus)
+			}
+			common.PrintNumberedList(common.ListOutput{
+				Title:        fmt.Sprintf("❌ 無効なリージョン (%d件)", len(disabled)),
+				Items:        disabledNames,
+				ResourceName: "リージョン",
+			})
+		}
+	} else {
+		// 有効なリージョンのみ表示
+		available, _ := regionSvc.GroupRegions(regions)
+		names := make([]string, len(available))
+		for i, region := range available {
+			names[i] = region.RegionName
+		}
+		common.PrintNumberedList(common.ListOutput{
+			Title:        "利用可能なリージョン一覧",
+			Items:        names,
+			ResourceName: "リージョン",
+		})
+	}
+	
 	return nil
 }
 

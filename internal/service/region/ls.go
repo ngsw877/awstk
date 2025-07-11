@@ -3,51 +3,43 @@ package region
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-// GetFormattedRegionList retrieves and formats region list as string for display
-func GetFormattedRegionList(ec2Client *ec2.Client, showAllRegions bool) (string, error) {
+// ListRegions はAWSリージョンの一覧を取得する関数 (公開)
+func ListRegions(ec2Client *ec2.Client, showAllRegions bool) ([]AwsRegion, error) {
 	regions, err := listRegions(ec2Client, showAllRegions)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	if len(regions) == 0 {
-		return "リージョンが見つかりませんでした", nil
+	// 内部型から公開型に変換
+	var result []AwsRegion
+	for _, region := range regions {
+		result = append(result, AwsRegion{
+			RegionName:  region.regionName,
+			OptInStatus: region.optInStatus,
+		})
 	}
 
-	groups := groupRegions(regions)
-	var output strings.Builder
+	return result, nil
+}
 
-	if showAllRegions {
-		// --all オプション時は有効/無効を分けて表示
-		output.WriteString(fmt.Sprintf("AWSリージョン一覧: (全%d件)\n\n", len(regions)))
+// GroupRegions はリージョンを有効/無効でグループ化する関数 (公開)
+func GroupRegions(regions []AwsRegion) ([]AwsRegion, []AwsRegion) {
+	var available, disabled []AwsRegion
 
-		if len(groups.available) > 0 {
-			output.WriteString(fmt.Sprintf("✅ 有効なリージョン (%d件):\n", len(groups.available)))
-			for i, region := range groups.available {
-				output.WriteString(fmt.Sprintf("  %3d. %s (%s)\n", i+1, region.regionName, region.optInStatus))
-			}
-		}
-
-		if len(groups.disabled) > 0 {
-			output.WriteString(fmt.Sprintf("\n❌ 無効なリージョン (%d件):\n", len(groups.disabled)))
-			for i, region := range groups.disabled {
-				output.WriteString(fmt.Sprintf("  %3d. %s (%s)\n", i+1, region.regionName, region.optInStatus))
-			}
-		}
-	} else {
-		// デフォルトは有効なリージョンのみ表示
-		output.WriteString(fmt.Sprintf("利用可能なリージョン一覧: (全%d件)\n", len(groups.available)))
-		for i, region := range groups.available {
-			output.WriteString(fmt.Sprintf("  %3d. %s\n", i+1, region.regionName))
+	for _, region := range regions {
+		switch region.OptInStatus {
+		case "opt-in-not-required", "opted-in":
+			available = append(available, region)
+		default:
+			disabled = append(disabled, region)
 		}
 	}
 
-	return output.String(), nil
+	return available, disabled
 }
 
 // listRegions retrieves all AWS regions (private)
@@ -72,18 +64,3 @@ func listRegions(ec2Client *ec2.Client, showAllRegions bool) ([]awsRegion, error
 	return regions, nil
 }
 
-// groupRegions groups regions by availability (private)
-func groupRegions(regions []awsRegion) regionGroups {
-	var groups regionGroups
-
-	for _, region := range regions {
-		switch region.optInStatus {
-		case "opt-in-not-required", "opted-in":
-			groups.available = append(groups.available, region)
-		default:
-			groups.disabled = append(groups.disabled, region)
-		}
-	}
-
-	return groups
-}

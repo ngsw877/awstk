@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/service/common"
 	s3svc "awstk/internal/service/s3"
 	"fmt"
 
@@ -57,32 +58,32 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 			// 引数がない場合はバケット一覧表示
 			buckets, err := s3svc.ListS3Buckets(s3Client)
 			if err != nil {
-				return fmt.Errorf("❌ S3バケット一覧取得でエラー: %w", err)
+				return common.FormatListError("S3バケット", err)
 			}
 			if len(buckets) == 0 {
-				fmt.Println("S3バケットが見つかりませんでした")
+				fmt.Println(common.FormatEmptyMessage("S3バケット"))
 				return nil
 			}
 			
 			// 空バケットのみ表示する場合
 			if emptyOnly {
-				fmt.Println("空のS3バケット一覧:")
 				emptyBuckets, err := s3svc.FilterEmptyBuckets(s3Client, buckets)
 				if err != nil {
 					return fmt.Errorf("❌ 空バケットのチェックでエラー: %w", err)
 				}
-				if len(emptyBuckets) == 0 {
-					fmt.Println("空のバケットはありませんでした")
-					return nil
-				}
-				for _, name := range emptyBuckets {
-					fmt.Println("  -", name)
-				}
+				common.PrintSimpleList(common.ListOutput{
+					Title:        "空のS3バケット一覧",
+					Items:        emptyBuckets,
+					ResourceName: "バケット",
+					ShowCount:    false,
+				})
 			} else {
-				fmt.Println("S3バケット一覧:")
-				for _, name := range buckets {
-					fmt.Println("  -", name)
-				}
+				common.PrintSimpleList(common.ListOutput{
+					Title:        "S3バケット一覧",
+					Items:        buckets,
+					ResourceName: "バケット",
+					ShowCount:    false,
+				})
 			}
 		} else {
 			// 引数がある場合は指定S3パスをツリー形式で表示

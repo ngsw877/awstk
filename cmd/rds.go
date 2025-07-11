@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 	rdssvc "awstk/internal/service/rds"
 	"fmt"
 
@@ -124,19 +125,21 @@ var rdsLsCmd = &cobra.Command{
 		} else {
 			instances, err = rdssvc.ListRdsInstances(rdsClient)
 			if err != nil {
-				return fmt.Errorf("❌ RDSインスタンス一覧取得でエラー: %w", err)
+				return common.FormatListError("RDSインスタンス", err)
 			}
 		}
 
-		if len(instances) == 0 {
-			fmt.Println("RDSインスタンスが見つかりませんでした")
-			return nil
+		// 共通形式に変換
+		items := make([]common.ListItem, len(instances))
+		for i, ins := range instances {
+			items[i] = common.ListItem{
+				Name:   fmt.Sprintf("%s (%s)", ins.InstanceId, ins.Engine),
+				Status: ins.Status,
+			}
 		}
 
-		fmt.Printf("RDSインスタンス一覧: (全%d件)\n", len(instances))
-		for i, ins := range instances {
-			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, ins.InstanceId, ins.Engine, ins.Status)
-		}
+		// 共通関数で表示
+		common.PrintStatusList("RDSインスタンス一覧", items, "RDSインスタンス")
 
 		return nil
 	},

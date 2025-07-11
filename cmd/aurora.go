@@ -3,6 +3,7 @@ package cmd
 import (
 	"awstk/internal/service/aurora"
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -123,19 +124,21 @@ var auroraLsCmd = &cobra.Command{
 		} else {
 			clusters, err = aurora.ListAuroraClusters(rdsClient)
 			if err != nil {
-				return fmt.Errorf("❌ Auroraクラスター一覧取得でエラー: %w", err)
+				return common.FormatListError("Auroraクラスター", err)
 			}
 		}
 
-		if len(clusters) == 0 {
-			fmt.Println("Auroraクラスターが見つかりませんでした")
-			return nil
+		// 共通形式に変換
+		items := make([]common.ListItem, len(clusters))
+		for i, cl := range clusters {
+			items[i] = common.ListItem{
+				Name:   fmt.Sprintf("%s (%s)", cl.ClusterId, cl.Engine),
+				Status: cl.Status,
+			}
 		}
 
-		fmt.Printf("Auroraクラスター一覧: (全%d件)\n", len(clusters))
-		for i, cl := range clusters {
-			fmt.Printf("  %3d. %s (%s) [%s]\n", i+1, cl.ClusterId, cl.Engine, cl.Status)
-		}
+		// 共通関数で表示
+		common.PrintStatusList("Auroraクラスター一覧", items, "Auroraクラスター")
 
 		return nil
 	},

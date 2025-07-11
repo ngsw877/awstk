@@ -4,6 +4,7 @@ import (
 	cfsvc "awstk/internal/service/cloudfront"
 	"awstk/internal/service/cloudfront/tenant"
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -127,18 +128,22 @@ var cfTenantListCmd = &cobra.Command{
 		
 		tenants, err := tenant.ListTenants(cfClient, distributionId)
 		if err != nil {
-			return fmt.Errorf("❌ テナント一覧取得エラー: %w", err)
+			return common.FormatListError("テナント", err)
 		}
 
-		if len(tenants) == 0 {
-			fmt.Println("テナントが見つかりませんでした")
-			return nil
-		}
-
-		fmt.Printf("テナント一覧 (ディストリビューション: %s): 全%d件\n", distributionId, len(tenants))
+		// テナントIDの一覧を作成
+		tenantIds := make([]string, len(tenants))
 		for i, t := range tenants {
-			fmt.Printf("  %3d. %s\n", i+1, t.Id)
+			tenantIds[i] = t.Id
 		}
+
+		// 共通関数で表示
+		title := fmt.Sprintf("テナント一覧 (ディストリビューション: %s)", distributionId)
+		common.PrintNumberedList(common.ListOutput{
+			Title:        title,
+			Items:        tenantIds,
+			ResourceName: "テナント",
+		})
 
 		return nil
 	},
