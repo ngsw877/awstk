@@ -38,13 +38,19 @@ var logsLsCmd = &cobra.Command{
 【使い方】
   ` + AppName + ` logs ls                    # ログループ一覧を表示
   ` + AppName + ` logs ls -e                 # 空のログループのみを表示
+  ` + AppName + ` logs ls -n                 # 保存期間が未設定のログのみを表示
   ` + AppName + ` logs ls --details          # 詳細情報付きで表示
+  ` + AppName + ` logs ls -e -n              # 空かつ保存期間未設定のログを表示
 
 【例】
   ` + AppName + ` logs ls -e
-  → 空のCloudWatch Logsグループのみを一覧表示します。`,
+  → 空のCloudWatch Logsグループのみを一覧表示します。
+  
+  ` + AppName + ` logs ls -n -d
+  → 保存期間が未設定のログを詳細情報付きで表示します。`,
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		emptyOnly, _ := cmdCobra.Flags().GetBool("empty-only")
+		noRetention, _ := cmdCobra.Flags().GetBool("no-retention")
 		showDetails, _ := cmdCobra.Flags().GetBool("details")
 
 		// ログループ一覧を取得
@@ -58,36 +64,40 @@ var logsLsCmd = &cobra.Command{
 			return nil
 		}
 
-		// 空ロググループのみ表示する場合
-		if emptyOnly {
-			fmt.Println("空のCloudWatch Logsグループ一覧:")
-			emptyGroups := logssvc.FilterEmptyLogGroups(logGroups)
-			if len(emptyGroups) == 0 {
-				fmt.Println("空のログループはありませんでした")
-				return nil
-			}
-			for _, group := range emptyGroups {
-				if showDetails {
-					fmt.Printf("  - %s (作成日: %s)\n", 
-						*group.LogGroupName, 
-						logssvc.FormatTimestamp(group.CreationTime))
-				} else {
-					fmt.Printf("  - %s\n", *group.LogGroupName)
-				}
-			}
-			fmt.Printf("\n合計: %d個の空ログループ\n", len(emptyGroups))
+		// フィルタリング処理
+		filteredGroups := logGroups
+		var title string
+
+		// 複数フィルタの組み合わせ対応
+		if emptyOnly && noRetention {
+			title = "空かつ保存期間未設定のCloudWatch Logsグループ一覧:"
+			filteredGroups = logssvc.FilterEmptyLogGroups(filteredGroups)
+			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
+		} else if emptyOnly {
+			title = "空のCloudWatch Logsグループ一覧:"
+			filteredGroups = logssvc.FilterEmptyLogGroups(filteredGroups)
+		} else if noRetention {
+			title = "保存期間未設定のCloudWatch Logsグループ一覧:"
+			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
 		} else {
-			// 全ログループを表示
-			fmt.Println("CloudWatch Logsグループ一覧:")
-			for _, group := range logGroups {
-				if showDetails {
-					logssvc.DisplayLogGroupDetails(group)
-				} else {
-					fmt.Printf("  - %s\n", *group.LogGroupName)
-				}
-			}
-			fmt.Printf("\n合計: %d個のログループ\n", len(logGroups))
+			title = "CloudWatch Logsグループ一覧:"
 		}
+
+		// 結果表示
+		fmt.Println(title)
+		if len(filteredGroups) == 0 {
+			fmt.Println("該当するログループはありませんでした")
+			return nil
+		}
+
+		for _, group := range filteredGroups {
+			if showDetails {
+				logssvc.DisplayLogGroupDetails(group)
+			} else {
+				fmt.Printf("  - %s\n", *group.LogGroupName)
+			}
+		}
+		fmt.Printf("\n合計: %d個のログループ\n", len(filteredGroups))
 
 		return nil
 	},
@@ -100,5 +110,6 @@ func init() {
 
 	// ls コマンドのフラグ
 	logsLsCmd.Flags().BoolP("empty-only", "e", false, "空のログループのみを表示")
+	logsLsCmd.Flags().BoolP("no-retention", "n", false, "保存期間が未設定のログのみを表示")
 	logsLsCmd.Flags().BoolP("details", "d", false, "詳細情報を表示")
 }

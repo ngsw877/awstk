@@ -48,6 +48,19 @@ func FilterEmptyLogGroups(logGroups []types.LogGroup) []types.LogGroup {
 	return emptyGroups
 }
 
+// FilterNoRetentionLogGroups は保存期間が未設定のログループのみを返す関数
+func FilterNoRetentionLogGroups(logGroups []types.LogGroup) []types.LogGroup {
+	var noRetentionGroups []types.LogGroup
+
+	for _, group := range logGroups {
+		if group.RetentionInDays == nil {
+			noRetentionGroups = append(noRetentionGroups, group)
+		}
+	}
+
+	return noRetentionGroups
+}
+
 // isLogGroupEmpty はログループが空かどうかを判定する関数
 func isLogGroupEmpty(group types.LogGroup) bool {
 	// StoredBytesが0または存在しない場合は空と判定
