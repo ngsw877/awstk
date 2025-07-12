@@ -11,7 +11,7 @@ import (
 )
 
 // checkS3BucketAvailability は指定バケット名の利用可否判定・メッセージ生成まで行う
-func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) S3BucketAvailabilityResult {
+func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) BucketAvailabilityResult {
 	ctx := context.Background()
 	input := &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
@@ -19,7 +19,7 @@ func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) S3BucketA
 	_, err := s3Client.HeadBucket(ctx, input)
 
 	if err == nil {
-		return S3BucketAvailabilityResult{
+		return BucketAvailabilityResult{
 			BucketName: bucketName,
 			StatusCode: 200,
 			Message:    "利用不可（すでに存在）",
@@ -45,7 +45,7 @@ func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) S3BucketA
 		msg = fmt.Sprintf("利用不可（エラー: %v）", err)
 	}
 
-	return S3BucketAvailabilityResult{
+	return BucketAvailabilityResult{
 		BucketName: bucketName,
 		StatusCode: statusCode,
 		Message:    msg,
@@ -53,8 +53,8 @@ func checkS3BucketAvailability(s3Client *s3.Client, bucketName string) S3BucketA
 }
 
 // CheckS3BucketsAvailability 複数バケットの利用可否をまとめて判定
-func CheckS3BucketsAvailability(s3Client *s3.Client, buckets []string) []S3BucketAvailabilityResult {
-	results := make([]S3BucketAvailabilityResult, 0, len(buckets))
+func CheckS3BucketsAvailability(s3Client *s3.Client, buckets []string) []BucketAvailabilityResult {
+	results := make([]BucketAvailabilityResult, 0, len(buckets))
 	for _, bucket := range buckets {
 		results = append(results, checkS3BucketAvailability(s3Client, bucket))
 	}

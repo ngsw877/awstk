@@ -12,15 +12,15 @@ import (
 )
 
 // ListAuroraClusters 現在のリージョンのAuroraクラスター一覧を取得する
-func ListAuroraClusters(rdsClient *rds.Client) ([]AuroraCluster, error) {
+func ListAuroraClusters(rdsClient *rds.Client) ([]Cluster, error) {
 	resp, err := rdsClient.DescribeDBClusters(context.Background(), &rds.DescribeDBClustersInput{})
 	if err != nil {
 		return nil, fmt.Errorf("Auroraクラスター一覧の取得に失敗: %w", err)
 	}
 
-	clusters := make([]AuroraCluster, 0, len(resp.DBClusters))
+	clusters := make([]Cluster, 0, len(resp.DBClusters))
 	for _, c := range resp.DBClusters {
-		clusters = append(clusters, AuroraCluster{
+		clusters = append(clusters, Cluster{
 			ClusterId: awssdk.ToString(c.DBClusterIdentifier),
 			Engine:    awssdk.ToString(c.Engine),
 			Status:    awssdk.ToString(c.Status),
@@ -31,14 +31,14 @@ func ListAuroraClusters(rdsClient *rds.Client) ([]AuroraCluster, error) {
 }
 
 // ListAuroraClustersFromStack 指定されたCloudFormationスタックに属するAuroraクラスター一覧を取得する
-func ListAuroraClustersFromStack(rdsClient *rds.Client, cfnClient *cloudformation.Client, stackName string) ([]AuroraCluster, error) {
+func ListAuroraClustersFromStack(rdsClient *rds.Client, cfnClient *cloudformation.Client, stackName string) ([]Cluster, error) {
 	ids, err := cfn.GetAllAuroraFromStack(cfnClient, stackName)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(ids) == 0 {
-		return []AuroraCluster{}, nil
+		return []Cluster{}, nil
 	}
 
 	all, err := ListAuroraClusters(rdsClient)
@@ -51,7 +51,7 @@ func ListAuroraClustersFromStack(rdsClient *rds.Client, cfnClient *cloudformatio
 		idSet[id] = struct{}{}
 	}
 
-	var clusters []AuroraCluster
+	var clusters []Cluster
 	for _, cl := range all {
 		if _, ok := idSet[cl.ClusterId]; ok {
 			clusters = append(clusters, cl)

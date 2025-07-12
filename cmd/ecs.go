@@ -67,7 +67,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = ecssvc.ExecuteEcsCommand(ecssvc.EcsExecOptions{
+		err = ecssvc.ExecuteEcsCommand(ecssvc.ExecOptions{
 			AwsCtx:        awsCtx,
 			ClusterName:   clusterName,
 			TaskId:        taskId,

@@ -12,8 +12,8 @@ type ServiceCapacityOptions struct {
 	MaxCapacity int
 }
 
-// EcsExecOptions はECS execute-commandのパラメータを格納する構造体
-type EcsExecOptions struct {
+// ExecOptions EcsExecOptions はECS execute-commandのパラメータを格納する構造体
+type ExecOptions struct {
 	AwsCtx        aws.Context
 	ClusterName   string
 	TaskId        string

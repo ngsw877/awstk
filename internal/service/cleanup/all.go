@@ -8,7 +8,7 @@ import (
 )
 
 // CleanupResources は指定した文字列を含むAWSリソースをクリーンアップします
-func CleanupResources(opts CleanupOptions) error {
+func CleanupResources(opts Options) error {
 	// 事前条件チェック
 	if err := validateCleanupOptions(opts); err != nil {
 		return err
@@ -70,7 +70,7 @@ func CleanupResources(opts CleanupOptions) error {
 }
 
 // validateCleanupOptions はクリーンアップオプションのバリデーションを行います
-func validateCleanupOptions(opts CleanupOptions) error {
+func validateCleanupOptions(opts Options) error {
 	if opts.S3Client == nil {
 		return fmt.Errorf("S3クライアントが指定されていません")
 	}

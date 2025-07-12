@@ -12,15 +12,15 @@ import (
 )
 
 // ListRdsInstances 現在のリージョンのRDSインスタンス一覧を取得する
-func ListRdsInstances(rdsClient *rds.Client) ([]RdsInstance, error) {
+func ListRdsInstances(rdsClient *rds.Client) ([]Instance, error) {
 	resp, err := rdsClient.DescribeDBInstances(context.Background(), &rds.DescribeDBInstancesInput{})
 	if err != nil {
 		return nil, fmt.Errorf("RDSインスタンス一覧の取得に失敗: %w", err)
 	}
 
-	instances := make([]RdsInstance, 0, len(resp.DBInstances))
+	instances := make([]Instance, 0, len(resp.DBInstances))
 	for _, db := range resp.DBInstances {
-		instances = append(instances, RdsInstance{
+		instances = append(instances, Instance{
 			InstanceId: awssdk.ToString(db.DBInstanceIdentifier),
 			Engine:     awssdk.ToString(db.Engine),
 			Status:     awssdk.ToString(db.DBInstanceStatus),
@@ -31,14 +31,14 @@ func ListRdsInstances(rdsClient *rds.Client) ([]RdsInstance, error) {
 }
 
 // ListRdsInstancesFromStack 指定されたCloudFormationスタックに属するRDSインスタンス一覧を取得する
-func ListRdsInstancesFromStack(rdsClient *rds.Client, cfnClient *cloudformation.Client, stackName string) ([]RdsInstance, error) {
+func ListRdsInstancesFromStack(rdsClient *rds.Client, cfnClient *cloudformation.Client, stackName string) ([]Instance, error) {
 	ids, err := cfn.GetAllRdsFromStack(cfnClient, stackName)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(ids) == 0 {
-		return []RdsInstance{}, nil
+		return []Instance{}, nil
 	}
 
 	all, err := ListRdsInstances(rdsClient)
@@ -51,7 +51,7 @@ func ListRdsInstancesFromStack(rdsClient *rds.Client, cfnClient *cloudformation.
 		idSet[id] = struct{}{}
 	}
 
-	var instances []RdsInstance
+	var instances []Instance
 	for _, ins := range all {
 		if _, ok := idSet[ins.InstanceId]; ok {
 			instances = append(instances, ins)

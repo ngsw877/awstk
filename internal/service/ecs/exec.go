@@ -34,7 +34,7 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 }
 
 // ExecuteEcsCommand はECS execute-commandを実行する
-func ExecuteEcsCommand(opts EcsExecOptions) error {
+func ExecuteEcsCommand(opts ExecOptions) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",

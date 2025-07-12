@@ -1,14 +1,14 @@
 package aurora
 
-// AuroraCluster Auroraクラスターの情報を格納する構造体
-type AuroraCluster struct {
+// Cluster AuroraCluster Auroraクラスターの情報を格納する構造体
+type Cluster struct {
 	ClusterId string
 	Engine    string
 	Status    string
 }
 
-// AuroraCapacityInfo Aurora Serverless v2のAcu情報を格納する構造体
-type AuroraCapacityInfo struct {
+// CapacityInfo AuroraCapacityInfo Aurora Serverless v2のAcu情報を格納する構造体
+type CapacityInfo struct {
 	ClusterId    string
 	CurrentAcu   float64
 	MinAcu       float64

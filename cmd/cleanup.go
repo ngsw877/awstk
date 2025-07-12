@@ -43,7 +43,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 		ecrClient := ecr.NewFromConfig(awsCfg)
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
-		opts := cleanup.CleanupOptions{
+		opts := cleanup.Options{
 			S3Client:     s3Client,
 			EcrClient:    ecrClient,
 			CfnClient:    cfnClient,

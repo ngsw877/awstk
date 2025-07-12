@@ -12,7 +12,7 @@ import (
 // ListCfnStacks はCloudFormationスタック一覧を返す
 // showAll が true の場合は全てのステータスのスタックを取得する
 // showAll が false の場合はアクティブなスタックのみを取得する
-func ListCfnStacks(cfnClient *cloudformation.Client, showAll bool) ([]CfnStack, error) {
+func ListCfnStacks(cfnClient *cloudformation.Client, showAll bool) ([]Stack, error) {
 	activeStatuses := []types.StackStatus{
 		types.StackStatusCreateComplete,
 		types.StackStatusUpdateComplete,
@@ -21,7 +21,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client, showAll bool) ([]CfnStack, 
 		types.StackStatusImportComplete,
 	}
 
-	var stacks []CfnStack
+	var stacks []Stack
 	var nextToken *string
 
 	for {
@@ -36,7 +36,7 @@ func ListCfnStacks(cfnClient *cloudformation.Client, showAll bool) ([]CfnStack, 
 		}
 
 		for _, summary := range resp.StackSummaries {
-			stacks = append(stacks, CfnStack{
+			stacks = append(stacks, Stack{
 				Name:   aws.ToString(summary.StackName),
 				Status: string(summary.StackStatus),
 			})

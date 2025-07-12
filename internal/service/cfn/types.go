@@ -24,8 +24,8 @@ type StackResources struct {
 	EcsServiceInfo   []EcsServiceInfo
 }
 
-// CfnStack はCloudFormationスタックの名前とステータスを表す構造体
-type CfnStack struct {
+// Stack CfnStack はCloudFormationスタックの名前とステータスを表す構造体
+type Stack struct {
 	Name   string
 	Status string
 }

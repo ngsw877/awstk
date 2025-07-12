@@ -16,13 +16,13 @@ import (
 )
 
 // ListEc2Instances 現在のリージョンのEC2インスタンス一覧を取得する
-func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
+func ListEc2Instances(ec2Client *ec2.Client) ([]Instance, error) {
 	result, err := ec2Client.DescribeInstances(context.Background(), &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, fmt.Errorf("EC2インスタンス一覧の取得に失敗: %w", err)
 	}
 
-	var instances []Ec2Instance
+	var instances []Instance
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
 			// 終了済みのインスタンスは除外
@@ -39,7 +39,7 @@ func ListEc2Instances(ec2Client *ec2.Client) ([]Ec2Instance, error) {
 				}
 			}
 
-			instances = append(instances, Ec2Instance{
+			instances = append(instances, Instance{
 				InstanceId:   *instance.InstanceId,
 				InstanceName: instanceName,
 				State:        string(instance.State.Name),
@@ -101,14 +101,14 @@ func SelectInstanceInteractively(ec2Client *ec2.Client) (string, error) {
 }
 
 // ListEc2InstancesFromStack 指定されたCloudFormationスタックに属するEC2インスタンス一覧を取得する
-func ListEc2InstancesFromStack(ec2Client *ec2.Client, cfnClient *cloudformation.Client, stackName string) ([]Ec2Instance, error) {
+func ListEc2InstancesFromStack(ec2Client *ec2.Client, cfnClient *cloudformation.Client, stackName string) ([]Instance, error) {
 	ids, err := cfn.GetAllEc2FromStack(cfnClient, stackName)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(ids) == 0 {
-		return []Ec2Instance{}, nil
+		return []Instance{}, nil
 	}
 
 	all, err := ListEc2Instances(ec2Client)
@@ -121,7 +121,7 @@ func ListEc2InstancesFromStack(ec2Client *ec2.Client, cfnClient *cloudformation.
 		idSet[id] = struct{}{}
 	}
 
-	var instances []Ec2Instance
+	var instances []Instance
 	for _, ins := range all {
 		if _, ok := idSet[ins.InstanceId]; ok {
 			instances = append(instances, ins)

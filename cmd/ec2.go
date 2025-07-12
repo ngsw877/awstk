@@ -90,7 +90,7 @@ var ec2LsCmd = &cobra.Command{
 	Long:  `EC2インスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var (
-			instances []ec2svc.Ec2Instance
+			instances []ec2svc.Instance
 			err       error
 		)
 

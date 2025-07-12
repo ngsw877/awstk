@@ -17,8 +17,8 @@ type TreeNode struct {
 	Object   *S3Object // ファイルの場合のみ設定
 }
 
-// S3BucketAvailabilityResult S3バケット利用可否判定結果構造体
-type S3BucketAvailabilityResult struct {
+// BucketAvailabilityResult はS3バケット利用可否判定結果構造体
+type BucketAvailabilityResult struct {
 	BucketName string
 	StatusCode int
 	Message    string

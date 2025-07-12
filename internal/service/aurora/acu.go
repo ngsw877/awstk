@@ -12,7 +12,7 @@ import (
 )
 
 // GetAuroraCapacityInfo Aurora Serverless v2のAcu情報を取得
-func GetAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client, clusterName string) (*AuroraCapacityInfo, error) {
+func GetAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client, clusterName string) (*CapacityInfo, error) {
 	// まずクラスター情報を取得
 	describeInput := &rds.DescribeDBClustersInput{
 		DBClusterIdentifier: aws.String(clusterName),
@@ -28,7 +28,7 @@ func GetAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client, c
 	}
 
 	cluster := result.DBClusters[0]
-	info := &AuroraCapacityInfo{
+	info := &CapacityInfo{
 		ClusterId:    aws.ToString(cluster.DBClusterIdentifier),
 		Status:       aws.ToString(cluster.Status),
 		IsServerless: cluster.ServerlessV2ScalingConfiguration != nil,
@@ -99,14 +99,14 @@ func getCurrentAcuFromCloudWatch(cwClient *cloudwatch.Client, clusterName string
 }
 
 // ListAuroraCapacityInfo 複数クラスターのAcu情報を取得
-func ListAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client) ([]AuroraCapacityInfo, error) {
+func ListAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client) ([]CapacityInfo, error) {
 	// 全クラスターを取得
 	clusters, err := ListAuroraClusters(rdsClient)
 	if err != nil {
 		return nil, err
 	}
 
-	var capacityInfos []AuroraCapacityInfo
+	var capacityInfos []CapacityInfo
 	for _, cluster := range clusters {
 		info, err := GetAuroraCapacityInfo(rdsClient, cwClient, cluster.ClusterId)
 		if err != nil {

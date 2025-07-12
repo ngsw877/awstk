@@ -113,7 +113,7 @@ var rdsLsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
 		var (
-			instances []rdssvc.RdsInstance
+			instances []rdssvc.Instance
 			err       error
 		)
 

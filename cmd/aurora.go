@@ -112,7 +112,7 @@ var auroraLsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
 		var (
-			clusters []aurora.AuroraCluster
+			clusters []aurora.Cluster
 			err      error
 		)
 
@@ -211,7 +211,7 @@ var auroraAcuCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
-func displayCapacityInfo(info *aurora.AuroraCapacityInfo) {
+func displayCapacityInfo(info *aurora.CapacityInfo) {
 	fmt.Printf("📊 %s\n", info.ClusterId)
 	if info.CurrentAcu >= 0 {
 		if info.CurrentAcu == 0 {
