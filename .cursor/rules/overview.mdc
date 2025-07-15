@@ -28,6 +28,7 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 │   ├── aws/               # AWS 設定・共通クライアント
 │   ├── cli/               # AWS CLI 実行処理
 │   └── service/           # AWS SDK 操作ロジック
+│       ├── common/        # サービス間共通処理（出力フォーマットなど）
 │       ├── cleanup/       # 横断クリーンアップ機能
 │       ├── s3/            # S3 関連操作
 │       ├── ecr/           # ECR 関連操作
@@ -43,9 +44,17 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 | 層 | 責務 | 配置例 |
 |---|------|--------|
 | **CLI層** | コマンド定義・フラグ処理 | `cmd/<service>.go` |
-| **サービス層** | AWS SDK操作・ビジネスロジック | `internal/service/<service>/` |
+| **サービス層** | AWS SDK操作・ビジネスロジック | `internal/service/<feature>/` |
 | **AWS層** | AWS設定・クライアント管理 | `internal/aws/` |
 | **CLI実行層** | AWS CLI プロセス実行 | `internal/cli/` |
+
+### サービス層ファイル構成パターン
+
+各 `internal/service/<feature>/`（例: `s3/`, `ecr/`, `cleanup/`）配下は以下のような構成になります：
+
+- **`<サブコマンド名>.go`**: サブコマンド固有の処理（例: `ls.go`, `cleanup.go`）
+- **`common.go`**: サブコマンドファイル間で共通処理がある場合
+- **`types.go`**: その機能固有の型定義
 
 ---
 
