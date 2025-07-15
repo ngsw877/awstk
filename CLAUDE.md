@@ -1,17 +1,20 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## プロジェクト概要
+# awstk とは？
 
 **awstk** は Go 言語 + Cobra で実装した AWS リソース操作用 CLI です。
 S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理・クリーンアップできることを目的としています。
 
-### 技術スタック
+<!-- テスト用コメント -->
+
+---
+
+## 技術スタック
+
 - Go **1.24+**
 - AWS SDK for Go v2
 - Cobra CLI フレームワーク
 - CDK for Go (検証用テンプレートは `demo-infra/` に同梱)
+
+---
 
 ## ディレクトリ構成と責務
 
@@ -22,6 +25,7 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 │   ├── aws/               # AWS 設定・共通クライアント
 │   ├── cli/               # AWS CLI 実行処理
 │   └── service/           # AWS SDK 操作ロジック
+│       ├── common/        # サービス間共通処理（出力フォーマットなど）
 │       ├── cleanup/       # 横断クリーンアップ機能
 │       ├── s3/            # S3 関連操作
 │       ├── ecr/           # ECR 関連操作
@@ -37,85 +41,19 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 | 層 | 責務 | 配置例 |
 |---|------|--------|
 | **CLI層** | コマンド定義・フラグ処理 | `cmd/<service>.go` |
-| **サービス層** | AWS SDK操作・ビジネスロジック | `internal/service/<service>/` |
+| **サービス層** | AWS SDK操作・ビジネスロジック | `internal/service/<feature>/` |
 | **AWS層** | AWS設定・クライアント管理 | `internal/aws/` |
 | **CLI実行層** | AWS CLI プロセス実行 | `internal/cli/` |
 
-## 開発コマンド
+### サービス層ファイル構成パターン
 
-```bash
-# ビルド
-go build -o awstk .
+各 `internal/service/<feature>/`（例: `s3/`, `ecr/`, `cleanup/`）配下は以下のような構成になります：
 
-# テスト実行
-go test ./...
+- **`<サブコマンド名>.go`**: サブコマンド固有の処理（例: `ls.go`, `cleanup.go`）
+- **`common.go`**: サブコマンドファイル間で共通処理がある場合
+- **`types.go`**: その機能固有の型定義
 
-# 特定パッケージのテスト
-go test ./internal/service/s3
-
-# フォーマット
-go fmt ./...
-
-# 静的解析
-go vet ./...
-
-# 実行例
-./awstk ec2 ls -P your-profile -R ap-northeast-1 -S stack-name
-```
-
-## AI アシスタントへの共通指示
-
-### 1. 変更の粒度とワークフロー
-
-- **機能追加 / リファクタは 1 コミット 1 単位** を基本とするが、
-  **設計方針の変更など大規模改修が必要な場合はまとめて変更しても構わない**。
-- **大規模変更を行う前に必ず行うこと**
-  1. 最新のディレクトリ構成をツリー形式で提示する
-  2. どのファイルを変更・追加・削除するか、簡潔なプランを提示してユーザーの確認を得る
-
-### 2. コミットメッセージ提案
-
-- **AI はコミットメッセージを"提案"するだけであり、実際のコミット操作は行わない**
-- メッセージは Conventional Commits の prefix を付け、日本語で要点を簡潔にまとめる
-  - 例: `feat: S3 バケット削除コマンドを追加`
-- Scope（`(cli)` や `(iac)` など）は必要に応じて付与してよいが必須ではない
-
-## コードスタイル & 横断ルール
-
-### 命名規則
-
-- **パッケージ名** はすべて小文字・単数形（例: `service`, `aws`, `config`）
-- **変数・関数・定数**
-  - 非公開なら *camelCase*（先頭小文字）
-  - 公開（エクスポート）する場合は *UpperCamelCase*（先頭大文字）
-- **構造体・インターフェース** は UpperCamelCase（型名として読みやすくする）
-- **略語の大文字化**
-  - `AWS` → `Aws`, `HTTP` → `Http`, `ID` → `Id` など
-  - 例: `AwsClient`, `HttpRequest`, `UserId`
-
-### 可視性ポリシー (公開範囲)
-
-- まず **private（小文字始まり）** で定義すること
-- 他パッケージから参照される必要が生じた場合のみ public（大文字始まり）に昇格
-- パブリック関数・構造体には必ず GoDoc コメントを付ける
-
-### エラーハンドリング
-
-- 下位層では `fmt.Errorf("%w", err)` でエラーをラップして伝播
-  - 上位で `errors.Is/As` による判定が可能
-- 上位層（CLIなど）でユーザ向けメッセージへ整形
-- Sentinel error を使う場合は `errors.New` で定義し、比較は `errors.Is`
-
-### コメント・ドキュメント (GoDoc)
-
-- パブリック API には GoDoc 形式のコメントを付与
-  - 1 行目に概要、2 行目以降に詳細
-- コメントは「なぜ」を中心に書き、コードで「何をするか」を示す
-
-### contextの使い方
-
-- AWS SDK for Go v2 のメソッド呼び出し時は、`context.TODO()` ではなく `context.Background()` を使用すること。
-  - 理由: `TODO()`は本来「未実装」や「後で置き換える」用途のため、実運用コードでは`Background()`を使う。
+---
 
 ## 設計方針（要点）
 
@@ -126,6 +64,8 @@ go vet ./...
 5. **エラーハンドリング**: 下位層でラップ、上位層でユーザー向けに整形
 6. **CDK独立性**: `demo-infra/` はアプリ本体と依存関係なし
 
+---
+
 ## 主要機能例
 
 - **横断クリーンアップ**: `cleanup all` でS3/ECRを一括削除
@@ -134,16 +74,66 @@ go vet ./...
 - **ECS操作**: Fargate コンテナへのシェル接続、サービス再起動
 - **デモインフラ**: CDK テンプレート (`awstk-lab`, `cdk-workshop`) 自動デプロイ
 
-## 基本的なファイル配置
+---
 
-- **CLI コマンド**: `cmd/<service>.go`
-- **AWS SDK 操作**: `internal/service/s3/`, `internal/service/ecr/` など
-- **AWS CLI 実行**: `internal/cli/`
-- **AWS 設定**: `internal/aws/`
-- **CDK テンプレート**: `demo-infra/`
+## 参考ドキュメント
 
-## 共通フラグ
+- **README.md**: セットアップ手順とコマンド使用例
+- **style.mdc**: 命名規約・コーディングスタイル
 
-- `-P, --profile`: AWS プロファイル（未指定時は AWS_PROFILE 環境変数を使用）
-- `-R, --region`: AWS リージョン
-- `-S, --stack`: CloudFormation スタック名でリソースをフィルタリング
+---
+
+# AI アシスタントへの共通指示
+
+## 1. 変更の粒度とワークフロー
+
+- **機能追加 / リファクタは 1 コミット 1 単位** を基本とするが、
+  **設計方針の変更など大規模改修が必要な場合はまとめて変更しても構わない**。
+- **大規模変更を行う前に必ず行うこと**
+  1. 最新のディレクトリ構成をツリー形式で提示する
+  2. どのファイルを変更・追加・削除するか、簡潔なプランを提示してユーザーの確認を得る
+
+## 2. コミットメッセージ提案
+
+- **AI はコミットメッセージを"提案"するだけであり、実際のコミット操作は行わない**
+- メッセージは Conventional Commits の prefix を付け、日本語で要点を簡潔にまとめる
+  - 例: `feat(s3): バケット削除コマンドを追加`
+- Scope は対象サービス名で記載する（例: `(s3)`, `(ecs)`, `(ecr)`, `(cfn)` など）
+  - CDK テンプレート変更の場合は `(cdk)` を使用
+  - 適切なスコープがない場合は無理につけず、prefix のみでも構わない
+
+
+# 命名規則
+
+- **パッケージ名** はすべて小文字・単数形（例: `service`, `aws`, `config`）
+- **変数・関数・定数**
+  - 非公開なら *camelCase*（先頭小文字）
+  - 公開（エクスポート）する場合は *UpperCamelCase*（先頭大文字）
+- **構造体・インターフェース** は UpperCamelCase（型名として読みやすくする）
+- **略語の大文字化**
+  - `AWS` → `Aws`, `HTTP` → `Http`, `ID` → `Id` など
+  - 例: `AwsClient`, `HttpRequest`, `UserId`
+
+# 可視性ポリシー (公開範囲)
+
+- まず **private（小文字始まり）** で定義すること
+- 他パッケージから参照される必要が生じた場合のみ public（大文字始まり）に昇格
+- パブリック関数・構造体には必ず GoDoc コメントを付ける
+
+# エラーハンドリング
+
+- 下位層では `fmt.Errorf("%w", err)` でエラーをラップして伝播
+  - 上位で `errors.Is/As` による判定が可能
+- 上位層（CLIなど）でユーザ向けメッセージへ整形
+- Sentinel error を使う場合は `errors.New` で定義し、比較は `errors.Is`
+
+# コメント・ドキュメント (GoDoc)
+
+- パブリック API には GoDoc 形式のコメントを付与
+  - 1 行目に概要、2 行目以降に詳細
+- コメントは「なぜ」を中心に書き、コードで「何をするか」を示す
+
+# contextの使い方
+
+- AWS SDK for Go v2 のメソッド呼び出し時は、`context.TODO()` ではなく `context.Background()` を使用すること。
+  - 理由: `TODO()`は本来「未実装」や「後で置き換える」用途のため、実運用コードでは`Background()`を使う。
