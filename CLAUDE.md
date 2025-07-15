@@ -21,7 +21,7 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 ├── cmd/                    # CLI コマンド定義 (サービス別)
 ├── internal/
 │   ├── aws/               # AWS 設定・共通クライアント
-│   ├── cli/               # AWS CLI 実行処理
+│   ├── cli/               # コマンドライン実行処理
 │   └── service/           # AWS SDK 操作ロジック
 │       ├── common/        # サービス間共通処理（出力フォーマットなど）
 │       ├── cleanup/       # 横断クリーンアップ機能
