@@ -4,20 +4,20 @@ import (
 	"os/exec"
 )
 
-// ExecuteGitCommand はGitコマンドを実行する共通関数
-func ExecuteGitCommand(args []string) error {
+// executeGitCommand はGitコマンドを実行する共通関数
+func executeGitCommand(args []string) error {
 	cmd := exec.Command("git", args...)
 	return cmd.Run()
 }
 
 // SetGitConfig はgit configを設定する
 func SetGitConfig(key, value string) error {
-	return ExecuteGitCommand([]string{"config", "--local", key, value})
+	return executeGitCommand([]string{"config", "--local", key, value})
 }
 
 // UnsetGitConfig はgit configを削除する
 func UnsetGitConfig(key string) error {
-	return ExecuteGitCommand([]string{"config", "--local", "--unset", key})
+	return executeGitCommand([]string{"config", "--local", "--unset", key})
 }
 
 // GetGitConfig はgit configの値を取得する

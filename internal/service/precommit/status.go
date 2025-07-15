@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-// GetStatus はpre-commitフックの現在の状態を取得する
-func GetStatus() (*Status, error) {
-	status := &Status{}
+// getStatus はpre-commitフックの現在の状態を取得する
+func getStatus() (*status, error) {
+	status := &status{}
 
 	// Git hooks の参照先設定を取得
 	hooksPath, err := cli.GetGitConfig("core.hooksPath")
@@ -51,7 +51,7 @@ func GetStatus() (*Status, error) {
 
 // ShowStatus はpre-commitフックの状態を表示する
 func ShowStatus() error {
-	status, err := GetStatus()
+	status, err := getStatus()
 	if err != nil {
 		return fmt.Errorf("failed to get status: %w", err)
 	}
