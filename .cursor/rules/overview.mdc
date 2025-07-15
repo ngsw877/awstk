@@ -8,8 +8,6 @@ alwaysApply: true
 **awstk** は Go 言語 + Cobra で実装した AWS リソース操作用 CLI です。
 S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理・クリーンアップできることを目的としています。
 
-<!-- テスト用コメント -->
-
 ---
 
 ## 技術スタック
