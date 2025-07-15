@@ -3,9 +3,7 @@
 # Pre-commit hook: Cursor Rules が変更された場合に CLAUDE.md を自動更新
 
 # Cursor Rules ファイルが変更されているかチェック
-RULES_CHANGED=$(git diff --cached --name-only | grep "^\.cursor/rules/.*\.mdc$")
-
-if [ -n "$RULES_CHANGED" ]; then
+if ! git diff --cached --quiet --exit-code -- .cursor/rules/; then
     echo "Cursor Rules files changed, updating CLAUDE.md..."
     
     # Go スクリプトを実行
