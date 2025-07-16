@@ -30,3 +30,30 @@ type RunAndWaitForTaskOptions struct {
 	AwsCtx         aws.Context
 	TimeoutSeconds int
 }
+
+// serviceStatus はECSサービスの状態情報を格納する構造体
+type serviceStatus struct {
+	ServiceName     string
+	ClusterName     string
+	Status          string
+	TaskDefinition  string
+	DesiredCount    int32
+	RunningCount    int32
+	PendingCount    int32
+	Tasks           []taskInfo
+	AutoScaling     *autoScalingInfo
+}
+
+// taskInfo はECSタスクの情報を格納する構造体
+type taskInfo struct {
+	TaskId        string
+	Status        string
+	HealthStatus  string
+	CreatedAt     string
+}
+
+// autoScalingInfo はAuto Scalingの設定情報を格納する構造体
+type autoScalingInfo struct {
+	MinCapacity int32
+	MaxCapacity int32
+}

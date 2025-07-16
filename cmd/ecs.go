@@ -238,6 +238,41 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	SilenceUsage: true,
 }
 
+// ecsStatusCmd はECSサービスの状態を表示するコマンドです
+var ecsStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "ECSサービスの状態を表示するコマンド",
+	Long: `ECSサービスのタスク稼働状況を表示するコマンドです。
+CloudFormationスタック名を指定するか、クラスター名とサービス名を直接指定することができます。
+
+例:
+  ` + AppName + ` ecs status -P my-profile -S my-stack
+  ` + AppName + ` ecs status -P my-profile -c my-cluster -s my-service`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+
+		clusterName, serviceName, err = resolveEcsClusterAndService()
+		if err != nil {
+			cmd.Help()
+			return err
+		}
+
+		// AutoScaling用クライアントも生成
+		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+
+		// サービス状態を取得
+		status, err := ecssvc.GetServiceStatus(ecsClient, autoScalingClient, clusterName, serviceName)
+		if err != nil {
+			return fmt.Errorf("❌ エラー: %w", err)
+		}
+
+		// 状態を表示
+		ecssvc.ShowServiceStatus(status)
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(EcsCmd)
 	EcsCmd.AddCommand(ecsExecCmd)
@@ -245,6 +280,7 @@ func init() {
 	EcsCmd.AddCommand(ecsStopCmd)
 	EcsCmd.AddCommand(ecsRunCmd)
 	EcsCmd.AddCommand(ecsRedeployCmd)
+	EcsCmd.AddCommand(ecsStatusCmd)
 
 	// execコマンドのフラグを設定
 	ecsExecCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -281,6 +317,11 @@ func init() {
 	ecsRedeployCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsRedeployCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 	ecsRedeployCmd.Flags().Bool("no-wait", false, "デプロイ完了を待機せずに即座に終了する")
+
+	// statusコマンドのフラグを設定
+	ecsStatusCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	ecsStatusCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
+	ecsStatusCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 }
 
 // validateEcsFlags はECSコマンドのフラグの組み合わせを検証します
