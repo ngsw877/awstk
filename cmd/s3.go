@@ -113,12 +113,8 @@ var s3GunzipCmd = &cobra.Command{
   → my-bucket/logs/ 配下の .gz ファイルを全部ダウンロード＆解凍して指定ディレクトリに保存します。
 
 出力先ディレクトリを省略した場合は ./outputs/ に保存されます。`,
-	Args: cobra.MaximumNArgs(1),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			cmdCobra.Help()
-			return nil
-		}
 		s3Path := args[0]
 		outDir, _ := cmdCobra.Flags().GetString("out")
 		if outDir == "" {

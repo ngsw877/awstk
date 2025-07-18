@@ -55,7 +55,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
@@ -98,7 +97,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
@@ -131,7 +129,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
@@ -165,7 +162,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
@@ -215,7 +211,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
@@ -253,7 +248,6 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		clusterName, serviceName, err = resolveEcsClusterAndService()
 		if err != nil {
-			cmd.Help()
 			return err
 		}
 
