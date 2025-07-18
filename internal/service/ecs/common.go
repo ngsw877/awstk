@@ -1,12 +1,14 @@
 package ecs
 
 import (
+	"awstk/internal/service/cfn"
 	"context"
 	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 )
@@ -56,9 +58,9 @@ func SetEcsServiceCapacity(autoScalingClient *applicationautoscaling.Client, opt
 }
 
 // waitForServiceStatus はECSサービスの状態が目標とする状態になるまで待機します
-func waitForServiceStatus(ecsClient *ecs.Client, opts ServiceCapacityOptions, targetRunningCount int, timeoutSeconds int) error {
+func waitForServiceStatus(ecsClient *ecs.Client, opts waitOptions) error {
 	var status string
-	if targetRunningCount == 0 {
+	if opts.TargetRunningCount == 0 {
 		status = "停止"
 	} else {
 		status = "起動"
@@ -66,7 +68,7 @@ func waitForServiceStatus(ecsClient *ecs.Client, opts ServiceCapacityOptions, ta
 	fmt.Printf("⏳ サービスが%s状態になるまで待機しています...\n", status)
 
 	start := time.Now()
-	timeout := time.Duration(timeoutSeconds) * time.Second
+	timeout := time.Duration(opts.TimeoutSeconds) * time.Second
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -87,8 +89,8 @@ func waitForServiceStatus(ecsClient *ecs.Client, opts ServiceCapacityOptions, ta
 			elapsed, runningCount, desiredCount)
 
 		// 目標達成の確認
-		if runningCount == targetRunningCount && desiredCount == targetRunningCount {
-			if targetRunningCount == 0 {
+		if runningCount == opts.TargetRunningCount && desiredCount == opts.TargetRunningCount {
+			if opts.TargetRunningCount == 0 {
 				fmt.Println("✅ サービスが完全に停止しました")
 			} else {
 				fmt.Println("✅ サービスが完全に起動しました")
@@ -98,7 +100,41 @@ func waitForServiceStatus(ecsClient *ecs.Client, opts ServiceCapacityOptions, ta
 
 		// タイムアウトのチェック
 		if time.Since(start) > timeout {
-			return fmt.Errorf("タイムアウト: %d秒経過しましたがサービスは目標状態に達していません", timeoutSeconds)
+			return fmt.Errorf("タイムアウト: %d秒経過しましたがサービスは目標状態に達していません", opts.TimeoutSeconds)
 		}
 	}
+}
+
+// ValidateResolveOptions はECSコマンドのフラグの組み合わせを検証します
+func ValidateResolveOptions(opts ResolveOptions) error {
+	// -S(--stack)と-c(--cluster)/-s(--service)が同時指定された場合はエラー
+	if opts.StackName != "" && (opts.ClusterName != "" || opts.ServiceName != "") {
+		return fmt.Errorf("❌ -S(--stack)と-c(--cluster)/-s(--service)は同時に指定できません")
+	}
+	// -Sが指定されていない場合は-cと-sの両方が必要
+	if opts.StackName == "" {
+		if opts.ClusterName == "" || opts.ServiceName == "" {
+			return fmt.Errorf("❌ -c(--cluster)と-s(--service)は両方指定してください")
+		}
+	}
+	return nil
+}
+
+// ResolveClusterAndService はECSクラスター名とサービス名を解決します
+func ResolveClusterAndService(cfnClient *cloudformation.Client, opts ResolveOptions) (string, string, error) {
+	if err := ValidateResolveOptions(opts); err != nil {
+		return "", "", err
+	}
+
+	// -Sでスタック名が指定されていればCFnスタックから取得
+	if opts.StackName != "" {
+		serviceInfo, err := cfn.GetEcsFromStack(cfnClient, opts.StackName)
+		if err != nil {
+			return "", "", fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", err)
+		}
+		return serviceInfo.ClusterName, serviceInfo.ServiceName, nil
+	}
+
+	// スタック名が指定されていなければ、フラグ値をそのまま使用
+	return opts.ClusterName, opts.ServiceName, nil
 }

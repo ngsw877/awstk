@@ -1,6 +1,7 @@
 package ecs
 
 import (
+	awsCtx "awstk/internal/aws"
 	"awstk/internal/cli"
 	"context"
 	"fmt"
@@ -34,7 +35,7 @@ func GetRunningTask(ecsClient *ecs.Client, clusterName, serviceName string) (str
 }
 
 // ExecuteEcsCommand はECS execute-commandを実行する
-func ExecuteEcsCommand(opts ExecOptions) error {
+func ExecuteEcsCommand(awsCtx awsCtx.Context, opts ExecOptions) error {
 	// aws ecs execute-commandコマンドを構築
 	args := []string{
 		"ecs", "execute-command",
@@ -46,5 +47,5 @@ func ExecuteEcsCommand(opts ExecOptions) error {
 	}
 
 	// cli層の共通関数を使用してコマンドを実行
-	return cli.ExecuteAwsCommand(opts.AwsCtx, args)
+	return cli.ExecuteAwsCommand(awsCtx, args)
 }

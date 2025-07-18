@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"awstk/internal/aws"
-	ec2svc "awstk/internal/service/ec2"
 	ssmsvc "awstk/internal/service/ssm"
 	"fmt"
 	"strings"
@@ -46,36 +45,9 @@ var ssmSessionStartCmd = &cobra.Command{
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		awsCtx := aws.Context{Region: region, Profile: profile}
+		ec2Client := ec2.NewFromConfig(awsCfg)
 
-		// -iオプションが指定されていない場合、インスタンス一覧から選択
-		if ssmInstanceId == "" {
-			// インタラクティブモードでインスタンスを選択
-			fmt.Println("🖥️  利用可能なEC2インスタンスから選択してください:")
-
-			ec2Client := ec2.NewFromConfig(awsCfg)
-
-			selectedInstanceId, err := ec2svc.SelectInstanceInteractively(ec2Client)
-			if err != nil {
-				return fmt.Errorf("❌ インスタンス選択でエラー: %w", err)
-			}
-			ssmInstanceId = selectedInstanceId
-		}
-
-		fmt.Printf("EC2インスタンス (%s) にSSMで接続します...\n", ssmInstanceId)
-
-		opts := ssmsvc.SessionOptions{
-			AwsCtx:     awsCtx,
-			InstanceId: ssmInstanceId,
-		}
-
-		err := ssmsvc.StartSsmSession(opts)
-		if err != nil {
-			fmt.Printf("❌ SSMセッションの開始に失敗しました。")
-			return err
-		}
-
-		fmt.Println("✅ SSMセッションを開始しました。")
-		return nil
+		return ssmsvc.SelectAndStartSession(awsCtx, ec2Client, ssmInstanceId)
 	},
 	SilenceUsage: true,
 }
@@ -104,13 +76,12 @@ var ssmPutParamsCmd = &cobra.Command{
 		}
 
 		opts := ssmsvc.PutParamsOptions{
-			SsmClient: ssmClient,
-			FilePath:  filePath,
-			Prefix:    ssmParamsPrefix,
-			DryRun:    ssmParamsDryRun,
+			FilePath: filePath,
+			Prefix:   ssmParamsPrefix,
+			DryRun:   ssmParamsDryRun,
 		}
 
-		err := ssmsvc.PutParametersFromFile(opts)
+		err := ssmsvc.PutParametersFromFile(ssmClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ パラメータの登録に失敗しました: %w", err)
 		}
@@ -145,14 +116,13 @@ var ssmDeleteParamsCmd = &cobra.Command{
 		filePath := args[0]
 
 		opts := ssmsvc.DeleteParamsOptions{
-			SsmClient: ssmClient,
-			FilePath:  filePath,
-			Prefix:    ssmParamsPrefix,
-			DryRun:    ssmParamsDryRun,
-			Force:     ssmDeleteForce,
+			FilePath: filePath,
+			Prefix:   ssmParamsPrefix,
+			DryRun:   ssmParamsDryRun,
+			Force:    ssmDeleteForce,
 		}
 
-		err := ssmsvc.DeleteParametersFromFile(opts)
+		err := ssmsvc.DeleteParametersFromFile(ssmClient, opts)
 		if err != nil {
 			return fmt.Errorf("❌ パラメータの削除に失敗しました: %w", err)
 		}

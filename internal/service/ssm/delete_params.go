@@ -11,7 +11,7 @@ import (
 )
 
 // DeleteParametersFromFile はファイルからパラメータ名を読み込んでParameter Storeから削除する
-func DeleteParametersFromFile(opts DeleteParamsOptions) error {
+func DeleteParametersFromFile(ssmClient *ssm.Client, opts DeleteParamsOptions) error {
 	// ファイルの存在確認
 	if _, err := os.Stat(opts.FilePath); os.IsNotExist(err) {
 		return fmt.Errorf("ファイルが見つかりません: %s", opts.FilePath)
@@ -62,7 +62,7 @@ func DeleteParametersFromFile(opts DeleteParamsOptions) error {
 	// パラメータの削除
 	var successCount, failCount, notFoundCount int
 	for _, name := range paramNames {
-		err := deleteParameter(opts.SsmClient, name)
+		err := deleteParameter(ssmClient, name)
 		if err != nil {
 			if strings.Contains(err.Error(), "ParameterNotFound") {
 				fmt.Printf("⚠️  %s は存在しません（スキップ）\n", name)

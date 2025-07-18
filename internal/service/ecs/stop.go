@@ -2,30 +2,36 @@ package ecs
 
 import (
 	"fmt"
-
+	
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 )
 
 // StopEcsService はECSサービスを停止します
-func StopEcsService(autoScalingClient *applicationautoscaling.Client, ecsClient *ecs.Client, clusterName, serviceName string, timeoutSeconds int) error {
+func StopEcsService(ecsClient *ecs.Client, aasClient *applicationautoscaling.Client, opts StopServiceOptions) error {
 	// キャパシティ設定オプションを作成（停止のため0に設定）
-	opts := ServiceCapacityOptions{
-		ClusterName: clusterName,
-		ServiceName: serviceName,
+	capacityOpts := ServiceCapacityOptions{
+		ClusterName: opts.ClusterName,
+		ServiceName: opts.ServiceName,
 		MinCapacity: 0,
 		MaxCapacity: 0,
 	}
 
 	// キャパシティを設定
 	fmt.Println("🛑 サービスの停止を開始します...")
-	err := SetEcsServiceCapacity(autoScalingClient, opts)
+	err := SetEcsServiceCapacity(aasClient, capacityOpts)
 	if err != nil {
 		return fmt.Errorf("❌ エラー: %w", err)
 	}
 
 	// 停止完了を必ず待機
-	err = waitForServiceStatus(ecsClient, opts, 0, timeoutSeconds)
+	waitOpts := waitOptions{
+		ClusterName:        opts.ClusterName,
+		ServiceName:        opts.ServiceName,
+		TargetRunningCount: 0,
+		TimeoutSeconds:     opts.TimeoutSeconds,
+	}
+	err = waitForServiceStatus(ecsClient, waitOpts)
 	if err != nil {
 		return fmt.Errorf("❌ サービス停止監視エラー: %w", err)
 	}

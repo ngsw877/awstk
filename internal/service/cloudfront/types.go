@@ -7,3 +7,4 @@ type DistributionInfo struct {
 	Comment    string
 	Enabled    bool
 }
+

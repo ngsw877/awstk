@@ -35,23 +35,21 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 			return fmt.Errorf("❌ エラー: キーワード (-k) またはスタック名 (-S) のいずれかを指定してください")
 		}
 
-		fmt.Printf("Profile: %s\n", awsCtx.Profile)
-		fmt.Printf("Region: %s\n", awsCtx.Region)
+		printAwsContext()
 
-		// 各種クライアントを作成
-		s3Client := s3.NewFromConfig(awsCfg)
-		ecrClient := ecr.NewFromConfig(awsCfg)
-		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		// クライアントセットを作成
+		clients := cleanup.ClientSet{
+			S3Client:  s3.NewFromConfig(awsCfg),
+			EcrClient: ecr.NewFromConfig(awsCfg),
+			CfnClient: cloudformation.NewFromConfig(awsCfg),
+		}
 
 		opts := cleanup.Options{
-			S3Client:     s3Client,
-			EcrClient:    ecrClient,
-			CfnClient:    cfnClient,
 			SearchString: keyword,
 			StackName:    stackName,
 		}
 
-		err := cleanup.CleanupResources(opts)
+		err := cleanup.CleanupResources(clients, opts)
 		if err != nil {
 			return fmt.Errorf("❌ クリーンアップ処理でエラー: %w", err)
 		}

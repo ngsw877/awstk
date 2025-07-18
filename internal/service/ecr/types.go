@@ -11,3 +11,10 @@ type RepositoryInfo struct {
 	CreatedAt      *time.Time
 	HasLifecycle   bool
 }
+
+// ListOptions はリポジトリ一覧表示のオプション
+type ListOptions struct {
+	EmptyOnly    bool // 空のリポジトリのみを表示
+	NoLifecycle  bool // ライフサイクルポリシー未設定のリポジトリのみを表示
+	ShowDetails  bool // 詳細情報を表示
+}

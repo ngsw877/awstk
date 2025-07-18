@@ -13,10 +13,10 @@ import (
 )
 
 // waitForTaskStopped はタスクが停止するまで待機し、コンテナの終了コードを返します
-func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerName string, timeoutSeconds int) (int, error) {
+func waitForTaskStopped(ecsClient *ecs.Client, opts waitTaskOptions) (int, error) {
 	fmt.Println("⏳ タスクの完了を待機中...")
 
-	timeout := time.Duration(timeoutSeconds) * time.Second
+	timeout := time.Duration(opts.TimeoutSeconds) * time.Second
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	startTime := time.Now()
@@ -26,15 +26,15 @@ func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerNa
 		case <-ticker.C:
 			// タスクの状態を確認
 			resp, err := ecsClient.DescribeTasks(context.Background(), &ecs.DescribeTasksInput{
-				Cluster: aws.String(clusterName),
-				Tasks:   []string{taskArn},
+				Cluster: aws.String(opts.ClusterName),
+				Tasks:   []string{opts.TaskArn},
 			})
 			if err != nil {
 				return -1, fmt.Errorf("タスク情報の取得に失敗しました: %w", err)
 			}
 
 			if len(resp.Tasks) == 0 {
-				return -1, fmt.Errorf("タスク '%s' が見つかりません", taskArn)
+				return -1, fmt.Errorf("タスク '%s' が見つかりません", opts.TaskArn)
 			}
 
 			task := resp.Tasks[0]
@@ -48,9 +48,9 @@ func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerNa
 			if lastStatus == "STOPPED" {
 				// 指定したコンテナの終了コードを取得
 				for _, container := range task.Containers {
-					if *container.Name == containerName {
+					if *container.Name == opts.ContainerName {
 						if container.ExitCode == nil {
-							return -1, fmt.Errorf("コンテナ '%s' の終了コードが取得できませんでした", containerName)
+							return -1, fmt.Errorf("コンテナ '%s' の終了コードが取得できませんでした", opts.ContainerName)
 						}
 						exitCode := int(*container.ExitCode)
 						return exitCode, nil
@@ -63,10 +63,10 @@ func waitForTaskStopped(ecsClient *ecs.Client, clusterName, taskArn, containerNa
 					containerNames = append(containerNames, *container.Name)
 				}
 				return -1, fmt.Errorf("コンテナ '%s' がタスク内に見つかりません。利用可能なコンテナ: %s",
-					containerName, strings.Join(containerNames, ", "))
+					opts.ContainerName, strings.Join(containerNames, ", "))
 			}
 		case <-time.After(timeout):
-			return -1, fmt.Errorf("タイムアウト: %d秒経過しましたがタスクは停止していません", timeoutSeconds)
+			return -1, fmt.Errorf("タイムアウト: %d秒経過しましたがタスクは停止していません", opts.TimeoutSeconds)
 		}
 	}
 }
@@ -146,7 +146,13 @@ func RunAndWaitForTask(ecsClient *ecs.Client, opts RunAndWaitForTaskOptions) (in
 	fmt.Println("✅ タスクが開始されました: " + taskArn)
 
 	// タスクが停止するまで待機
-	exitCode, err := waitForTaskStopped(ecsClient, opts.ClusterName, taskArn, opts.ContainerName, opts.TimeoutSeconds)
+	waitTaskOpts := waitTaskOptions{
+		ClusterName:    opts.ClusterName,
+		TaskArn:        taskArn,
+		ContainerName:  opts.ContainerName,
+		TimeoutSeconds: opts.TimeoutSeconds,
+	}
+	exitCode, err := waitForTaskStopped(ecsClient, waitTaskOpts)
 	if err != nil {
 		return -1, err
 	}

@@ -192,3 +192,82 @@ func DisplayRepositoryDetails(repo RepositoryInfo) {
 	fmt.Printf("    ライフサイクルポリシー: %s\n", lifecycleStatus)
 }
 
+// ListRepositories はオプションに基づいてリポジトリ一覧を取得・表示する
+func ListRepositories(ecrClient *ecr.Client, opts ListOptions) error {
+	// リポジトリ一覧を取得
+	repositories, err := ListEcrRepositories(ecrClient)
+	if err != nil {
+		return common.FormatListError("ECRリポジトリ", err)
+	}
+
+	if len(repositories) == 0 {
+		fmt.Println(common.FormatEmptyMessage("ECRリポジトリ"))
+		return nil
+	}
+
+	// フィルタリング処理
+	filteredRepos := repositories
+	var conditions []string
+
+	if opts.EmptyOnly {
+		conditions = append(conditions, "空の")
+		filteredRepos, err = FilterEmptyRepositories(ecrClient, filteredRepos)
+		if err != nil {
+			return fmt.Errorf("❌ 空リポジトリチェックでエラー: %w", err)
+		}
+	}
+
+	if opts.NoLifecycle {
+		conditions = append(conditions, "ライフサイクルポリシー未設定の")
+		filteredRepos, err = FilterNoLifecycleRepositories(ecrClient, filteredRepos)
+		if err != nil {
+			return fmt.Errorf("❌ ライフサイクルポリシーチェックでエラー: %w", err)
+		}
+	}
+
+	title := common.GenerateFilteredTitle("ECRリポジトリ", conditions...)
+
+	// 結果表示
+	if !opts.ShowDetails {
+		// シンプル表示
+		displaySimpleList(filteredRepos, title)
+	} else {
+		// 詳細表示
+		displayDetailedList(ecrClient, filteredRepos, title)
+	}
+
+	return nil
+}
+
+// displaySimpleList はリポジトリ一覧をシンプル形式で表示
+func displaySimpleList(repos []RepositoryInfo, title string) {
+	names := make([]string, len(repos))
+	for i, repo := range repos {
+		names[i] = repo.RepositoryName
+	}
+	common.PrintSimpleList(common.ListOutput{
+		Title:        title,
+		Items:        names,
+		ResourceName: "リポジトリ",
+		ShowCount:    true,
+	})
+}
+
+// displayDetailedList はリポジトリ一覧を詳細形式で表示
+func displayDetailedList(ecrClient *ecr.Client, repos []RepositoryInfo, title string) {
+	fmt.Printf("%s:\n", title)
+	if len(repos) == 0 {
+		fmt.Println("該当するリポジトリはありませんでした")
+		return
+	}
+
+	for i := range repos {
+		if err := EnrichRepositoryDetails(ecrClient, &repos[i]); err != nil {
+			fmt.Printf("  - %s (詳細取得エラー: %v)\n", repos[i].RepositoryName, err)
+			continue
+		}
+		DisplayRepositoryDetails(repos[i])
+	}
+	fmt.Printf("\n合計: %d個のリポジトリ\n", len(repos))
+}
+

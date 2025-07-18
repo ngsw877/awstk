@@ -138,15 +138,7 @@ var s3AvailCmd = &cobra.Command{
 	Long:  `指定した複数のS3バケット名が利用可能か（未作成か）を判定します。\n\n【使い方】\n  ` + AppName + ` s3 avail bucket1 bucket2 ...\n\n【出力例】\n  [404] my-bucket-1: 利用可能\n  [200] my-bucket-2: 利用不可（すでに存在）\n  [403] my-bucket-3: 利用不可（存在するがアクセス権限なし）`,
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
-		results := s3svc.CheckS3BucketsAvailability(s3Client, args)
-		for _, r := range results {
-			icon := "❌"
-			if r.StatusCode == 404 {
-				icon = "✅"
-			}
-			fmt.Printf("%s バケット名「%s」: %s [%d]\n", icon, r.BucketName, r.Message, r.StatusCode)
-		}
-		return nil
+		return s3svc.CheckAndDisplayBucketsAvailability(s3Client, args)
 	},
 	SilenceUsage: true,
 }
@@ -165,9 +157,7 @@ var s3CleanupCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: キーワード (-k) を指定してください")
 		}
 
-		fmt.Printf("Profile: %s\n", awsCtx.Profile)
-		fmt.Printf("Region: %s\n", awsCtx.Region)
-		fmt.Printf("検索文字列: %s\n", keyword)
+		printAwsContextWithInfo("検索文字列", keyword)
 
 		// キーワードに一致するバケットを取得
 		buckets, err := s3svc.GetS3BucketsByKeyword(s3Client, keyword)

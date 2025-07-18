@@ -16,7 +16,7 @@ import (
 )
 
 // PutParametersFromFile はファイルからパラメータを読み込んでParameter Storeに登録する
-func PutParametersFromFile(opts PutParamsOptions) error {
+func PutParametersFromFile(ssmClient *ssm.Client, opts PutParamsOptions) error {
 	// ファイルの存在確認
 	if _, err := os.Stat(opts.FilePath); os.IsNotExist(err) {
 		return fmt.Errorf("ファイルが見つかりません: %s", opts.FilePath)
@@ -62,7 +62,7 @@ func PutParametersFromFile(opts PutParamsOptions) error {
 	// パラメータの登録
 	var successCount, failCount int
 	for _, param := range params {
-		err := putParameter(opts.SsmClient, param)
+		err := putParameter(ssmClient, param)
 		if err != nil {
 			fmt.Printf("❌ %s の登録に失敗しました: %v\n", param.Name, err)
 			failCount++

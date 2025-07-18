@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/service/cfn"
 	ecssvc "awstk/internal/service/ecs"
 	"fmt"
 
@@ -53,7 +52,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
@@ -66,8 +72,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
-		err = ecssvc.ExecuteEcsCommand(ecssvc.ExecOptions{
-			AwsCtx:        awsCtx,
+		err = ecssvc.ExecuteEcsCommand(awsCtx, ecssvc.ExecOptions{
 			ClusterName:   clusterName,
 			TaskId:        taskId,
 			ContainerName: containerName,
@@ -95,15 +100,28 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
 
-		// AutoScaling用クライアントを生成（startコマンドでのみ必要）
-		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+		aasClient := applicationautoscaling.NewFromConfig(awsCfg)
 
-		err = ecssvc.StartEcsService(autoScalingClient, ecsClient, clusterName, serviceName, minCapacity, maxCapacity, timeoutSeconds)
+		startOpts := ecssvc.StartServiceOptions{
+			ClusterName:    clusterName,
+			ServiceName:    serviceName,
+			MinCapacity:    minCapacity,
+			MaxCapacity:    maxCapacity,
+			TimeoutSeconds: timeoutSeconds,
+		}
+		err = ecssvc.StartEcsService(ecsClient, aasClient, startOpts)
 		if err != nil {
 			return err
 		}
@@ -127,15 +145,26 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
 
-		// AutoScaling用クライアントを生成（stopコマンドでのみ必要）
-		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+		aasClient := applicationautoscaling.NewFromConfig(awsCfg)
 
-		err = ecssvc.StopEcsService(autoScalingClient, ecsClient, clusterName, serviceName, timeoutSeconds)
+		stopOpts := ecssvc.StopServiceOptions{
+			ClusterName:    clusterName,
+			ServiceName:    serviceName,
+			TimeoutSeconds: timeoutSeconds,
+		}
+		err = ecssvc.StopEcsService(ecsClient, aasClient, stopOpts)
 		if err != nil {
 			return err
 		}
@@ -160,25 +189,31 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
 
 		// タスク実行オプションを作成
-		opts := ecssvc.RunAndWaitForTaskOptions{
+		runOpts := ecssvc.RunAndWaitForTaskOptions{
 			ClusterName:    clusterName,
 			ServiceName:    serviceName,
 			TaskDefinition: taskDefinition,
 			ContainerName:  containerName,
 			Command:        commandString,
-			AwsCtx:         awsCtx,
 			TimeoutSeconds: timeoutSeconds,
 		}
 
 		// タスクを実行して完了を待機
 		fmt.Println("🚀 ECSタスクを実行します...")
-		exitCode, err := ecssvc.RunAndWaitForTask(ecsClient, opts)
+		exitCode, err := ecssvc.RunAndWaitForTask(ecsClient, runOpts)
 		if err != nil {
 			return fmt.Errorf("❌ タスク実行エラー: %w", err)
 		}
@@ -209,7 +244,14 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
@@ -223,7 +265,12 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 		// --no-waitフラグが指定されていない場合はデプロイ完了まで待機
 		noWait, _ := cmd.Flags().GetBool("no-wait")
 		if !noWait {
-			err = ecssvc.WaitForDeploymentComplete(ecsClient, clusterName, serviceName, timeoutSeconds)
+			waitOpts := ecssvc.WaitDeploymentOptions{
+				ClusterName:    clusterName,
+				ServiceName:    serviceName,
+				TimeoutSeconds: timeoutSeconds,
+			}
+			err = ecssvc.WaitForDeploymentComplete(ecsClient, waitOpts)
 			if err != nil {
 				return fmt.Errorf("❌ デプロイ完了待機エラー: %w", err)
 			}
@@ -246,16 +293,27 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		clusterName, serviceName, err = resolveEcsClusterAndService()
+		resolveStackName()
+		opts := ecssvc.ResolveOptions{
+			StackName:   stackName,
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+		clusterName, serviceName, err = ecssvc.ResolveClusterAndService(cfnClient, opts)
 		if err != nil {
 			return err
 		}
 
-		// AutoScaling用クライアントも生成
-		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+		aasClient := applicationautoscaling.NewFromConfig(awsCfg)
+
+		statusOpts := ecssvc.StatusOptions{
+			ClusterName: clusterName,
+			ServiceName: serviceName,
+		}
 
 		// サービス状態を取得
-		status, err := ecssvc.GetServiceStatus(ecsClient, autoScalingClient, clusterName, serviceName)
+		status, err := ecssvc.GetServiceStatus(ecsClient, aasClient, statusOpts)
 		if err != nil {
 			return fmt.Errorf("❌ エラー: %w", err)
 		}
@@ -316,42 +374,4 @@ func init() {
 	ecsStatusCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStatusCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStatusCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
-}
-
-// validateEcsFlags はECSコマンドのフラグの組み合わせを検証します
-func validateEcsFlags() error {
-	// -S(--stack)と-c(--cluster)/-s(--service)が同時指定された場合はエラー
-	if stackName != "" && (clusterName != "" || serviceName != "") {
-		return fmt.Errorf("❌ -S(--stack)と-c(--cluster)/-s(--service)は同時に指定できません")
-	}
-	// -Sが指定されていない場合は-cと-sの両方が必要
-	if stackName == "" {
-		if clusterName == "" || serviceName == "" {
-			return fmt.Errorf("❌ -c(--cluster)と-s(--service)は両方指定してください")
-		}
-	}
-	return nil
-}
-
-// resolveEcsClusterAndService はECSクラスター名とサービス名を解決します
-func resolveEcsClusterAndService() (string, string, error) {
-	resolveStackName()
-	if err := validateEcsFlags(); err != nil {
-		return "", "", err
-	}
-
-	// -Sでスタック名が指定されていればCFnスタックから取得
-	if stackName != "" {
-		cfnClient := cloudformation.NewFromConfig(awsCfg)
-		serviceInfo, stackErr := cfn.GetEcsFromStack(cfnClient, stackName)
-
-		if stackErr != nil {
-			return "", "", fmt.Errorf("❌ CloudFormationスタックからECSサービス情報の取得に失敗: %w", stackErr)
-		}
-		clusterName = serviceInfo.ClusterName
-		serviceName = serviceInfo.ServiceName
-	}
-
-	// スタック名が指定されていなければ、-cと-sのフラグ値をそのまま使用
-	return clusterName, serviceName, nil
 }

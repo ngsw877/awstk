@@ -60,3 +60,16 @@ func CheckS3BucketsAvailability(s3Client *s3.Client, buckets []string) []BucketA
 	}
 	return results
 }
+
+// CheckAndDisplayBucketsAvailability 複数バケットの利用可否を判定して表示する
+func CheckAndDisplayBucketsAvailability(s3Client *s3.Client, buckets []string) error {
+	results := CheckS3BucketsAvailability(s3Client, buckets)
+	for _, r := range results {
+		icon := "❌"
+		if r.StatusCode == 404 {
+			icon = "✅"
+		}
+		fmt.Printf("%s バケット名「%s」: %s [%d]\n", icon, r.BucketName, r.Message, r.StatusCode)
+	}
+	return nil
+}

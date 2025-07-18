@@ -12,18 +12,18 @@ import (
 
 
 // GetServiceStatus はECSサービスの状態を取得する
-func GetServiceStatus(ecsClient *ecs.Client, autoScalingClient *applicationautoscaling.Client, clusterName, serviceName string) (*serviceStatus, error) {
+func GetServiceStatus(ecsClient *ecs.Client, aasClient *applicationautoscaling.Client, opts StatusOptions) (*serviceStatus, error) {
 	// サービス情報を取得
 	serviceResp, err := ecsClient.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
-		Cluster:  &clusterName,
-		Services: []string{serviceName},
+		Cluster:  &opts.ClusterName,
+		Services: []string{opts.ServiceName},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe service: %w", err)
 	}
 
 	if len(serviceResp.Services) == 0 {
-		return nil, fmt.Errorf("service '%s' not found in cluster '%s'", serviceName, clusterName)
+		return nil, fmt.Errorf("service '%s' not found in cluster '%s'", opts.ServiceName, opts.ClusterName)
 	}
 
 	service := serviceResp.Services[0]
@@ -38,8 +38,8 @@ func GetServiceStatus(ecsClient *ecs.Client, autoScalingClient *applicationautos
 	}
 
 	status := &serviceStatus{
-		ServiceName:    serviceName,
-		ClusterName:    clusterName,
+		ServiceName:    opts.ServiceName,
+		ClusterName:    opts.ClusterName,
 		Status:         statusStr,
 		TaskDefinition: taskDef,
 		DesiredCount:   service.DesiredCount,
@@ -48,14 +48,14 @@ func GetServiceStatus(ecsClient *ecs.Client, autoScalingClient *applicationautos
 	}
 
 	// タスク詳細を取得
-	tasks, err := getTaskDetails(ecsClient, clusterName, serviceName)
+	tasks, err := getTaskDetails(ecsClient, opts.ClusterName, opts.ServiceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task details: %w", err)
 	}
 	status.Tasks = tasks
 
 	// Auto Scaling設定を取得
-	autoScaling, err := getAutoScalingInfo(autoScalingClient, clusterName, serviceName)
+	autoScaling, err := getAutoScalingInfo(aasClient, opts.ClusterName, opts.ServiceName)
 	if err != nil {
 		// Auto Scalingが設定されていない場合はエラーではない
 		fmt.Printf("ℹ️  Auto Scaling情報の取得に失敗しました（設定されていない可能性があります）: %v\n", err)

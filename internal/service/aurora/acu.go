@@ -123,3 +123,21 @@ func ListAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client) 
 
 	return capacityInfos, nil
 }
+
+// DisplayCapacityInfo はAcu使用状況を表示する
+func DisplayCapacityInfo(info *CapacityInfo) {
+	fmt.Printf("📊 %s\n", info.ClusterId)
+	if info.CurrentAcu >= 0 {
+		if info.CurrentAcu == 0 {
+			fmt.Printf("   Acu使用量: %.1f (過去5分間の平均 - アイドル状態)\n", info.CurrentAcu)
+		} else {
+			fmt.Printf("   Acu使用量: %.1f (過去5分間の平均値)\n", info.CurrentAcu)
+		}
+		fmt.Printf("   設定範囲: %.1f - %.1f Acu\n", info.MinAcu, info.MaxAcu)
+	} else {
+		fmt.Printf("   設定範囲: %.1f - %.1f Acu\n", info.MinAcu, info.MaxAcu)
+		fmt.Println("   ⚠️  Acu使用量を取得できませんでした")
+		fmt.Println("   💡 ヒント: クラスターが停止中、または CloudWatch にメトリクスがまだ記録されていない可能性があります")
+	}
+	fmt.Printf("   ステータス: %s\n", info.Status)
+}

@@ -31,11 +31,11 @@ func ForceRedeployService(ecsClient *ecs.Client, clusterName, serviceName string
 }
 
 // WaitForDeploymentComplete はECSサービスのデプロイが完了するまで待機します
-func WaitForDeploymentComplete(ecsClient *ecs.Client, clusterName, serviceName string, timeoutSeconds int) error {
+func WaitForDeploymentComplete(ecsClient *ecs.Client, opts WaitDeploymentOptions) error {
 	fmt.Println("⏳ デプロイ完了を待機しています...")
 
 	start := time.Now()
-	timeout := time.Duration(timeoutSeconds) * time.Second
+	timeout := time.Duration(opts.TimeoutSeconds) * time.Second
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
@@ -44,15 +44,15 @@ func WaitForDeploymentComplete(ecsClient *ecs.Client, clusterName, serviceName s
 
 		// サービスの詳細を取得
 		resp, err := ecsClient.DescribeServices(context.Background(), &ecs.DescribeServicesInput{
-			Cluster:  aws.String(clusterName),
-			Services: []string{serviceName},
+			Cluster:  aws.String(opts.ClusterName),
+			Services: []string{opts.ServiceName},
 		})
 		if err != nil {
 			return fmt.Errorf("サービス情報の取得に失敗しました: %w", err)
 		}
 
 		if len(resp.Services) == 0 {
-			return fmt.Errorf("サービス '%s' が見つかりません", serviceName)
+			return fmt.Errorf("サービス '%s' が見つかりません", opts.ServiceName)
 		}
 
 		service := resp.Services[0]
@@ -87,7 +87,7 @@ func WaitForDeploymentComplete(ecsClient *ecs.Client, clusterName, serviceName s
 
 		// タイムアウトのチェック
 		if time.Since(start) > timeout {
-			return fmt.Errorf("タイムアウト: %d秒経過しましたがデプロイは完了していません", timeoutSeconds)
+			return fmt.Errorf("タイムアウト: %d秒経過しましたがデプロイは完了していません", opts.TimeoutSeconds)
 		}
 	}
 }

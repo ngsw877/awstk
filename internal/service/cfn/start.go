@@ -6,14 +6,15 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 )
 
 // StartAllStackResources はスタック内のすべてのリソースを起動します
-func StartAllStackResources(opts StackStartStopOptions) error {
+func StartAllStackResources(cfnClient *cloudformation.Client, ec2Client *ec2.Client, rdsClient *rds.Client, aasClient *applicationautoscaling.Client, stackName string) error {
 	// スタックからリソースを取得
-	resources, err := getStartStopResourcesFromStack(opts.CfnClient, opts.StackName)
+	resources, err := getStartStopResourcesFromStack(cfnClient, stackName)
 	if err != nil {
 		return err
 	}
@@ -27,7 +28,7 @@ func StartAllStackResources(opts StackStartStopOptions) error {
 	if len(resources.Ec2InstanceIds) > 0 {
 		for _, instanceId := range resources.Ec2InstanceIds {
 			fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", instanceId)
-			if err := startEc2Instance(opts.Ec2Client, instanceId); err != nil {
+			if err := startEc2Instance(ec2Client, instanceId); err != nil {
 				fmt.Printf("❌ EC2インスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
 				errorsOccurred = true
 			} else {
@@ -41,7 +42,7 @@ func StartAllStackResources(opts StackStartStopOptions) error {
 		// RDSインスタンスを起動
 		for _, instanceId := range resources.RdsInstanceIds {
 			fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceId)
-			if err := startRdsInstance(opts.RdsClient, instanceId); err != nil {
+			if err := startRdsInstance(rdsClient, instanceId); err != nil {
 				fmt.Printf("❌ RDSインスタンス (%s) の起動中にエラーが発生しました: %v\n", instanceId, err)
 				errorsOccurred = true
 			} else {
@@ -52,7 +53,7 @@ func StartAllStackResources(opts StackStartStopOptions) error {
 		// Auroraクラスターを起動
 		for _, clusterId := range resources.AuroraClusterIds {
 			fmt.Printf("🚀 Aurora DBクラスター (%s) を起動します...\n", clusterId)
-			if err := startAuroraCluster(opts.RdsClient, clusterId); err != nil {
+			if err := startAuroraCluster(rdsClient, clusterId); err != nil {
 				fmt.Printf("❌ Aurora DBクラスター (%s) の起動中にエラーが発生しました: %v\n", clusterId, err)
 				errorsOccurred = true
 			} else {
@@ -72,7 +73,7 @@ func StartAllStackResources(opts StackStartStopOptions) error {
 				MaxCapacity: 2, // デフォルト値として2を使用
 			}
 
-			if err := setEcsServiceCapacity(opts.ApplicationAutoScalingClient, capacityOpts); err != nil {
+			if err := setEcsServiceCapacity(aasClient, capacityOpts); err != nil {
 				fmt.Printf("❌ ECSサービス (%s/%s) の起動中にエラーが発生しました: %v\n",
 					ecsInfo.ClusterName, ecsInfo.ServiceName, err)
 				errorsOccurred = true

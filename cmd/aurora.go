@@ -31,8 +31,6 @@ var AuroraCmd = &cobra.Command{
 	},
 }
 
-var cwClient *cloudwatch.Client
-
 var auroraStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Aurora DBクラスターを起動するコマンド",
@@ -159,8 +157,7 @@ var auroraAcuCmd = &cobra.Command{
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		showAll, _ := cmd.Flags().GetBool("all")
 
-		// CloudWatchクライアントを初期化
-		cwClient = cloudwatch.NewFromConfig(awsCfg)
+		cwClient := cloudwatch.NewFromConfig(awsCfg)
 
 		if showAll {
 			// 全Serverless v2クラスターのAcu情報を表示
@@ -176,7 +173,7 @@ var auroraAcuCmd = &cobra.Command{
 
 			fmt.Printf("Aurora Serverless v2 Acu使用状況: (全%d件)\n\n", len(capacityInfos))
 			for _, info := range capacityInfos {
-				displayCapacityInfo(&info)
+				aurora.DisplayCapacityInfo(&info)
 				fmt.Println()
 			}
 			return nil
@@ -205,27 +202,10 @@ var auroraAcuCmd = &cobra.Command{
 			return nil
 		}
 
-		displayCapacityInfo(info)
+		aurora.DisplayCapacityInfo(info)
 		return nil
 	},
 	SilenceUsage: true,
-}
-
-func displayCapacityInfo(info *aurora.CapacityInfo) {
-	fmt.Printf("📊 %s\n", info.ClusterId)
-	if info.CurrentAcu >= 0 {
-		if info.CurrentAcu == 0 {
-			fmt.Printf("   Acu使用量: %.1f (過去5分間の平均 - アイドル状態)\n", info.CurrentAcu)
-		} else {
-			fmt.Printf("   Acu使用量: %.1f (過去5分間の平均値)\n", info.CurrentAcu)
-		}
-		fmt.Printf("   設定範囲: %.1f - %.1f Acu\n", info.MinAcu, info.MaxAcu)
-	} else {
-		fmt.Printf("   設定範囲: %.1f - %.1f Acu\n", info.MinAcu, info.MaxAcu)
-		fmt.Println("   ⚠️  Acu使用量を取得できませんでした")
-		fmt.Println("   💡 ヒント: クラスターが停止中、または CloudWatch にメトリクスがまだ記録されていない可能性があります")
-	}
-	fmt.Printf("   ステータス: %s\n", info.Status)
 }
 
 func init() {

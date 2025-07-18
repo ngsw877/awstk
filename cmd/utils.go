@@ -18,3 +18,15 @@ func resolveStackName() {
 	}
 	// どちらもなければstackNameは空のまま
 }
+
+// printAwsContext はAWSコンテキスト情報を表示する共通関数
+func printAwsContext() {
+	fmt.Printf("Profile: %s\n", awsCtx.Profile)
+	fmt.Printf("Region: %s\n", awsCtx.Region)
+}
+
+// printAwsContextWithInfo はAWSコンテキスト情報と追加情報を表示する共通関数
+func printAwsContextWithInfo(infoLabel string, infoValue string) {
+	printAwsContext()
+	fmt.Printf("%s: %s\n", infoLabel, infoValue)
+}

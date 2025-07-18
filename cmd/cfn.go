@@ -67,26 +67,14 @@ var cfnStartCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: スタック名 (-S) を指定してください")
 		}
 
-		fmt.Printf("Profile: %s\n", awsCtx.Profile)
-		fmt.Printf("Region: %s\n", awsCtx.Region)
-		fmt.Printf("Stack: %s\n", stackName)
+		printAwsContextWithInfo("Stack", stackName)
 
-		// 各種クライアントを作成
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 		ec2Client := ec2.NewFromConfig(awsCfg)
 		rdsClient := rds.NewFromConfig(awsCfg)
-		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+		aasClient := applicationautoscaling.NewFromConfig(awsCfg)
 
-		// start用のオプションを作成
-		startOpts := cfn.StackStartStopOptions{
-			CfnClient:                    cfnClient,
-			Ec2Client:                    ec2Client,
-			RdsClient:                    rdsClient,
-			ApplicationAutoScalingClient: autoScalingClient,
-			StackName:                    stackName,
-		}
-
-		err := cfn.StartAllStackResources(startOpts)
+		err := cfn.StartAllStackResources(cfnClient, ec2Client, rdsClient, aasClient, stackName)
 		if err != nil {
 			return fmt.Errorf("❌ リソース起動処理でエラー: %w", err)
 		}
@@ -111,26 +99,14 @@ var cfnStopCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: スタック名 (-S) を指定してください")
 		}
 
-		fmt.Printf("Profile: %s\n", awsCtx.Profile)
-		fmt.Printf("Region: %s\n", awsCtx.Region)
-		fmt.Printf("Stack: %s\n", stackName)
+		printAwsContextWithInfo("Stack", stackName)
 
-		// 各種クライアントを作成
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 		ec2Client := ec2.NewFromConfig(awsCfg)
 		rdsClient := rds.NewFromConfig(awsCfg)
-		autoScalingClient := applicationautoscaling.NewFromConfig(awsCfg)
+		aasClient := applicationautoscaling.NewFromConfig(awsCfg)
 
-		// stop用のオプションを作成
-		stopOpts := cfn.StackStartStopOptions{
-			CfnClient:                    cfnClient,
-			Ec2Client:                    ec2Client,
-			RdsClient:                    rdsClient,
-			ApplicationAutoScalingClient: autoScalingClient,
-			StackName:                    stackName,
-		}
-
-		err := cfn.StopAllStackResources(stopOpts)
+		err := cfn.StopAllStackResources(cfnClient, ec2Client, rdsClient, aasClient, stackName)
 		if err != nil {
 			return fmt.Errorf("❌ リソース停止処理でエラー: %w", err)
 		}

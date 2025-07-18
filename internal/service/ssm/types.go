@@ -1,22 +1,15 @@
 package ssm
 
-import (
-	"awstk/internal/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
-)
-
 // SessionOptions SsmSessionOptions はSSMセッション開始のパラメータを格納する構造体
 type SessionOptions struct {
-	AwsCtx     aws.Context
 	InstanceId string
 }
 
 // PutParamsOptions はパラメータ一括登録のオプション
 type PutParamsOptions struct {
-	SsmClient *ssm.Client
-	FilePath  string
-	Prefix    string
-	DryRun    bool
+	FilePath string // 必須: JSONファイルのパス
+	Prefix   string // オプション: パラメータ名のプレフィックス
+	DryRun   bool   // オプション: ドライラン実行
 }
 
 // parameter はSSMパラメータを表す構造体
@@ -34,9 +27,8 @@ type parametersFile struct {
 
 // DeleteParamsOptions はパラメータ一括削除のオプション
 type DeleteParamsOptions struct {
-	SsmClient *ssm.Client
-	FilePath  string
-	Prefix    string
-	DryRun    bool
-	Force     bool
+	FilePath string // 必須: JSONファイルのパス
+	Prefix   string // オプション: パラメータ名のプレフィックス
+	DryRun   bool   // オプション: ドライラン実行
+	Force    bool   // オプション: 強制削除フラグ
 }

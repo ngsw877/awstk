@@ -106,3 +106,26 @@ func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 
 	return nil
 }
+
+// CleanupRepositoriesByKeyword はキーワードに基づいてリポジトリを削除する
+func CleanupRepositoriesByKeyword(ecrClient *ecr.Client, keyword string) error {
+	// キーワードに一致するリポジトリを取得
+	repositories, err := GetEcrRepositoriesByKeyword(ecrClient, keyword)
+	if err != nil {
+		return fmt.Errorf("❌ ECRリポジトリ一覧取得エラー: %w", err)
+	}
+
+	if len(repositories) == 0 {
+		fmt.Printf("キーワード '%s' に一致するECRリポジトリが見つかりませんでした\n", keyword)
+		return nil
+	}
+
+	// リポジトリを削除
+	err = CleanupEcrRepositories(ecrClient, repositories)
+	if err != nil {
+		return fmt.Errorf("❌ ECRリポジトリ削除エラー: %w", err)
+	}
+
+	fmt.Println("✅ ECRリポジトリの削除が完了しました")
+	return nil
+}

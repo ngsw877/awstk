@@ -3,7 +3,6 @@ package cmd
 import (
 	cfsvc "awstk/internal/service/cloudfront"
 	"awstk/internal/service/cloudfront/tenant"
-	"awstk/internal/service/cfn"
 	"awstk/internal/service/common"
 	"fmt"
 
@@ -56,55 +55,20 @@ var cfInvalidateCmd = &cobra.Command{
 		wait, _ := cmdCobra.Flags().GetBool("wait")
 
 		var distributionId string
-		var err error
-
-		// ディストリビューションIDの取得
 		if len(args) > 0 {
 			distributionId = args[0]
-		} else if stackName != "" {
-			// スタックからCloudFrontディストリビューションを取得
-			distributions, err := cfn.GetAllCloudFrontFromStack(cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからディストリビューションの取得に失敗: %w", err)
-			}
-
-			if len(distributions) == 0 {
-				return fmt.Errorf("❌ スタック '%s' にCloudFrontディストリビューションが見つかりませんでした", stackName)
-			}
-
-			if len(distributions) == 1 {
-				distributionId = distributions[0]
-				fmt.Printf("✅ CloudFormationスタック '%s' からCloudFrontディストリビューション '%s' を検出しました\n", stackName, distributionId)
-			} else {
-				// 複数のディストリビューションがある場合は選択
-				distributionId, err = cfsvc.SelectDistribution(cfClient, distributions)
-				if err != nil {
-					return fmt.Errorf("❌ ディストリビューション選択エラー: %w", err)
-				}
-			}
-		} else {
-			return fmt.Errorf("❌ エラー: ディストリビューションID またはスタック名 (-S) を指定してください")
 		}
 
-		fmt.Printf("🚀 CloudFrontディストリビューション (%s) のキャッシュを無効化します...\n", distributionId)
-		fmt.Printf("   対象パス: %v\n", paths)
+		opts := cfsvc.InvalidateOptions{
+			DistributionId: distributionId,
+			Paths:          paths,
+			Wait:           wait,
+			StackName:      stackName,
+		}
 
-		// キャッシュ無効化の実行
-		invalidationId, err := cfsvc.CreateInvalidation(cfClient, distributionId, paths)
+		err := cfsvc.InvalidateByIdOrStack(cfClient, cfnClient, opts)
 		if err != nil {
-			return fmt.Errorf("❌ キャッシュ無効化エラー: %w", err)
-		}
-
-		fmt.Printf("✅ キャッシュ無効化を開始しました (ID: %s)\n", invalidationId)
-
-		// 待機オプションが有効な場合
-		if wait {
-			fmt.Println("⏳ 無効化の完了を待機しています...")
-			err = cfsvc.WaitForInvalidation(cfClient, distributionId, invalidationId)
-			if err != nil {
-				return fmt.Errorf("❌ 無効化待機エラー: %w", err)
-			}
-			fmt.Println("✅ キャッシュ無効化が完了しました")
+			return fmt.Errorf("❌ %w", err)
 		}
 
 		return nil
@@ -171,47 +135,31 @@ var cfTenantInvalidateCmd = &cobra.Command{
 		list, _ := cmdCobra.Flags().GetBool("list")
 		wait, _ := cmdCobra.Flags().GetBool("wait")
 
-		var distributionId string
+		distributionId := args[0]
 		var tenantId string
-		var err error
+		if len(args) > 1 {
+			tenantId = args[1]
+		}
 
-		// ディストリビューションIDを引数から取得
-		distributionId = args[0]
-		
-		// テナントIDの処理
+		opts := tenant.InvalidateOptions{
+			DistributionId: distributionId,
+			TenantId:       tenantId,
+			Paths:          paths,
+			Wait:           wait,
+		}
+
 		if all {
 			// 全テナント無効化
-			fmt.Printf("🚀 CloudFrontディストリビューション (%s) の全テナントのキャッシュを無効化します...\n", distributionId)
-			err = tenant.InvalidateAllTenants(cfClient, distributionId, paths, wait)
+			err := cfsvc.InvalidateAllTenantsWithMessage(cfClient, opts)
 			if err != nil {
-				return fmt.Errorf("❌ 全テナントキャッシュ無効化エラー: %w", err)
+				return fmt.Errorf("❌ %w", err)
 			}
-			fmt.Println("✅ 全テナントのキャッシュ無効化を開始しました")
-		} else if list {
-			// テナント一覧から選択
-			tenantId, err = tenant.SelectTenant(cfClient, distributionId)
-			if err != nil {
-				return fmt.Errorf("❌ テナント選択エラー: %w", err)
-			}
-			err = tenant.InvalidateTenant(cfClient, distributionId, tenantId, paths, wait)
-			if err != nil {
-				return fmt.Errorf("❌ キャッシュ無効化エラー: %w", err)
-			}
-			fmt.Printf("✅ テナント '%s' のキャッシュ無効化を開始しました\n", tenantId)
 		} else {
-			// 特定テナント
-			if len(args) < 2 {
-				return fmt.Errorf("❌ エラー: テナントID、--all、または --list オプションを指定してください")
-			}
-			tenantId = args[1]
-			fmt.Printf("🚀 テナント (%s) のキャッシュを無効化します...\n", tenantId)
-			fmt.Printf("   対象パス: %v\n", paths)
-			
-			err = tenant.InvalidateTenant(cfClient, distributionId, tenantId, paths, wait)
+			// 特定テナントまたは選択
+			err := cfsvc.InvalidateTenantByIdOrSelection(cfClient, list, opts)
 			if err != nil {
-				return fmt.Errorf("❌ キャッシュ無効化エラー: %w", err)
+				return fmt.Errorf("❌ %w", err)
 			}
-			fmt.Printf("✅ テナント '%s' のキャッシュ無効化を開始しました\n", tenantId)
 		}
 
 		return nil

@@ -1,5 +1,7 @@
 package aurora
 
+
+
 // Cluster AuroraCluster Auroraクラスターの情報を格納する構造体
 type Cluster struct {
 	ClusterId string
