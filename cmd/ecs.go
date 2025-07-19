@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"awstk/internal/aws"
 	ecssvc "awstk/internal/service/ecs"
 	"fmt"
 
@@ -72,6 +73,7 @@ CloudFormationスタック名を指定するか、クラスター名とサービ
 
 		// シェル接続を実行
 		fmt.Printf("🔍 コンテナ '%s' に接続しています...\n", containerName)
+		awsCtx := aws.Context{Region: region, Profile: profile}
 		err = ecssvc.ExecuteEcsCommand(awsCtx, ecssvc.ExecOptions{
 			ClusterName:   clusterName,
 			TaskId:        taskId,

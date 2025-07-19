@@ -16,7 +16,6 @@ const AppName = "awstk"
 
 var region string
 var profile string
-var awsCtx aws.Context
 var awsCfg awsconfig.Config
 var stackName string
 var cfnClient *cloudformation.Client
@@ -99,7 +98,7 @@ func init() {
 		}
 
 		// awsCtxを設定
-		awsCtx = aws.Context{Region: region, Profile: profile}
+		awsCtx := aws.Context{Region: region, Profile: profile}
 
 		// AWS設定を読み込み
 		awsCfg, err = aws.LoadAwsConfig(awsCtx)
