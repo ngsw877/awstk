@@ -44,18 +44,9 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds start -P my-profile -S my-stack
   ` + AppName + ` rds start -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		resolveStackName()
-		instanceName, _ := cmd.Flags().GetString("instance")
-		var err error
-
-		if stackName != "" {
-			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
-			}
-			fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
-		} else if instanceName == "" {
-			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		instanceName, err := resolveRdsInstanceName(cmd)
+		if err != nil {
+			return err
 		}
 
 		fmt.Printf("🚀 RDSインスタンス (%s) を起動します...\n", instanceName)
@@ -80,18 +71,9 @@ CloudFormationスタック名を指定するか、インスタンス名を直接
   ` + AppName + ` rds stop -P my-profile -S my-stack
   ` + AppName + ` rds stop -P my-profile -i my-instance`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		resolveStackName()
-		instanceName, _ := cmd.Flags().GetString("instance")
-		var err error
-
-		if stackName != "" {
-			instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
-			}
-			fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
-		} else if instanceName == "" {
-			return fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		instanceName, err := resolveRdsInstanceName(cmd)
+		if err != nil {
+			return err
 		}
 
 		fmt.Printf("🚀 RDSインスタンス (%s) を停止します...\n", instanceName)
@@ -144,6 +126,25 @@ var rdsLsCmd = &cobra.Command{
 		return nil
 	},
 	SilenceUsage: true,
+}
+
+// resolveRdsInstanceName はRDSインスタンス名を解決する
+func resolveRdsInstanceName(cmd *cobra.Command) (string, error) {
+	resolveStackName()
+	instanceName, _ := cmd.Flags().GetString("instance")
+	var err error
+
+	if stackName != "" {
+		instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
+		if err != nil {
+			return "", fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
+		}
+		fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
+	} else if instanceName == "" {
+		return "", fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+	}
+
+	return instanceName, nil
 }
 
 func init() {
