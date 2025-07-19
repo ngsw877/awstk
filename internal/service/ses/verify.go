@@ -30,17 +30,17 @@ func VerifyEmailsFromFile(opts VerifyOptions) (*VerifyResult, error) {
 	duplicateRemoved := originalCount - len(emails)
 
 	// メールアドレスを検証
-	verificationDetails, err := verifySesEmails(opts.SesClient, emails)
+	failedEmails, details, err := verifySesEmails(opts.SesClient, emails)
 	if err != nil {
 		return nil, fmt.Errorf("SES検証エラー: %w", err)
 	}
 
 	result := &VerifyResult{
 		TotalEmails:         len(emails),
-		SuccessfulEmails:    len(emails) - len(verificationDetails.FailedEmails),
-		FailedEmails:        verificationDetails.FailedEmails,
+		SuccessfulEmails:    len(emails) - len(failedEmails),
+		FailedEmails:        failedEmails,
 		DuplicateRemoved:    duplicateRemoved,
-		VerificationDetails: verificationDetails.Details,
+		VerificationDetails: details,
 	}
 
 	return result, nil
@@ -95,7 +95,7 @@ func removeDuplicates(emails []string) []string {
 }
 
 // verifySesEmails 指定されたメールアドレス一覧をSESで検証する
-func verifySesEmails(sesClient *ses.Client, emails []string) (*VerificationResult, error) {
+func verifySesEmails(sesClient *ses.Client, emails []string) ([]string, []EmailVerificationDetail, error) {
 	var failedEmails []string
 	var details []EmailVerificationDetail
 
@@ -116,8 +116,24 @@ func verifySesEmails(sesClient *ses.Client, emails []string) (*VerificationResul
 		}
 	}
 
-	return &VerificationResult{
-		FailedEmails: failedEmails,
-		Details:      details,
-	}, nil
+	return failedEmails, details, nil
+}
+
+// DisplayVerifyResult は検証結果を表示する
+func DisplayVerifyResult(result *VerifyResult) {
+	// 成功したメールアドレス
+	fmt.Printf("✅ 検証成功: %d件\n", result.SuccessfulEmails)
+	for _, detail := range result.VerificationDetails {
+		if detail.Success {
+			fmt.Printf("  - %s\n", detail.Email)
+		}
+	}
+
+	// 失敗したメールアドレス
+	if len(result.FailedEmails) > 0 {
+		fmt.Printf("\n❌ 検証失敗: %d件\n", len(result.FailedEmails))
+		for _, email := range result.FailedEmails {
+			fmt.Printf("  - %s\n", email)
+		}
+	}
 }

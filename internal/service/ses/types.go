@@ -24,8 +24,3 @@ type EmailVerificationDetail struct {
 	Error   error
 }
 
-// VerificationResult は検証処理の内部結果
-type VerificationResult struct {
-	FailedEmails []string
-	Details      []EmailVerificationDetail
-}
