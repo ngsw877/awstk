@@ -6,41 +6,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// precommitCmd represents the precommit command
+// precommitCmd はprecommitコマンドを表す
 var precommitCmd = &cobra.Command{
 	Use:   "precommit",
-	Short: "Manage pre-commit hooks for the awstk project",
-	Long: `Manage pre-commit hooks for the awstk project.
+	Short: "awstkプロジェクトのpre-commitフック管理",
+	Long: `awstkプロジェクトのpre-commitフックを管理します。
 
-This command helps you enable, disable, and check the status of pre-commit hooks.
-Currently, the pre-commit hook automatically syncs Cursor Rules (.mdc files) with CLAUDE.md.`,
+このコマンドではpre-commitフックの有効化、無効化、状態確認ができます。
+現在のpre-commitフックはCursor Rules（.mdcファイル）をCLAUDE.mdと自動同期します。`,
 }
 
-// precommitEnableCmd represents the precommit enable command
+// precommitEnableCmd はprecommit enableコマンドを表す
 var precommitEnableCmd = &cobra.Command{
 	Use:   "enable",
-	Short: "Enable pre-commit hooks",
-	Long:  `Enable pre-commit hooks by setting core.hooksPath to .githooks`,
+	Short: "pre-commitフックを有効化",
+	Long:  `core.hooksPathを.githooksに設定してpre-commitフックを有効化します`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return precommit.Enable()
 	},
 }
 
-// precommitDisableCmd represents the precommit disable command
+// precommitDisableCmd はprecommit disableコマンドを表す
 var precommitDisableCmd = &cobra.Command{
 	Use:   "disable",
-	Short: "Disable pre-commit hooks",
-	Long:  `Disable pre-commit hooks by unsetting core.hooksPath`,
+	Short: "pre-commitフックを無効化",
+	Long:  `core.hooksPathの設定を解除してpre-commitフックを無効化します`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return precommit.Disable()
 	},
 }
 
-// precommitStatusCmd represents the precommit status command
+// precommitStatusCmd はprecommit statusコマンドを表す
 var precommitStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show pre-commit hook status",
-	Long:  `Show the current status of pre-commit hooks`,
+	Short: "pre-commitフックの状態表示",
+	Long:  `pre-commitフックの現在の状態を表示します`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return precommit.ShowStatus()
 	},
