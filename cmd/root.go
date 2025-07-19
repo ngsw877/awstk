@@ -43,6 +43,40 @@ func Execute() {
 	}
 }
 
+// isAuthNotRequired は認証が不要なコマンドかどうかを判定する
+func isAuthNotRequired(cmd *cobra.Command) bool {
+	// 認証が不要なコマンド
+	if cmd.Name() == "help" ||
+		cmd.Name() == "version" {
+		return true
+	}
+	// 認証不要なコマンドのサブコマンド
+	if cmd.Parent() != nil &&
+		(cmd.Parent().Name() == "env" ||
+			cmd.Parent().Name() == "precommit") {
+		return true
+	}
+	return false
+}
+
+// checkProfile はプロファイルの確認のみを行うプライベート関数
+func checkProfile(cmd *cobra.Command) error {
+	// プロファイルがすでに指定されている場合は案内を出して終了
+	if profile != "" {
+		cmd.Println("🔍 -Pオプションで指定されたプロファイル '" + profile + "' を使用します")
+		return nil
+	}
+	// 環境変数からプロファイル取得を試みる
+	envProfile := os.Getenv("AWS_PROFILE")
+	if envProfile == "" {
+		// プロファイルが見つからない場合はエラー
+		cmd.SilenceUsage = true // エラー時のUsage表示を抑制
+		return errors.New("❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
+	}
+	cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + envProfile + "' を使用します")
+	return nil
+}
+
 func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
@@ -54,14 +88,7 @@ func init() {
 	// コマンド実行前に共通でプロファイルチェックとawsCtx設定を行う
 	RootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		// 認証が不要なコマンドはスキップ
-		if cmd.Name() == "help" || cmd.Name() == "version" {
-			return nil
-		}
-		// envコマンドとそのサブコマンドもスキップ
-		if cmd.Name() == "env" {
-			return nil
-		}
-		if cmd.Parent() != nil && cmd.Parent().Name() == "env" {
+		if isAuthNotRequired(cmd) {
 			return nil
 		}
 
@@ -82,22 +109,4 @@ func init() {
 
 		return nil
 	}
-}
-
-// checkProfile はプロファイルの確認のみを行うプライベート関数
-func checkProfile(cmd *cobra.Command) error {
-	// プロファイルがすでに指定されている場合は案内を出して終了
-	if profile != "" {
-		cmd.Println("🔍 -Pオプションで指定されたプロファイル '" + profile + "' を使用します")
-		return nil
-	}
-	// 環境変数からプロファイル取得を試みる
-	envProfile := os.Getenv("AWS_PROFILE")
-	if envProfile == "" {
-		// プロファイルが見つからない場合はエラー
-		cmd.SilenceUsage = true // エラー時のUsage表示を抑制
-		return errors.New("❌ エラー: プロファイルが指定されていません。-Pオプションまたは AWS_PROFILE 環境変数を指定してください")
-	}
-	cmd.Println("🔍 環境変数 AWS_PROFILE の値 '" + envProfile + "' を使用します")
-	return nil
 }

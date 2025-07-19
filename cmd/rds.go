@@ -132,18 +132,28 @@ var rdsLsCmd = &cobra.Command{
 func resolveRdsInstanceName(cmd *cobra.Command) (string, error) {
 	resolveStackName()
 	instanceName, _ := cmd.Flags().GetString("instance")
-	var err error
 
+	// スタック名が指定されている場合
 	if stackName != "" {
-		instanceName, err = cfn.GetRdsFromStack(cfnClient, stackName)
-		if err != nil {
-			return "", fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
-		}
-		fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
-	} else if instanceName == "" {
-		return "", fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+		return getRdsInstanceFromStack(stackName)
 	}
 
+	// インスタンス名が直接指定されている場合
+	if instanceName != "" {
+		return instanceName, nil
+	}
+
+	// どちらも指定されていない場合
+	return "", fmt.Errorf("❌ エラー: RDSインスタンス名 (-i) またはスタック名 (-S) を指定してください")
+}
+
+// getRdsInstanceFromStack はCloudFormationスタックからRDSインスタンス名を取得する
+func getRdsInstanceFromStack(stackName string) (string, error) {
+	instanceName, err := cfn.GetRdsFromStack(cfnClient, stackName)
+	if err != nil {
+		return "", fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
+	}
+	fmt.Printf("✅ CloudFormationスタック '%s' からRDSインスタンス '%s' を検出しました\n", stackName, instanceName)
 	return instanceName, nil
 }
 

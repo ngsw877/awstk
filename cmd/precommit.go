@@ -14,10 +14,6 @@ var precommitCmd = &cobra.Command{
 
 This command helps you enable, disable, and check the status of pre-commit hooks.
 Currently, the pre-commit hook automatically syncs Cursor Rules (.mdc files) with CLAUDE.md.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// サブコマンドが指定されていない場合は status を実行
-		return precommit.ShowStatus()
-	},
 }
 
 // precommitEnableCmd represents the precommit enable command
