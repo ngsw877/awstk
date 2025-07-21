@@ -111,17 +111,23 @@ var rdsLsCmd = &cobra.Command{
 			}
 		}
 
-		// 共通形式に変換
-		items := make([]common.ListItem, len(instances))
+		// テーブル形式で表示
+		columns := []common.TableColumn{
+			{Header: "インスタンスID"},
+			{Header: "エンジン"},
+			{Header: "ステータス"},
+		}
+		
+		data := make([][]string, len(instances))
 		for i, ins := range instances {
-			items[i] = common.ListItem{
-				Name:   fmt.Sprintf("%s (%s)", ins.InstanceId, ins.Engine),
-				Status: ins.Status,
+			data[i] = []string{
+				ins.InstanceId,
+				ins.Engine,
+				ins.Status,
 			}
 		}
-
-		// 共通関数で表示
-		common.PrintStatusList("RDSインスタンス一覧", items, "RDSインスタンス")
+		
+		common.PrintTable("RDSインスタンス一覧", columns, data)
 
 		return nil
 	},

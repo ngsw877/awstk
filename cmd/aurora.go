@@ -126,17 +126,23 @@ var auroraLsCmd = &cobra.Command{
 			}
 		}
 
-		// 共通形式に変換
-		items := make([]common.ListItem, len(clusters))
+		// テーブル形式で表示
+		columns := []common.TableColumn{
+			{Header: "クラスターID"},
+			{Header: "エンジン"},
+			{Header: "ステータス"},
+		}
+		
+		data := make([][]string, len(clusters))
 		for i, cl := range clusters {
-			items[i] = common.ListItem{
-				Name:   fmt.Sprintf("%s (%s)", cl.ClusterId, cl.Engine),
-				Status: cl.Status,
+			data[i] = []string{
+				cl.ClusterId,
+				cl.Engine,
+				cl.Status,
 			}
 		}
-
-		// 共通関数で表示
-		common.PrintStatusList("Auroraクラスター一覧", items, "Auroraクラスター")
+		
+		common.PrintTable("Auroraクラスター一覧", columns, data)
 
 		return nil
 	},

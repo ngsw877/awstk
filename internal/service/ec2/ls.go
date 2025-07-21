@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 )
 
 // ListEc2Instances 現在のリージョンのEC2インスタンス一覧を取得する
@@ -65,13 +66,25 @@ func SelectInstanceInteractively(ec2Client *ec2.Client) (string, error) {
 
 	// インスタンス一覧を表示
 	fmt.Println("\n📋 利用可能なEC2インスタンス:")
-	fmt.Println("番号 | インスタンスID        | インスタンス名                | 状態")
-	fmt.Println("-----|----------------------|------------------------------|----------")
-
-	for i, instance := range instances {
-		fmt.Printf("%-4d | %-20s | %-28s | %s\n",
-			i+1, instance.InstanceId, instance.InstanceName, instance.State)
+	
+	columns := []common.TableColumn{
+		{Header: "番号"},
+		{Header: "インスタンスID"},
+		{Header: "インスタンス名"},
+		{Header: "状態"},
 	}
+	
+	data := make([][]string, len(instances))
+	for i, instance := range instances {
+		data[i] = []string{
+			fmt.Sprintf("%d", i+1),
+			instance.InstanceId,
+			instance.InstanceName,
+			instance.State,
+		}
+	}
+	
+	common.PrintTable("EC2インスタンス一覧", columns, data)
 
 	// ユーザーに選択させる
 	fmt.Print("\n操作するインスタンスの番号を入力してください: ")

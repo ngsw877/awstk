@@ -94,3 +94,57 @@ func FormatListError(service string, err error) error {
 func FormatEmptyMessage(resourceType string) string {
 	return fmt.Sprintf("%sが見つかりませんでした", resourceType)
 }
+
+// TableColumn はテーブルの列定義
+type TableColumn struct {
+	Header string
+	Width  int
+}
+
+// PrintTable はテーブル形式でデータを表示する
+func PrintTable(title string, columns []TableColumn, data [][]string) {
+	if title != "" {
+		fmt.Printf("\n%s:\n", title)
+	}
+	
+	// 各列の最大幅を計算（ヘッダーとデータの中で最大値を取得）
+	colWidths := make([]int, len(columns))
+	
+	// ヘッダーの幅で初期化
+	for i, col := range columns {
+		colWidths[i] = len(col.Header)
+	}
+	
+	// 各データセルと比較して最大値を更新
+	for _, row := range data {
+		for i, cell := range row {
+			if i < len(colWidths) {
+				if len(cell) > colWidths[i] {
+					colWidths[i] = len(cell)
+				}
+			}
+		}
+	}
+	
+	// ヘッダー表示
+	for i, col := range columns {
+		fmt.Printf("%-*s ", colWidths[i], col.Header)
+	}
+	fmt.Println()
+	
+	// 区切り線
+	for i := range columns {
+		fmt.Printf("%s ", strings.Repeat("-", colWidths[i]))
+	}
+	fmt.Println()
+	
+	// データ行
+	for _, row := range data {
+		for i, cell := range row {
+			if i < len(columns) {
+				fmt.Printf("%-*s ", colWidths[i], cell)
+			}
+		}
+		fmt.Println()
+	}
+}
