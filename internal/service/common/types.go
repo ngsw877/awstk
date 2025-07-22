@@ -13,3 +13,16 @@ type ListItem struct {
 	Name   string
 	Status string // オプション: ステータス情報
 }
+
+// TableColumn はテーブルの列定義
+type TableColumn struct {
+	Header string
+	Width  int
+}
+
+// DisplayOptions はリスト表示のオプション
+type DisplayOptions struct {
+	ShowCount      bool     // 件数を表示するか
+	EmptyMessage   string   // 空の場合のメッセージ（デフォルト: "リソースが見つかりませんでした"）
+	FilterMessages []string // フィルタ条件のメッセージ
+}

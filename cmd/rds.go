@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"awstk/internal/service/cfn"
-	"awstk/internal/service/common"
 	rdssvc "awstk/internal/service/rds"
 	"fmt"
 
@@ -94,42 +93,7 @@ var rdsLsCmd = &cobra.Command{
 	Long:  `RDSインスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
-		var (
-			instances []rdssvc.Instance
-			err       error
-		)
-
-		if stackName != "" {
-			instances, err = rdssvc.ListRdsInstancesFromStack(rdsClient, cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからインスタンス名の取得に失敗: %w", err)
-			}
-		} else {
-			instances, err = rdssvc.ListRdsInstances(rdsClient)
-			if err != nil {
-				return common.FormatListError("RDSインスタンス", err)
-			}
-		}
-
-		// テーブル形式で表示
-		columns := []common.TableColumn{
-			{Header: "インスタンスID"},
-			{Header: "エンジン"},
-			{Header: "ステータス"},
-		}
-		
-		data := make([][]string, len(instances))
-		for i, ins := range instances {
-			data[i] = []string{
-				ins.InstanceId,
-				ins.Engine,
-				ins.Status,
-			}
-		}
-		
-		common.PrintTable("RDSインスタンス一覧", columns, data)
-
-		return nil
+		return rdssvc.ListRdsInstances(rdsClient, cfnClient, stackName)
 	},
 	SilenceUsage: true,
 }

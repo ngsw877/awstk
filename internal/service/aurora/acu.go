@@ -101,7 +101,7 @@ func getCurrentAcuFromCloudWatch(cwClient *cloudwatch.Client, clusterName string
 // ListAuroraCapacityInfo 複数クラスターのAcu情報を取得
 func ListAuroraCapacityInfo(rdsClient *rds.Client, cwClient *cloudwatch.Client) ([]CapacityInfo, error) {
 	// 全クラスターを取得
-	clusters, err := ListAuroraClusters(rdsClient)
+	clusters, err := getAllAuroraClusters(rdsClient)
 	if err != nil {
 		return nil, err
 	}

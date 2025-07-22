@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"awstk/internal/service/common"
 	ec2svc "awstk/internal/service/ec2"
 	"fmt"
 
@@ -89,35 +88,8 @@ var ec2LsCmd = &cobra.Command{
 	Short: "EC2インスタンス一覧を表示するコマンド",
 	Long:  `EC2インスタンス一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			instances []ec2svc.Instance
-			err       error
-		)
-
-		if stackName != "" {
-			instances, err = ec2svc.ListEc2InstancesFromStack(ec2Client, cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからインスタンスIDの取得に失敗: %w", err)
-			}
-		} else {
-			instances, err = ec2svc.ListEc2Instances(ec2Client)
-			if err != nil {
-				return common.FormatListError("EC2インスタンス", err)
-			}
-		}
-
-		// 共通形式に変換
-		items := make([]common.ListItem, len(instances))
-		for i, ins := range instances {
-			items[i] = common.ListItem{
-				Name:   fmt.Sprintf("%s (%s)", ins.InstanceId, ins.InstanceName),
-				Status: ins.State,
-			}
-		}
-
-		// 共通関数で表示
-		common.PrintStatusList("EC2インスタンス一覧", items, "EC2インスタンス")
-		return nil
+		// service層の統合関数を呼び出すだけ
+		return ec2svc.ListEc2Instances(ec2Client, cfnClient, stackName)
 	},
 	SilenceUsage: true,
 }

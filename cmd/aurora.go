@@ -3,7 +3,6 @@ package cmd
 import (
 	"awstk/internal/service/aurora"
 	"awstk/internal/service/cfn"
-	"awstk/internal/service/common"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -109,42 +108,8 @@ var auroraLsCmd = &cobra.Command{
 	Long:  `Auroraクラスター一覧を表示します。`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
-		var (
-			clusters []aurora.Cluster
-			err      error
-		)
-
-		if stackName != "" {
-			clusters, err = aurora.ListAuroraClustersFromStack(rdsClient, cfnClient, stackName)
-			if err != nil {
-				return fmt.Errorf("❌ CloudFormationスタックからクラスター名の取得に失敗: %w", err)
-			}
-		} else {
-			clusters, err = aurora.ListAuroraClusters(rdsClient)
-			if err != nil {
-				return common.FormatListError("Auroraクラスター", err)
-			}
-		}
-
-		// テーブル形式で表示
-		columns := []common.TableColumn{
-			{Header: "クラスターID"},
-			{Header: "エンジン"},
-			{Header: "ステータス"},
-		}
-		
-		data := make([][]string, len(clusters))
-		for i, cl := range clusters {
-			data[i] = []string{
-				cl.ClusterId,
-				cl.Engine,
-				cl.Status,
-			}
-		}
-		
-		common.PrintTable("Auroraクラスター一覧", columns, data)
-
-		return nil
+		// service層の統合関数を呼び出すだけ
+		return aurora.ListAuroraClusters(rdsClient, cfnClient, stackName)
 	},
 	SilenceUsage: true,
 }
