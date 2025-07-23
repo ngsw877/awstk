@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // ===== フォーマット関数 =====
@@ -132,15 +134,16 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 	
 	// ヘッダーの幅で初期化
 	for i, col := range columns {
-		colWidths[i] = len(col.Header)
+		colWidths[i] = runewidth.StringWidth(col.Header)
 	}
 	
 	// 各データセルと比較して最大値を更新
 	for _, row := range data {
 		for i, cell := range row {
 			if i < len(colWidths) {
-				if len(cell) > colWidths[i] {
-					colWidths[i] = len(cell)
+				cellWidth := runewidth.StringWidth(cell)
+				if cellWidth > colWidths[i] {
+					colWidths[i] = cellWidth
 				}
 			}
 		}
@@ -148,13 +151,21 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 	
 	// ヘッダー表示
 	for i, col := range columns {
-		fmt.Printf("%-*s ", colWidths[i], col.Header)
+		fmt.Printf("%s", col.Header)
+		if i < len(columns)-1 {
+			// 列間に2スペースを挿入
+			padding := colWidths[i] - runewidth.StringWidth(col.Header) + 2
+			fmt.Printf("%s", strings.Repeat(" ", padding))
+		}
 	}
 	fmt.Println()
 	
 	// 区切り線
 	for i := range columns {
-		fmt.Printf("%s ", strings.Repeat("-", colWidths[i]))
+		fmt.Printf("%s", strings.Repeat("-", colWidths[i]))
+		if i < len(columns)-1 {
+			fmt.Print("  ") // 2スペース
+		}
 	}
 	fmt.Println()
 	
@@ -162,7 +173,12 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 	for _, row := range data {
 		for i, cell := range row {
 			if i < len(columns) {
-				fmt.Printf("%-*s ", colWidths[i], cell)
+				fmt.Printf("%s", cell)
+				if i < len(columns)-1 {
+					// 列間に2スペースを挿入
+					padding := colWidths[i] - runewidth.StringWidth(cell) + 2
+					fmt.Printf("%s", strings.Repeat(" ", padding))
+				}
 			}
 		}
 		fmt.Println()
