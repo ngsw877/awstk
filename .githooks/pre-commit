@@ -8,8 +8,8 @@
 if ! git diff --cached --quiet --exit-code -- .cursor/rules/; then
     echo "Cursor Rules files changed, updating CLAUDE.md..."
     
-    # Go スクリプトを実行
-    if ! go run scripts/sync-ai-docs.go; then
+    # AI用ドキュメントを同期
+    if ! make sync-ai-docs; then
         echo "Error: Failed to update CLAUDE.md"
         exit 1
     fi
