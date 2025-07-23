@@ -36,7 +36,7 @@ RDSインスタンスを操作するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk rds ls](awstk_rds_ls.md)	 - RDSインスタンス一覧を表示するコマンド
 * [awstk rds start](awstk_rds_start.md)	 - RDSインスタンスを起動するコマンド
 * [awstk rds stop](awstk_rds_stop.md)	 - RDSインスタンスを停止するコマンド

@@ -28,7 +28,7 @@ AWS関連の環境変数を管理するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk env set](awstk_env_set.md)	 - 環境変数の設定方法を表示
 * [awstk env show](awstk_env_show.md)	 - 環境変数の現在値を表示
 * [awstk env unset](awstk_env_unset.md)	 - 環境変数の削除方法を表示

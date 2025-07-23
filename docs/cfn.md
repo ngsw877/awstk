@@ -34,7 +34,7 @@ CloudFormationリソースを操作するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk cfn ls](awstk_cfn_ls.md)	 - CloudFormationスタック一覧を表示するコマンド
 * [awstk cfn start](awstk_cfn_start.md)	 - CloudFormationスタック内のリソースを一括起動するコマンド
 * [awstk cfn stop](awstk_cfn_stop.md)	 - CloudFormationスタック内のリソースを一括停止するコマンド

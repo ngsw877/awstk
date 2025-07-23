@@ -33,7 +33,7 @@ AWS Secrets Managerのシークレットを操作するためのコマンド群�
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk secrets delete](awstk_secrets_delete.md)	 - Secrets Managerのシークレットを即時削除します。
 * [awstk secrets get](awstk_secrets_get.md)	 - Secrets Managerからシークレット値を取得するコマンド
 

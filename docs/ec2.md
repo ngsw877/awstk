@@ -34,7 +34,7 @@ EC2インスタンスを操作するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk ec2 ls](awstk_ec2_ls.md)	 - EC2インスタンス一覧を表示するコマンド
 * [awstk ec2 start](awstk_ec2_start.md)	 - EC2インスタンスを起動するコマンド
 * [awstk ec2 stop](awstk_ec2_stop.md)	 - EC2インスタンスを停止するコマンド

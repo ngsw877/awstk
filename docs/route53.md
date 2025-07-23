@@ -33,7 +33,7 @@ Route53のホストゾーンを管理するコマンドです。ホストゾー�
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk route53 delete](awstk_route53_delete.md)	 - ホストゾーンを削除
 * [awstk route53 ls](awstk_route53_ls.md)	 - ホストゾーン一覧を表示
 

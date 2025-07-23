@@ -1,15 +1,18 @@
 ## awstk
 
-A brief description of your application
+AWS リソース管理用 CLI ツール
 
 ### Synopsis
 
-A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+awstk は AWS リソースを効率的に管理するための CLI ツールです。
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.
+S3、ECR、ECS、CloudFormation などの各種 AWS サービスに対して、
+一括削除や状態確認などの便利な操作を提供します。
+
+使用例:
+  awstk cleanup all -k "test"    # "test"を含むS3/ECRを一括削除
+  awstk s3 gunzip my-bucket/logs # S3の.gzファイルを一括ダウンロード&解凍
+  awstk ecs exec -s my-service   # Fargateコンテナへシェル接続
 
 ### Options
 

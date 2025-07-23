@@ -35,7 +35,7 @@ Aurora DBクラスターを操作するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk aurora acu](awstk_aurora_acu.md)	 - Aurora Serverless v2のAcu使用状況を表示
 * [awstk aurora ls](awstk_aurora_ls.md)	 - Auroraクラスター一覧を表示するコマンド
 * [awstk aurora start](awstk_aurora_start.md)	 - Aurora DBクラスターを起動するコマンド

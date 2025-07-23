@@ -34,7 +34,7 @@ AWS SSMセッションマネージャーを利用したEC2インスタンスへ�
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk ssm delete-params](awstk_ssm_delete-params.md)	 - ファイルからParameter Storeを一括削除
 * [awstk ssm put-params](awstk_ssm_put-params.md)	 - ファイルからParameter Storeに一括登録
 * [awstk ssm session](awstk_ssm_session.md)	 - EC2インスタンスにSSMで接続する

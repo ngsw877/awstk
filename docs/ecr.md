@@ -33,7 +33,7 @@ ECR（Elastic Container Registry）を操作するためのコマンド群です
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk ecr cleanup](awstk_ecr_cleanup.md)	 - ECRリポジトリを削除するコマンド
 * [awstk ecr ls](awstk_ecr_ls.md)	 - ECRリポジトリ一覧を表示するコマンド
 

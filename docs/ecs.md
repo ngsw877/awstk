@@ -37,7 +37,7 @@ ECSリソースを操作するためのコマンド群です。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk ecs exec](awstk_ecs_exec.md)	 - Fargateコンテナに接続するコマンド
 * [awstk ecs redeploy](awstk_ecs_redeploy.md)	 - ECSサービスを強制再デプロイするコマンド
 * [awstk ecs run](awstk_ecs_run.md)	 - ECSタスクを実行するコマンド

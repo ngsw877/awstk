@@ -29,7 +29,7 @@ CloudFrontリソース操作コマンド
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk cf invalidate](awstk_cf_invalidate.md)	 - CloudFrontのキャッシュを無効化するコマンド
 * [awstk cf tenant](awstk_cf_tenant.md)	 - CloudFrontマルチテナントディストリビューション操作
 

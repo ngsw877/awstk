@@ -40,7 +40,7 @@ AWS Synthetics Canaryの一覧表示、有効化/無効化を行います。
 
 ### SEE ALSO
 
-* [awstk](awstk.md)	 - A brief description of your application
+* [awstk](awstk.md)	 - AWS リソース管理用 CLI ツール
 * [awstk canary disable](awstk_canary_disable.md)	 - Canaryを無効化するコマンド
 * [awstk canary enable](awstk_canary_enable.md)	 - Canaryを有効化するコマンド
 * [awstk canary ls](awstk_canary_ls.md)	 - Canary一覧を表示するコマンド
