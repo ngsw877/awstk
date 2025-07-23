@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Pre-commit hook: Cursor Rules が変更された場合に CLAUDE.md を自動更新
+# Pre-commit hook: 
+# 1. Cursor Rules が変更された場合に CLAUDE.md を自動更新
+# 2. コマンド定義が変更された場合にドキュメントを自動更新
 
 # Cursor Rules ファイルが変更されているかチェック
 if ! git diff --cached --quiet --exit-code -- .cursor/rules/; then
@@ -17,6 +19,21 @@ if ! git diff --cached --quiet --exit-code -- .cursor/rules/; then
         git add CLAUDE.md
         echo "CLAUDE.md has been updated and staged"
     fi
+fi
+
+# コマンド定義（cmd/配下）が変更されているかチェック
+if ! git diff --cached --quiet --exit-code -- cmd/; then
+    echo "Command definitions changed, updating documentation..."
+    
+    # ドキュメント生成
+    if ! make docs; then
+        echo "Error: Failed to generate documentation"
+        exit 1
+    fi
+    
+    # 生成されたドキュメントをステージングエリアに追加
+    git add docs/
+    echo "Documentation has been updated and staged"
 fi
 
 exit 0 
