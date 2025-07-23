@@ -29,8 +29,8 @@ func main() {
 	// サービスごとにドキュメントを生成
 	serviceCommands := make(map[string][]*cobra.Command)
 	
-	// ルートコマンドは個別に生成
-	if err := genSingleMarkdown(cmd.RootCmd, filepath.Join(docsDir, "awstk.md")); err != nil {
+	// ルートコマンドはdocs/README.mdとして生成
+	if err := genSingleMarkdown(cmd.RootCmd, filepath.Join(docsDir, "README.md")); err != nil {
 		log.Fatalf("Failed to generate root documentation: %v", err)
 	}
 	
@@ -60,7 +60,7 @@ func main() {
 		}
 	}
 
-	fileCount := len(serviceCommands) + 1 // サービスファイル数 + awstk.md
+	fileCount := len(serviceCommands) + 1 // サービスファイル数 + README.md
 	fmt.Printf("✅ Documentation generated in %s (%d files)\n", docsDir, fileCount)
 }
 
