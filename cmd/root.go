@@ -51,8 +51,7 @@ func isAuthNotRequired(cmd *cobra.Command) bool {
 	}
 	// 認証不要なコマンドのサブコマンド
 	if cmd.Parent() != nil &&
-		(cmd.Parent().Name() == "env" ||
-			cmd.Parent().Name() == "precommit") {
+		cmd.Parent().Name() == "env" {
 		return true
 	}
 	return false
