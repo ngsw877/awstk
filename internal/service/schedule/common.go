@@ -30,9 +30,10 @@ func DisplaySchedules(schedules []Schedule) {
 	for _, s := range schedules {
 		// Stateに絵文字を付ける
 		stateWithEmoji := s.State
-		if s.State == "ENABLED" {
+		switch s.State {
+		case "ENABLED":
 			stateWithEmoji = "🟢 " + s.State
-		} else if s.State == "DISABLED" {
+		case "DISABLED":
 			stateWithEmoji = "🔴 " + s.State
 		}
 

@@ -17,9 +17,7 @@ import (
 func CreateInvalidation(client *cloudfront.Client, distributionId string, paths []string) (string, error) {
 	// パスをAWS SDKの形式に変換
 	var items []string
-	for _, path := range paths {
-		items = append(items, path)
-	}
+	items = append(items, paths...)
 
 	// CallerReferenceとして現在時刻を使用
 	callerReference := fmt.Sprintf("awstk-%d", time.Now().Unix())
