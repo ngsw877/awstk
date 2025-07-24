@@ -1,4 +1,5 @@
 # PHONYターゲット一覧
+.PHONY: setup
 .PHONY: docs
 .PHONY: sync-ai-docs
 .PHONY: fmt
@@ -10,6 +11,10 @@
 .PHONY: precommit-enable
 .PHONY: precommit-disable
 .PHONY: precommit-status
+
+# 開発環境セットアップ
+setup:
+	@bash scripts/setup.sh
 
 # ドキュメント生成
 docs:
@@ -43,12 +48,14 @@ fix: fmt lint-fix
 check: vet lint
 	@echo "✅ All checks passed!"
 
-# Pre-commit管理
+# Pre-commit有効化
 precommit-enable:
 	go run scripts/precommit/main.go enable
 
+# Pre-commit無効化
 precommit-disable:
 	go run scripts/precommit/main.go disable
 
+# Pre-commit状態確認
 precommit-status:
 	go run scripts/precommit/main.go status
