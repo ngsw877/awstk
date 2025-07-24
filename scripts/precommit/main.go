@@ -1,9 +1,9 @@
 package main
 
 import (
-	"awstk/internal/cli"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -53,7 +53,8 @@ func enable() error {
 	}
 
 	// Git hooks の参照先を .githooks に設定
-	if err := cli.SetGitConfig("core.hooksPath", ".githooks"); err != nil {
+	cmd := exec.Command("git", "config", "--local", "core.hooksPath", ".githooks")
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to set hooksPath: %w", err)
 	}
 
@@ -73,7 +74,8 @@ func enable() error {
 // disable はpre-commitフックを無効化する
 func disable() error {
 	// Git hooks の参照先設定を削除
-	if err := cli.UnsetGitConfig("core.hooksPath"); err != nil {
+	cmd := exec.Command("git", "config", "--local", "--unset", "core.hooksPath")
+	if err := cmd.Run(); err != nil {
 		// エラーが発生しても、既に設定がない場合は問題ないので続行
 		fmt.Println("ℹ️  No custom hooksPath was set")
 	}
@@ -91,13 +93,15 @@ func getStatus() (*status, error) {
 	status := &status{}
 
 	// Git hooks の参照先設定を取得
-	hooksPath, err := cli.GetGitConfig("core.hooksPath")
+	cmd := exec.Command("git", "config", "--local", "--get", "core.hooksPath")
+	output, err := cmd.Output()
 	if err != nil {
 		// 設定がない場合はデフォルトの .git/hooks を使用
 		status.Enabled = false
 		status.HooksPath = ".git/hooks (default)"
 		return status, nil
 	}
+	hooksPath := string(output)
 
 	// 改行を削除
 	hooksPath = strings.TrimSpace(hooksPath)
