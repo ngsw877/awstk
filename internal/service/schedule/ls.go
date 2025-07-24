@@ -129,7 +129,7 @@ func formatTargets(targets []eventbridgetypes.Target) string {
 			if len(arnParts) >= 6 {
 				service := arnParts[2]
 				resourceType := arnParts[5]
-				
+
 				// Lambda関数の場合
 				if service == "lambda" && strings.HasPrefix(resourceType, "function:") {
 					funcName := strings.TrimPrefix(resourceType, "function:")
@@ -161,7 +161,7 @@ func formatSchedulerTarget(target *schedulertypes.Target) string {
 	if len(arnParts) >= 6 {
 		service := arnParts[2]
 		resourceType := arnParts[5]
-		
+
 		// サービス別の表現
 		switch service {
 		case "lambda":
@@ -178,7 +178,7 @@ func formatSchedulerTarget(target *schedulertypes.Target) string {
 		case "events":
 			return fmt.Sprintf("EventBus:%s", resourceType)
 		}
-		
+
 		return fmt.Sprintf("%s:%s", service, resourceType)
 	}
 
@@ -190,14 +190,14 @@ func formatScheduleExpression(schedule *scheduler.GetScheduleOutput) string {
 	if schedule.ScheduleExpression != nil {
 		return *schedule.ScheduleExpression
 	}
-	
+
 	// FlexibleTimeWindowがある場合
 	if schedule.FlexibleTimeWindow != nil && schedule.FlexibleTimeWindow.Mode == schedulertypes.FlexibleTimeWindowModeFlexible {
 		if schedule.FlexibleTimeWindow.MaximumWindowInMinutes != nil {
 			return fmt.Sprintf("flexible(%d min)", *schedule.FlexibleTimeWindow.MaximumWindowInMinutes)
 		}
 	}
-	
+
 	return "不明"
 }
 

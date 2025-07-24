@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 )
 
-
 // GetServiceStatus はECSサービスの状態を取得する
 func GetServiceStatus(ecsClient *ecs.Client, aasClient *applicationautoscaling.Client, opts StatusOptions) (*serviceStatus, error) {
 	// サービス情報を取得
@@ -31,7 +30,7 @@ func GetServiceStatus(ecsClient *ecs.Client, aasClient *applicationautoscaling.C
 	if service.Status != nil {
 		statusStr = *service.Status
 	}
-	
+
 	taskDef := ""
 	if service.TaskDefinition != nil {
 		taskDef = *service.TaskDefinition
@@ -137,17 +136,17 @@ func getAutoScalingInfo(autoScalingClient *applicationautoscaling.Client, cluste
 	}
 
 	target := targetsResp.ScalableTargets[0]
-	
+
 	minCap := int32(0)
 	if target.MinCapacity != nil {
 		minCap = *target.MinCapacity
 	}
-	
+
 	maxCap := int32(0)
 	if target.MaxCapacity != nil {
 		maxCap = *target.MaxCapacity
 	}
-	
+
 	return &autoScalingInfo{
 		MinCapacity: minCap,
 		MaxCapacity: maxCap,

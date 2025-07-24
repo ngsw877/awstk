@@ -83,7 +83,7 @@ func getAllCanaries(client *synthetics.Client) ([]Canary, error) {
 func calculateSuccessRate(client *synthetics.Client, canaryName string) float64 {
 	// 直近100件の実行結果を取得
 	runs, err := client.GetCanaryRuns(context.Background(), &synthetics.GetCanaryRunsInput{
-		Name:      awssdk.String(canaryName),
+		Name:       awssdk.String(canaryName),
 		MaxResults: awssdk.Int32(100),
 	})
 	if err != nil || len(runs.CanaryRuns) == 0 {

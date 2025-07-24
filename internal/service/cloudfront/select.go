@@ -44,7 +44,7 @@ func SelectDistribution(client *cloudfront.Client, distributionIds []string) (st
 	// ユーザーの選択を待つ
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("\n番号を入力してください (1-" + fmt.Sprintf("%d", len(distributionIds)) + "): ")
-	
+
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		return "", fmt.Errorf("入力エラー: %w", err)
@@ -58,6 +58,6 @@ func SelectDistribution(client *cloudfront.Client, distributionIds []string) (st
 
 	selectedId := distributionIds[choice-1]
 	fmt.Printf("\n✅ ディストリビューション '%s' を選択しました\n", selectedId)
-	
+
 	return selectedId, nil
 }

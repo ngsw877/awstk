@@ -1,6 +1,5 @@
 package ecs
 
-
 // ServiceCapacityOptions はECSサービスのキャパシティ設定用パラメータを格納する構造体
 type ServiceCapacityOptions struct {
 	ClusterName string
@@ -42,7 +41,6 @@ type StopServiceOptions struct {
 	TimeoutSeconds int    // オプション: タイムアウト秒数（デフォルト: 300）
 }
 
-
 // StatusOptions はECSサービス状態取得のパラメータを格納する構造体
 type StatusOptions struct {
 	ClusterName string // 必須: ECSクラスター名
@@ -59,10 +57,10 @@ type waitOptions struct {
 
 // waitTaskOptions はタスク停止待機のパラメータを格納する構造体（内部使用）
 type waitTaskOptions struct {
-	ClusterName     string
-	TaskArn         string
-	ContainerName   string
-	TimeoutSeconds  int
+	ClusterName    string
+	TaskArn        string
+	ContainerName  string
+	TimeoutSeconds int
 }
 
 // WaitDeploymentOptions はデプロイ完了待機のパラメータを格納する構造体
@@ -81,23 +79,23 @@ type ResolveOptions struct {
 
 // serviceStatus はECSサービスの状態情報を格納する構造体
 type serviceStatus struct {
-	ServiceName     string
-	ClusterName     string
-	Status          string
-	TaskDefinition  string
-	DesiredCount    int32
-	RunningCount    int32
-	PendingCount    int32
-	Tasks           []taskInfo
-	AutoScaling     *autoScalingInfo
+	ServiceName    string
+	ClusterName    string
+	Status         string
+	TaskDefinition string
+	DesiredCount   int32
+	RunningCount   int32
+	PendingCount   int32
+	Tasks          []taskInfo
+	AutoScaling    *autoScalingInfo
 }
 
 // taskInfo はECSタスクの情報を格納する構造体
 type taskInfo struct {
-	TaskId        string
-	Status        string
-	HealthStatus  string
-	CreatedAt     string
+	TaskId       string
+	Status       string
+	HealthStatus string
+	CreatedAt    string
 }
 
 // autoScalingInfo はAuto Scalingの設定情報を格納する構造体

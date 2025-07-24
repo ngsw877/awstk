@@ -63,4 +63,3 @@ func listRegions(ec2Client *ec2.Client, showAllRegions bool) ([]awsRegion, error
 
 	return regions, nil
 }
-

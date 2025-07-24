@@ -26,7 +26,7 @@ func SelectAndStartSession(awsCtx aws.Context, ec2Client *ec2.Client, instanceId
 	// インスタンスIDが指定されていない場合は、インタラクティブに選択
 	if instanceId == "" {
 		fmt.Println("🖥️  利用可能なEC2インスタンスから選択してください:")
-		
+
 		selectedInstanceId, err := ec2svc.SelectInstanceInteractively(ec2Client)
 		if err != nil {
 			return fmt.Errorf("❌ インスタンス選択でエラー: %w", err)

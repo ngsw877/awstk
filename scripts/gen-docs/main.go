@@ -29,21 +29,21 @@ func main() {
 
 	// サービスごとにドキュメントを生成
 	serviceCommands := make(map[string][]*cobra.Command)
-	
+
 	// ルートコマンドはdocs/README.mdとして生成
 	if err := genSingleMarkdown(cmd.RootCmd, filepath.Join(docsDir, "README.md")); err != nil {
 		log.Fatalf("Failed to generate root documentation: %v", err)
 	}
-	
+
 	// サブコマンドをサービスごとにグループ化
 	for _, subCmd := range cmd.RootCmd.Commands() {
 		if !subCmd.IsAvailableCommand() || subCmd.IsAdditionalHelpTopicCommand() {
 			continue
 		}
-		
+
 		serviceName := subCmd.Name()
 		serviceCommands[serviceName] = append(serviceCommands[serviceName], subCmd)
-		
+
 		// サブコマンドの子コマンドも収集
 		for _, childCmd := range subCmd.Commands() {
 			if childCmd.IsAvailableCommand() && !childCmd.IsAdditionalHelpTopicCommand() {
@@ -76,13 +76,13 @@ func customLinkHandler(name string) string {
 	if name == "awstk" {
 		return "README"
 	}
-	
+
 	// awstk_aurora_ls -> aurora#awstk-aurora-ls
 	// awstk_aurora -> aurora
 	parts := strings.Split(name, "_")
 	if len(parts) >= 2 && parts[0] == "awstk" {
 		serviceName := parts[1]
-		
+
 		// サブコマンドがある場合はアンカー付きリンク（同一ファイル内）
 		if len(parts) > 2 {
 			anchor := strings.ReplaceAll(name, "_", "-")
@@ -91,7 +91,7 @@ func customLinkHandler(name string) string {
 		// サービスレベルのコマンド（別ファイル）
 		return serviceName
 	}
-	
+
 	// デフォルト
 	return name
 }
@@ -103,27 +103,27 @@ func genSingleMarkdown(cmd *cobra.Command, filename string) error {
 	if err := doc.GenMarkdownCustom(cmd, buf, customLinkHandler); err != nil {
 		return err
 	}
-	
+
 	content := buf.String()
 	if shouldRemoveInheritedFlags(cmd.Name()) {
 		content = removeInheritedFlagsSection(content)
 	}
-	
+
 	// リンクの修正
 	content = fixMarkdownLinks(content)
-	
+
 	return os.WriteFile(filename, []byte(content), 0644)
 }
 
 // genServiceMarkdown はサービスの全コマンドを1つのファイルにまとめて生成
 func genServiceMarkdown(serviceName string, commands []*cobra.Command, filename string) error {
 	var content strings.Builder
-	
+
 	// ファイルヘッダー
 	content.WriteString(fmt.Sprintf("# %s Commands\n\n", serviceName))
 	content.WriteString(fmt.Sprintf("This document describes all `%s` related commands.\n\n", serviceName))
 	content.WriteString("## Table of Contents\n\n")
-	
+
 	// 目次を生成
 	for _, cmd := range commands {
 		cmdPath := cmd.CommandPath()
@@ -131,7 +131,7 @@ func genServiceMarkdown(serviceName string, commands []*cobra.Command, filename 
 		content.WriteString(fmt.Sprintf("- [%s](#%s)\n", cmdPath, anchor))
 	}
 	content.WriteString("\n---\n\n")
-	
+
 	// 各コマンドのドキュメントを追加
 	for _, cmd := range commands {
 		buf := new(bytes.Buffer)
@@ -139,23 +139,23 @@ func genServiceMarkdown(serviceName string, commands []*cobra.Command, filename 
 		if err := doc.GenMarkdownCustom(cmd, buf, customLinkHandler); err != nil {
 			return fmt.Errorf("failed to generate markdown for %s: %w", cmd.CommandPath(), err)
 		}
-		
+
 		cmdDoc := buf.String()
-		
+
 		// envとversionコマンドの場合、継承フラグセクションを削除
-		if shouldRemoveInheritedFlags(serviceName) || 
-		   (cmd.Parent() != nil && shouldRemoveInheritedFlags(cmd.Parent().Name())) {
+		if shouldRemoveInheritedFlags(serviceName) ||
+			(cmd.Parent() != nil && shouldRemoveInheritedFlags(cmd.Parent().Name())) {
 			cmdDoc = removeInheritedFlagsSection(cmdDoc)
 		}
-		
+
 		// リンクの修正
 		cmdDoc = fixMarkdownLinks(cmdDoc)
-		
+
 		// セクション区切りを追加
 		content.WriteString(cmdDoc)
 		content.WriteString("\n---\n\n")
 	}
-	
+
 	return os.WriteFile(filename, []byte(content.String()), 0644)
 }
 
@@ -164,23 +164,23 @@ func removeInheritedFlagsSection(content string) string {
 	lines := strings.Split(content, "\n")
 	result := []string{}
 	inInheritedSection := false
-	
+
 	for _, line := range lines {
 		if strings.HasPrefix(line, "### Options inherited from parent commands") {
 			inInheritedSection = true
 			continue
 		}
-		
+
 		// 次のセクションに到達したら除外モードを解除
 		if inInheritedSection && (strings.HasPrefix(line, "### ") || strings.HasPrefix(line, "## ") || strings.HasPrefix(line, "##### ")) {
 			inInheritedSection = false
 		}
-		
+
 		if !inInheritedSection {
 			result = append(result, line)
 		}
 	}
-	
+
 	return strings.Join(result, "\n")
 }
 
@@ -188,11 +188,11 @@ func removeInheritedFlagsSection(content string) string {
 func fixMarkdownLinks(content string) string {
 	// awstk.md -> README.md
 	content = strings.ReplaceAll(content, "(awstk.md)", "(README.md)")
-	
+
 	// serviceName#anchor.md -> serviceName.md#anchor
 	// 例: aurora#awstk-aurora-ls.md -> aurora.md#awstk-aurora-ls
 	re := regexp.MustCompile(`\((\w+)#([\w-]+)\.md\)`)
 	content = re.ReplaceAllString(content, "($1.md#$2)")
-	
+
 	return content
 }

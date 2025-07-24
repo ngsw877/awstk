@@ -68,7 +68,7 @@ var logsLsCmd = &cobra.Command{
 		// フィルタリング処理とタイトル生成
 		filteredGroups := logGroups
 		var conditions []string
-		
+
 		if emptyOnly {
 			conditions = append(conditions, "空の")
 			filteredGroups = logssvc.FilterEmptyLogGroups(filteredGroups)
@@ -77,7 +77,7 @@ var logsLsCmd = &cobra.Command{
 			conditions = append(conditions, "保存期間未設定の")
 			filteredGroups = logssvc.FilterNoRetentionLogGroups(filteredGroups)
 		}
-		
+
 		title := common.GenerateFilteredTitle("CloudWatch Logsグループ", conditions...)
 
 		// 結果表示

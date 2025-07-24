@@ -18,20 +18,20 @@ type Canary struct {
 
 // CanaryState はCanaryの実行状態を表す定数
 const (
-	CanaryStateRunning     = "RUNNING"
-	CanaryStateStopped     = "STOPPED"
-	CanaryStateError       = "ERROR"
-	CanaryStateReady       = "READY"
-	CanaryStateStopping    = "STOPPING"
-	CanaryStateStarting    = "STARTING"
-	CanaryStateDeleting    = "DELETING"
-	CanaryStateUpdating    = "UPDATING"
+	CanaryStateRunning        = "RUNNING"
+	CanaryStateStopped        = "STOPPED"
+	CanaryStateError          = "ERROR"
+	CanaryStateReady          = "READY"
+	CanaryStateStopping       = "STOPPING"
+	CanaryStateStarting       = "STARTING"
+	CanaryStateDeleting       = "DELETING"
+	CanaryStateUpdating       = "UPDATING"
 	CanaryStateRollbackFailed = "ROLLBACK_FAILED"
 )
 
 // CanaryRunState はCanary実行結果の状態を表す定数
 const (
-	CanaryRunStatePassed = "PASSED"
-	CanaryRunStateFailed = "FAILED"
+	CanaryRunStatePassed  = "PASSED"
+	CanaryRunStateFailed  = "FAILED"
 	CanaryRunStateRunning = "RUNNING"
 )

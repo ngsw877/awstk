@@ -1,7 +1,5 @@
 package cfn
 
-
-
 // StackResources はCloudFormationスタック内のリソース識別子を格納する構造体
 type StackResources struct {
 	Ec2InstanceIds   []string

@@ -120,7 +120,7 @@ func ec2InstancesToTableData(instances []Instance) ([]common.TableColumn, [][]st
 		{Header: "インスタンス名"},
 		{Header: "状態"},
 	}
-	
+
 	data := make([][]string, len(instances))
 	for i, ins := range instances {
 		data[i] = []string{
@@ -147,14 +147,14 @@ func SelectInstanceInteractively(ec2Client *ec2.Client) (string, error) {
 
 	// インスタンス一覧を表示
 	fmt.Println("\n📋 利用可能なEC2インスタンス:")
-	
+
 	columns := []common.TableColumn{
 		{Header: "番号"},
 		{Header: "インスタンスID"},
 		{Header: "インスタンス名"},
 		{Header: "状態"},
 	}
-	
+
 	data := make([][]string, len(instances))
 	for i, instance := range instances {
 		data[i] = []string{
@@ -164,7 +164,7 @@ func SelectInstanceInteractively(ec2Client *ec2.Client) (string, error) {
 			instance.State,
 		}
 	}
-	
+
 	common.PrintTable("EC2インスタンス一覧", columns, data)
 
 	// ユーザーに選択させる

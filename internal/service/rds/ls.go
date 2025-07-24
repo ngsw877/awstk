@@ -100,7 +100,7 @@ func rdsInstancesToTableData(instances []Instance) ([]common.TableColumn, [][]st
 		{Header: "エンジン"},
 		{Header: "ステータス"},
 	}
-	
+
 	data := make([][]string, len(instances))
 	for i, ins := range instances {
 		data[i] = []string{

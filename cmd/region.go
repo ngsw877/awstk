@@ -53,9 +53,9 @@ func listRegions(showAllRegions bool) error {
 	if showAllRegions {
 		// 有効なリージョンと無効なリージョンを分けて表示
 		available, disabled := regionSvc.GroupRegions(regions)
-		
+
 		fmt.Printf("AWSリージョン一覧: (全%d件)\n\n", len(regions))
-		
+
 		if len(available) > 0 {
 			availableNames := make([]string, len(available))
 			for i, region := range available {
@@ -67,7 +67,7 @@ func listRegions(showAllRegions bool) error {
 				ResourceName: "リージョン",
 			})
 		}
-		
+
 		if len(disabled) > 0 {
 			fmt.Println()
 			disabledNames := make([]string, len(disabled))
@@ -93,7 +93,7 @@ func listRegions(showAllRegions bool) error {
 			ResourceName: "リージョン",
 		})
 	}
-	
+
 	return nil
 }
 

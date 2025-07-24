@@ -59,12 +59,12 @@ func readEmailsFromFile(filename string) ([]string, error) {
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// 空行とコメント行をスキップ
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		
+
 		// 基本的なメールアドレス検証（@を含む）
 		if strings.Contains(line, "@") {
 			emails = append(emails, line)
@@ -103,14 +103,14 @@ func verifySesEmails(sesClient *ses.Client, emails []string) ([]string, []EmailV
 		_, err := sesClient.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
 			EmailAddress: aws.String(email),
 		})
-		
+
 		detail := EmailVerificationDetail{
 			Email:   email,
 			Success: err == nil,
 			Error:   err,
 		}
 		details = append(details, detail)
-		
+
 		if err != nil {
 			failedEmails = append(failedEmails, email)
 		}

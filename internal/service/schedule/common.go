@@ -26,7 +26,7 @@ func DisplaySchedules(schedules []Schedule) {
 	// EventBridge RulesとSchedulerでデータを分離
 	var ruleData [][]string
 	var schedulerData [][]string
-	
+
 	for _, s := range schedules {
 		// Stateに絵文字を付ける
 		stateWithEmoji := s.State
@@ -35,7 +35,7 @@ func DisplaySchedules(schedules []Schedule) {
 		} else if s.State == "DISABLED" {
 			stateWithEmoji = "🔴 " + s.State
 		}
-		
+
 		row := []string{s.Name, s.Expression, stateWithEmoji, s.Target}
 		if s.Type == "rule" {
 			ruleData = append(ruleData, row)

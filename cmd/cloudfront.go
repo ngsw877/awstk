@@ -89,7 +89,7 @@ var cfTenantListCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmdCobra *cobra.Command, args []string) error {
 		distributionId := args[0]
-		
+
 		tenants, err := tenant.ListTenants(cfClient, distributionId)
 		if err != nil {
 			return common.FormatListError("テナント", err)
@@ -171,7 +171,7 @@ func init() {
 	RootCmd.AddCommand(CfCmd)
 	CfCmd.AddCommand(cfInvalidateCmd)
 	CfCmd.AddCommand(cfTenantCmd)
-	
+
 	// tenant サブコマンドに list, invalidate を追加
 	cfTenantCmd.AddCommand(cfTenantListCmd)
 	cfTenantCmd.AddCommand(cfTenantInvalidateCmd)
@@ -180,7 +180,7 @@ func init() {
 	cfInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")
 	cfInvalidateCmd.Flags().BoolP("wait", "w", false, "無効化完了まで待機")
 	cfInvalidateCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
-	
+
 	// tenant invalidate フラグ
 	cfTenantInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")
 	cfTenantInvalidateCmd.Flags().BoolP("all", "a", false, "全テナントを無効化")

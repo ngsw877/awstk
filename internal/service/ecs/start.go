@@ -2,7 +2,7 @@ package ecs
 
 import (
 	"fmt"
-	
+
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 )

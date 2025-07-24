@@ -129,7 +129,7 @@ func InvalidateTenantByIdOrSelection(cfClient *cloudfront.Client, selectFromList
 	if err != nil {
 		return fmt.Errorf("キャッシュ無効化エラー: %w", err)
 	}
-	
+
 	fmt.Printf("✅ テナント '%s' のキャッシュ無効化を開始しました\n", opts.TenantId)
 	return nil
 }
@@ -137,12 +137,12 @@ func InvalidateTenantByIdOrSelection(cfClient *cloudfront.Client, selectFromList
 // InvalidateAllTenantsWithMessage は全テナントのキャッシュを無効化します（メッセージ付き）
 func InvalidateAllTenantsWithMessage(cfClient *cloudfront.Client, opts tenant.InvalidateOptions) error {
 	fmt.Printf("🚀 CloudFrontディストリビューション (%s) の全テナントのキャッシュを無効化します...\n", opts.DistributionId)
-	
+
 	err := tenant.InvalidateAllTenants(cfClient, opts)
 	if err != nil {
 		return fmt.Errorf("全テナントキャッシュ無効化エラー: %w", err)
 	}
-	
+
 	fmt.Println("✅ 全テナントのキャッシュ無効化を開始しました")
 	return nil
 }

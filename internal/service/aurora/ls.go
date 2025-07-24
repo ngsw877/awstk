@@ -100,7 +100,7 @@ func auroraClustersToTableData(clusters []Cluster) ([]common.TableColumn, [][]st
 		{Header: "エンジン"},
 		{Header: "ステータス"},
 	}
-	
+
 	data := make([][]string, len(clusters))
 	for i, cl := range clusters {
 		data[i] = []string{

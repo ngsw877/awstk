@@ -106,7 +106,7 @@ func FilterEmptyRepositories(client *ecr.Client, repositories []RepositoryInfo) 
 		if err != nil {
 			return nil, fmt.Errorf("イメージ数取得エラー (%s): %w", repo.RepositoryName, err)
 		}
-		
+
 		repo.ImageCount = imageCount
 		if imageCount == 0 {
 			emptyRepos = append(emptyRepos, repo)
@@ -159,7 +159,7 @@ func EnrichRepositoryDetails(client *ecr.Client, repo *RepositoryInfo) error {
 	if err != nil {
 		return fmt.Errorf("イメージ詳細取得エラー: %w", err)
 	}
-	
+
 	repo.ImageCount = len(imageDetails)
 	repo.SizeInBytes = 0
 	for _, image := range imageDetails {
@@ -167,10 +167,10 @@ func EnrichRepositoryDetails(client *ecr.Client, repo *RepositoryInfo) error {
 			repo.SizeInBytes += *image.ImageSizeInBytes
 		}
 	}
-	
+
 	// ライフサイクルポリシーの有無を確認
 	repo.HasLifecycle, _ = CheckLifecyclePolicy(client, repo.RepositoryName)
-	
+
 	return nil
 }
 
@@ -180,11 +180,11 @@ func DisplayRepositoryDetails(repo RepositoryInfo) {
 	fmt.Printf("    URI: %s\n", repo.RepositoryUri)
 	fmt.Printf("    イメージ数: %d個\n", repo.ImageCount)
 	fmt.Printf("    サイズ: %s\n", common.FormatBytes(repo.SizeInBytes))
-	
+
 	if repo.CreatedAt != nil {
 		fmt.Printf("    作成日: %s\n", repo.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
-	
+
 	lifecycleStatus := "設定済み"
 	if !repo.HasLifecycle {
 		lifecycleStatus = "未設定"
@@ -270,4 +270,3 @@ func displayDetailedList(ecrClient *ecr.Client, repos []RepositoryInfo, title st
 	}
 	fmt.Printf("\n合計: %d個のリポジトリ\n", len(repos))
 }
-

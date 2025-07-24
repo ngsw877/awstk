@@ -23,4 +23,3 @@ type EmailVerificationDetail struct {
 	Success bool
 	Error   error
 }
-

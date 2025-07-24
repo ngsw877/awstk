@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/service/synthetics"
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/synthetics"
 )
 
 // getCanariesByFilter フィルタパターンに一致するCanaryを取得
@@ -33,7 +33,7 @@ func matchPattern(name, pattern string) bool {
 	// 単純なワイルドカード実装（* のみサポート）
 	pattern = strings.ReplaceAll(pattern, "*", ".*")
 	pattern = "^" + pattern + "$"
-	
+
 	// 簡易的なマッチング（正規表現は使わずに実装）
 	if !strings.Contains(pattern, ".*") {
 		return name == strings.Trim(pattern, "^$")
@@ -41,17 +41,17 @@ func matchPattern(name, pattern string) bool {
 
 	// ワイルドカードがある場合
 	parts := strings.Split(strings.Trim(pattern, "^$"), ".*")
-	
+
 	// 先頭の一致確認
 	if parts[0] != "" && !strings.HasPrefix(name, parts[0]) {
 		return false
 	}
-	
+
 	// 末尾の一致確認
 	if len(parts) > 1 && parts[len(parts)-1] != "" && !strings.HasSuffix(name, parts[len(parts)-1]) {
 		return false
 	}
-	
+
 	// 中間部分の確認
 	remaining := name
 	for i, part := range parts {
@@ -68,7 +68,7 @@ func matchPattern(name, pattern string) bool {
 		}
 		remaining = remaining[idx+len(part):]
 	}
-	
+
 	return true
 }
 
@@ -76,12 +76,12 @@ func matchPattern(name, pattern string) bool {
 func confirmAction(message string) bool {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s [y/N]: ", message)
-	
+
 	response, err := reader.ReadString('\n')
 	if err != nil {
 		return false
 	}
-	
+
 	response = strings.TrimSpace(strings.ToLower(response))
 	return response == "y" || response == "yes"
 }

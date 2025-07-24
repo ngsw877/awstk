@@ -128,15 +128,15 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 	if title != "" {
 		fmt.Printf("\n%s:\n", title)
 	}
-	
+
 	// 各列の最大幅を計算（ヘッダーとデータの中で最大値を取得）
 	colWidths := make([]int, len(columns))
-	
+
 	// ヘッダーの幅で初期化
 	for i, col := range columns {
 		colWidths[i] = runewidth.StringWidth(col.Header)
 	}
-	
+
 	// 各データセルと比較して最大値を更新
 	for _, row := range data {
 		for i, cell := range row {
@@ -148,7 +148,7 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 			}
 		}
 	}
-	
+
 	// ヘッダー表示
 	for i, col := range columns {
 		fmt.Printf("%s", col.Header)
@@ -159,7 +159,7 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 		}
 	}
 	fmt.Println()
-	
+
 	// 区切り線
 	for i := range columns {
 		fmt.Printf("%s", strings.Repeat("-", colWidths[i]))
@@ -168,7 +168,7 @@ func PrintTable(title string, columns []TableColumn, data [][]string) {
 		}
 	}
 	fmt.Println()
-	
+
 	// データ行
 	for _, row := range data {
 		for i, cell := range row {
@@ -240,6 +240,6 @@ func DisplaySimpleList[T any](
 		}
 		return columns, data
 	}
-	
+
 	return DisplayList(items, title, toTableData, opts)
 }

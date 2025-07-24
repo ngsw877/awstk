@@ -50,7 +50,7 @@ func DeleteParametersFromFile(ssmClient *ssm.Client, opts DeleteParamsOptions) e
 	if !opts.Force {
 		fmt.Printf("⚠️  %d 件のパラメータを削除しようとしています。\n", len(paramNames))
 		fmt.Print("本当に削除しますか？ [y/N]: ")
-		
+
 		var response string
 		fmt.Scanln(&response)
 		if strings.ToLower(response) != "y" {
@@ -77,9 +77,9 @@ func DeleteParametersFromFile(ssmClient *ssm.Client, opts DeleteParamsOptions) e
 		}
 	}
 
-	fmt.Printf("\n📊 削除結果: 成功 %d / 失敗 %d / 存在しない %d / 合計 %d\n", 
+	fmt.Printf("\n📊 削除結果: 成功 %d / 失敗 %d / 存在しない %d / 合計 %d\n",
 		successCount, failCount, notFoundCount, len(paramNames))
-	
+
 	if failCount > 0 {
 		return fmt.Errorf("%d 件のパラメータ削除に失敗しました", failCount)
 	}
@@ -98,22 +98,22 @@ func loadParameterNamesFromFile(filePath string) ([]string, error) {
 	var paramNames []string
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
-	
+
 	for scanner.Scan() {
 		lineNum++
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// 空行とコメント行（#で始まる）をスキップ
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		
+
 		// パラメータ名の妥当性チェック
 		if !isValidParameterName(line) {
 			fmt.Printf("⚠️  行 %d: 無効なパラメータ名をスキップ: %s\n", lineNum, line)
 			continue
 		}
-		
+
 		paramNames = append(paramNames, line)
 	}
 
@@ -130,17 +130,17 @@ func isValidParameterName(name string) bool {
 	if !strings.HasPrefix(name, "/") {
 		return false
 	}
-	
+
 	// 空白が含まれていないことを確認
 	if strings.Contains(name, " ") || strings.Contains(name, "\t") {
 		return false
 	}
-	
+
 	// 最低限の長さチェック（/のみは無効）
 	if len(name) < 2 {
 		return false
 	}
-	
+
 	return true
 }
 

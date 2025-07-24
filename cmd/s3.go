@@ -64,7 +64,7 @@ S3パスを指定した場合、デフォルトでファイルサイズが表示
 				fmt.Println(common.FormatEmptyMessage("S3バケット"))
 				return nil
 			}
-			
+
 			// 空バケットのみ表示する場合
 			if emptyOnly {
 				emptyBuckets, err := s3svc.FilterEmptyBuckets(s3Client, buckets)

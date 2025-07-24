@@ -71,7 +71,7 @@ func isLogGroupEmpty(group types.LogGroup) bool {
 // DisplayLogGroupDetails はログループの詳細情報を表示する関数
 func DisplayLogGroupDetails(group types.LogGroup) {
 	fmt.Printf("  - %s\n", *group.LogGroupName)
-	
+
 	// サイズ情報
 	if group.StoredBytes != nil {
 		fmt.Printf("    サイズ: %s\n", common.FormatBytes(*group.StoredBytes))
@@ -96,4 +96,3 @@ func DisplayLogGroupDetails(group types.LogGroup) {
 		fmt.Printf("    メトリクスフィルター: %d個\n", *group.MetricFilterCount)
 	}
 }
-

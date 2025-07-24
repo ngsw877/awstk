@@ -36,7 +36,7 @@ func SelectTenant(client *cloudfront.Client, distributionId string) (string, err
 	// ユーザーの選択を待つ
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("\n番号を入力してください (1-" + fmt.Sprintf("%d", len(tenants)) + "): ")
-	
+
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		return "", fmt.Errorf("入力エラー: %w", err)
@@ -50,6 +50,6 @@ func SelectTenant(client *cloudfront.Client, distributionId string) (string, err
 
 	selectedTenant := tenants[choice-1]
 	fmt.Printf("\n✅ テナント '%s' を選択しました\n", selectedTenant.Id)
-	
+
 	return selectedTenant.Id, nil
 }

@@ -33,13 +33,13 @@ func ListTenants(client *cloudfront.Client, distributionId string) ([]TenantInfo
 		if result.DistributionTenantList != nil {
 			for _, item := range result.DistributionTenantList {
 				tenant := TenantInfo{
-					Id: aws.ToString(item.Id),
+					Id:                       aws.ToString(item.Id),
 					AssociatedDistributionId: distributionId,
 				}
-				
+
 				// エイリアスがあれば設定（現在のAPIではエイリアスフィールドが存在しない可能性がある）
 				// TODO: AWS SDK更新時に確認
-				
+
 				tenants = append(tenants, tenant)
 			}
 		}

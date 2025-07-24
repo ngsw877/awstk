@@ -73,7 +73,7 @@ func PutParametersFromFile(ssmClient *ssm.Client, opts PutParamsOptions) error {
 	}
 
 	fmt.Printf("\n📊 登録結果: 成功 %d / 失敗 %d / 合計 %d\n", successCount, failCount, len(params))
-	
+
 	if failCount > 0 {
 		return fmt.Errorf("%d 件のパラメータ登録に失敗しました", failCount)
 	}
@@ -84,7 +84,7 @@ func PutParametersFromFile(ssmClient *ssm.Client, opts PutParamsOptions) error {
 // loadParametersFromFile はファイルからパラメータを読み込む
 func loadParametersFromFile(filePath string) ([]parameter, error) {
 	ext := strings.ToLower(filepath.Ext(filePath))
-	
+
 	switch ext {
 	case ".json":
 		return loadParametersFromJSON(filePath)
@@ -128,7 +128,7 @@ func loadParametersFromCSV(filePath string) ([]parameter, error) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
-	
+
 	// ヘッダー行を読み込む
 	headers, err := reader.Read()
 	if err != nil {
@@ -167,7 +167,7 @@ func loadParametersFromCSV(filePath string) ([]parameter, error) {
 			Value: strings.TrimSpace(record[1]),
 			Type:  strings.TrimSpace(record[2]),
 		}
-		
+
 		// descriptionカラムがある場合
 		if len(record) > 3 {
 			param.Description = strings.TrimSpace(record[3])
@@ -195,7 +195,7 @@ func validateParameter(param parameter) error {
 	if param.Type == "" {
 		return fmt.Errorf("typeが空です")
 	}
-	
+
 	// 型の検証
 	validTypes := []string{"String", "SecureString", "StringList"}
 	isValidType := false
