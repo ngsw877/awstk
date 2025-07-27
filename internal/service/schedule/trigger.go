@@ -1,8 +1,11 @@
 package schedule
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,9 +16,8 @@ import (
 
 // TriggerOptions はトリガー実行時のオプション
 type TriggerOptions struct {
-	Type    string // "rule" or "scheduler" (空の場合は自動判別)
-	Timeout int    // 実行待機時間（秒）
-	NoWait  bool   // 実行を待たずに終了
+	Timeout int  // 実行待機時間（秒）
+	NoWait  bool // 実行を待たずに終了
 }
 
 // TriggerSchedule はスケジュールを手動実行する
@@ -23,15 +25,9 @@ func TriggerSchedule(eventBridgeClient *eventbridge.Client, schedulerClient *sch
 	ctx := context.Background()
 
 	// スケジュールタイプの判別
-	scheduleType := opts.Type
-	if scheduleType == "" {
-		detectedType, err := detectScheduleType(ctx, eventBridgeClient, schedulerClient, name)
-		if err != nil {
-			return err
-		}
-		scheduleType = detectedType
-		fmt.Printf("✓ %sとして検出しました\n",
-			map[string]string{"rule": "EventBridge Rule", "scheduler": "EventBridge Scheduler"}[scheduleType])
+	scheduleType, err := detectScheduleType(ctx, eventBridgeClient, schedulerClient, name)
+	if err != nil {
+		return err
 	}
 
 	// タイプに応じて処理を分岐
@@ -76,14 +72,58 @@ func detectScheduleType(ctx context.Context, eventBridgeClient *eventbridge.Clie
 	}()
 
 	// 結果を確認
+	var hasRule, hasScheduler bool
 	for i := 0; i < 2; i++ {
 		res := <-ch
 		if res.err == nil {
-			return res.scheduleType, nil
+			switch res.scheduleType {
+			case "rule":
+				hasRule = true
+			case "scheduler":
+				hasScheduler = true
+			}
 		}
 	}
 
+	// 両方存在する場合は対話的に選択
+	if hasRule && hasScheduler {
+		return selectScheduleTypeInteractive(name)
+	}
+
+	if hasRule {
+		return "rule", nil
+	}
+	if hasScheduler {
+		return "scheduler", nil
+	}
+
 	return "", fmt.Errorf("スケジュール '%s' が見つかりません", name)
+}
+
+// selectScheduleTypeInteractive は対話的にスケジュールタイプを選択する
+func selectScheduleTypeInteractive(name string) (string, error) {
+	fmt.Printf("\n⚠️  '%s' はEventBridge RuleとSchedulerの両方に存在します。\n", name)
+	fmt.Println("どちらを操作しますか？")
+	fmt.Println()
+	fmt.Println("  1) EventBridge Rule")
+	fmt.Println("  2) EventBridge Scheduler")
+	fmt.Println()
+	fmt.Print("選択してください (1 or 2): ")
+
+	reader := bufio.NewReader(os.Stdin)
+	choice, _ := reader.ReadString('\n')
+	choice = strings.TrimSpace(choice)
+
+	switch choice {
+	case "1":
+		fmt.Println("→ EventBridge Rule を選択しました")
+		return "rule", nil
+	case "2":
+		fmt.Println("→ EventBridge Scheduler を選択しました")
+		return "scheduler", nil
+	default:
+		return "", fmt.Errorf("無効な選択です: %s", choice)
+	}
 }
 
 // triggerEventBridgeRule はEventBridge Ruleを手動実行する

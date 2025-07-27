@@ -12,9 +12,11 @@ import (
 var (
 	scheduleType string
 	// trigger サブコマンド用フラグ
-	triggerType    string
 	triggerTimeout int
 	triggerNoWait  bool
+	// enable/disable サブコマンド用フラグ
+	enableFilter  string
+	disableFilter string
 )
 
 // ScheduleCmd はscheduleコマンドを表す
@@ -65,7 +67,6 @@ var scheduleTriggerCmd = &cobra.Command{
 
 例:
   ` + AppName + ` schedule trigger my-rule              # 自動でタイプを判別
-  ` + AppName + ` schedule trigger my-rule --type rule   # EventBridge Ruleとして実行
   ` + AppName + ` schedule trigger my-scheduler --no-wait # 待機せずに終了`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -77,7 +78,6 @@ var scheduleTriggerCmd = &cobra.Command{
 
 		// オプション設定
 		opts := schedule.TriggerOptions{
-			Type:    triggerType,
 			Timeout: triggerTimeout,
 			NoWait:  triggerNoWait,
 		}
@@ -88,16 +88,81 @@ var scheduleTriggerCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var scheduleEnableCmd = &cobra.Command{
+	Use:   "enable NAME",
+	Short: "スケジュールを有効化",
+	Long: `EventBridge RuleまたはEventBridge Schedulerを有効化します。
+
+例:
+  ` + AppName + ` schedule enable my-rule                # 単一のスケジュールを有効化
+  ` + AppName + ` schedule enable --filter "batch-*"     # batch-で始まる全てを有効化
+  ` + AppName + ` schedule enable --filter "Scheduled"   # Scheduledを含む全てを有効化`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// クライアント生成
+		eventBridgeClient := eventbridge.NewFromConfig(awsCfg)
+		schedulerClient := scheduler.NewFromConfig(awsCfg)
+
+		// 単一指定またはフィルター指定の確認
+		if len(args) == 1 && enableFilter == "" {
+			// 単一スケジュールの有効化
+			return schedule.EnableSchedule(eventBridgeClient, schedulerClient, args[0])
+		} else if len(args) == 0 && enableFilter != "" {
+			// フィルターによる一括有効化
+			return schedule.EnableSchedulesWithFilter(eventBridgeClient, schedulerClient, enableFilter)
+		} else {
+			return fmt.Errorf("スケジュール名またはフィルターのいずれか一方を指定してください")
+		}
+	},
+	SilenceUsage: true,
+}
+
+var scheduleDisableCmd = &cobra.Command{
+	Use:   "disable NAME",
+	Short: "スケジュールを無効化",
+	Long: `EventBridge RuleまたはEventBridge Schedulerを無効化します。
+
+例:
+  ` + AppName + ` schedule disable my-rule               # 単一のスケジュールを無効化
+  ` + AppName + ` schedule disable --filter "test-*"     # test-で始まる全てを無効化
+  ` + AppName + ` schedule disable --filter "Dev"        # Devを含む全てを無効化`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// クライアント生成
+		eventBridgeClient := eventbridge.NewFromConfig(awsCfg)
+		schedulerClient := scheduler.NewFromConfig(awsCfg)
+
+		// 単一指定またはフィルター指定の確認
+		if len(args) == 1 && disableFilter == "" {
+			// 単一スケジュールの無効化
+			return schedule.DisableSchedule(eventBridgeClient, schedulerClient, args[0])
+		} else if len(args) == 0 && disableFilter != "" {
+			// フィルターによる一括無効化
+			return schedule.DisableSchedulesWithFilter(eventBridgeClient, schedulerClient, disableFilter)
+		} else {
+			return fmt.Errorf("スケジュール名またはフィルターのいずれか一方を指定してください")
+		}
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(ScheduleCmd)
 	ScheduleCmd.AddCommand(scheduleLsCmd)
 	ScheduleCmd.AddCommand(scheduleTriggerCmd)
+	ScheduleCmd.AddCommand(scheduleEnableCmd)
+	ScheduleCmd.AddCommand(scheduleDisableCmd)
 
 	// フラグ定義
 	scheduleLsCmd.Flags().StringVarP(&scheduleType, "type", "t", "all", "表示タイプ (all|rule|scheduler)")
 
 	// trigger サブコマンドのフラグ
-	scheduleTriggerCmd.Flags().StringVar(&triggerType, "type", "", "スケジュールタイプ (rule|scheduler) ※省略時は自動判別")
 	scheduleTriggerCmd.Flags().IntVar(&triggerTimeout, "timeout", 90, "実行待機時間（秒）")
 	scheduleTriggerCmd.Flags().BoolVar(&triggerNoWait, "no-wait", false, "実行を待たずに終了")
+
+	// enable サブコマンドのフラグ
+	scheduleEnableCmd.Flags().StringVar(&enableFilter, "filter", "", "有効化するスケジュールのフィルターパターン")
+
+	// disable サブコマンドのフラグ
+	scheduleDisableCmd.Flags().StringVar(&disableFilter, "filter", "", "無効化するスケジュールのフィルターパターン")
 }
