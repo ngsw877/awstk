@@ -25,14 +25,14 @@ var allCleanupCmd = &cobra.Command{
 CloudFormationスタック名を指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
-  ` + AppName + ` cleanup all -k "test" -P my-profile
+  ` + AppName + ` cleanup all -f "test" -P my-profile
   ` + AppName + ` cleanup all -S my-stack -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
-		keyword, _ := cmd.Flags().GetString("keyword")
+		filter, _ := cmd.Flags().GetString("filter")
 
-		if keyword == "" && stackName == "" {
-			return fmt.Errorf("❌ エラー: キーワード (-k) またはスタック名 (-S) のいずれかを指定してください")
+		if filter == "" && stackName == "" {
+			return fmt.Errorf("❌ エラー: フィルター (-f) またはスタック名 (-S) のいずれかを指定してください")
 		}
 
 		printAwsContext()
@@ -45,7 +45,7 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 		}
 
 		opts := cleanup.Options{
-			SearchString: keyword,
+			SearchString: filter,
 			StackName:    stackName,
 		}
 
@@ -63,6 +63,6 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 func init() {
 	RootCmd.AddCommand(cleanupCmd)
 	cleanupCmd.AddCommand(allCleanupCmd)
-	allCleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
+	allCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
 	allCleanupCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }

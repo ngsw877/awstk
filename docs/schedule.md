@@ -65,7 +65,7 @@ awstk schedule disable NAME [flags]
 ### Options
 
 ```
-      --filter string   無効化するスケジュールのフィルターパターン
+  -f, --filter string   無効化するスケジュールのフィルターパターン
   -h, --help            help for disable
 ```
 
@@ -104,7 +104,7 @@ awstk schedule enable NAME [flags]
 ### Options
 
 ```
-      --filter string   有効化するスケジュールのフィルターパターン
+  -f, --filter string   有効化するスケジュールのフィルターパターン
   -h, --help            help for enable
 ```
 

@@ -35,13 +35,13 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		fmt.Printf("検索文字列: %s\n", opts.SearchString)
 		fmt.Println("検索文字列に一致するリソースの削除を開始します...")
 
-		s3BucketNames, err = s3svc.GetS3BucketsByKeyword(clients.S3Client, opts.SearchString)
+		s3BucketNames, err = s3svc.GetS3BucketsByFilter(clients.S3Client, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ S3バケット一覧取得中にエラーが発生しました: %v\n", err)
 			s3BucketNames = []string{}
 		}
 
-		ecrRepoNames, err = ecrsvc.GetEcrRepositoriesByKeyword(clients.EcrClient, opts.SearchString)
+		ecrRepoNames, err = ecrsvc.GetEcrRepositoriesByFilter(clients.EcrClient, opts.SearchString)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
 			ecrRepoNames = []string{}

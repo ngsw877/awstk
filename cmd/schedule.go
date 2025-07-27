@@ -161,8 +161,8 @@ func init() {
 	scheduleTriggerCmd.Flags().BoolVar(&triggerNoWait, "no-wait", false, "実行を待たずに終了")
 
 	// enable サブコマンドのフラグ
-	scheduleEnableCmd.Flags().StringVar(&enableFilter, "filter", "", "有効化するスケジュールのフィルターパターン")
+	scheduleEnableCmd.Flags().StringVarP(&enableFilter, "filter", "f", "", "有効化するスケジュールのフィルターパターン")
 
 	// disable サブコマンドのフラグ
-	scheduleDisableCmd.Flags().StringVar(&disableFilter, "filter", "", "無効化するスケジュールのフィルターパターン")
+	scheduleDisableCmd.Flags().StringVarP(&disableFilter, "filter", "f", "", "無効化するスケジュールのフィルターパターン")
 }

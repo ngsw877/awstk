@@ -10,8 +10,8 @@ import (
 	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
-// GetEcrRepositoriesByKeyword はキーワードに一致するECRリポジトリ名の一覧を取得します
-func GetEcrRepositoriesByKeyword(ecrClient *ecr.Client, searchString string) ([]string, error) {
+// GetEcrRepositoriesByFilter はフィルターに一致するECRリポジトリ名の一覧を取得します
+func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]string, error) {
 	// リポジトリ一覧を取得
 	listReposInput := &ecr.DescribeRepositoriesInput{}
 	foundRepos := []string{}
@@ -107,16 +107,16 @@ func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 	return nil
 }
 
-// CleanupRepositoriesByKeyword はキーワードに基づいてリポジトリを削除する
-func CleanupRepositoriesByKeyword(ecrClient *ecr.Client, keyword string) error {
-	// キーワードに一致するリポジトリを取得
-	repositories, err := GetEcrRepositoriesByKeyword(ecrClient, keyword)
+// CleanupRepositoriesByFilter はフィルターに基づいてリポジトリを削除する
+func CleanupRepositoriesByFilter(ecrClient *ecr.Client, filter string) error {
+	// フィルターに一致するリポジトリを取得
+	repositories, err := GetEcrRepositoriesByFilter(ecrClient, filter)
 	if err != nil {
 		return fmt.Errorf("❌ ECRリポジトリ一覧取得エラー: %w", err)
 	}
 
 	if len(repositories) == 0 {
-		fmt.Printf("キーワード '%s' に一致するECRリポジトリが見つかりませんでした\n", keyword)
+		fmt.Printf("フィルター '%s' に一致するECRリポジトリが見つかりませんでした\n", filter)
 		return nil
 	}
 

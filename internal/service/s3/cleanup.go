@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-// GetS3BucketsByKeyword はキーワードに一致するS3バケット名の一覧を取得します
-func GetS3BucketsByKeyword(s3Client *s3.Client, searchString string) ([]string, error) {
+// GetS3BucketsByFilter はフィルターに一致するS3バケット名の一覧を取得します
+func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, error) {
 	// バケット一覧を取得
 	listBucketsOutput, err := s3Client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {

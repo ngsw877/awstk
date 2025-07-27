@@ -49,7 +49,7 @@ S3バケットとECRリポジトリを横断削除
 CloudFormationスタック名を指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
-  awstk cleanup all -k "test" -P my-profile
+  awstk cleanup all -f "test" -P my-profile
   awstk cleanup all -S my-stack -P my-profile
 
 ```
@@ -59,9 +59,9 @@ awstk cleanup all [flags]
 ### Options
 
 ```
-  -h, --help             help for all
-  -k, --keyword string   削除対象のキーワード
-  -S, --stack string     CloudFormationスタック名
+  -f, --filter string   削除対象のフィルターパターン
+  -h, --help            help for all
+  -S, --stack string    CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands

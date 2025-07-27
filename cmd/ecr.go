@@ -36,16 +36,16 @@ var ecrCleanupCmd = &cobra.Command{
 	Long: `指定したキーワードを含むECRリポジトリを削除します。
 
 例:
-  ` + AppName + ` ecr cleanup -k "test-repo" -P my-profile`,
+  ` + AppName + ` ecr cleanup -f "test-repo" -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		keyword, _ := cmd.Flags().GetString("keyword")
-		if keyword == "" {
-			return fmt.Errorf("❌ エラー: キーワード (-k) を指定してください")
+		filter, _ := cmd.Flags().GetString("filter")
+		if filter == "" {
+			return fmt.Errorf("❌ エラー: フィルター (-f) を指定してください")
 		}
 
-		printAwsContextWithInfo("検索文字列", keyword)
+		printAwsContextWithInfo("検索文字列", filter)
 
-		return ecrsvc.CleanupRepositoriesByKeyword(ecrClient, keyword)
+		return ecrsvc.CleanupRepositoriesByFilter(ecrClient, filter)
 	},
 	SilenceUsage: true,
 }
@@ -97,5 +97,5 @@ func init() {
 	ecrLsCmd.Flags().BoolP("details", "d", false, "詳細情報を表示")
 
 	// cleanup コマンドのフラグ
-	ecrCleanupCmd.Flags().StringP("keyword", "k", "", "削除対象のキーワード")
+	ecrCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
 }
