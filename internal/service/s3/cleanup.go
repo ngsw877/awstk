@@ -16,7 +16,7 @@ func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, e
 	// バケット一覧を取得
 	listBucketsOutput, err := s3Client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {
-		return nil, fmt.Errorf("S3バケット一覧取得エラー: %w", err)
+		return nil, fmt.Errorf("s3バケット一覧取得エラー: %w", err)
 	}
 
 	foundBuckets := []string{}

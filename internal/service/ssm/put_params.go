@@ -101,7 +101,11 @@ func loadParametersFromJSON(filePath string) ([]parameter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ファイルを開けません: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Printf("⚠️  ファイルのクローズに失敗: %v\n", err)
+		}
+	}()
 
 	var paramFile parametersFile
 	decoder := json.NewDecoder(file)
@@ -125,7 +129,11 @@ func loadParametersFromCSV(filePath string) ([]parameter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ファイルを開けません: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Printf("⚠️  ファイルのクローズに失敗: %v\n", err)
+		}
+	}()
 
 	reader := csv.NewReader(file)
 

@@ -70,7 +70,7 @@ func listS3Objects(s3Client *s3.Client, bucketName string, prefix string) ([]S3O
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
-			return nil, fmt.Errorf("S3オブジェクト一覧取得エラー: %w", err)
+			return nil, fmt.Errorf("s3オブジェクト一覧取得エラー: %w", err)
 		}
 
 		for _, obj := range page.Contents {
@@ -124,9 +124,7 @@ func buildTreeFromObjects(objects []S3Object, prefix string) *TreeNode {
 	for _, obj := range objects {
 		// プレフィックスを除去した相対パスを取得
 		relativePath := strings.TrimPrefix(obj.Key, prefix)
-		if strings.HasPrefix(relativePath, "/") {
-			relativePath = relativePath[1:]
-		}
+		relativePath = strings.TrimPrefix(relativePath, "/")
 
 		// 空のパスはスキップ
 		if relativePath == "" {

@@ -105,7 +105,7 @@ func init() {
 		// AWS設定を読み込み
 		awsCfg, err = aws.LoadAwsConfig(awsCtx)
 		if err != nil {
-			return fmt.Errorf("AWS設定の読み込みエラー: %w", err)
+			return fmt.Errorf("aws設定の読み込みエラー: %w", err)
 		}
 
 		return nil

@@ -134,7 +134,7 @@ func startAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 
 	_, err := rdsClient.StartDBCluster(context.Background(), input)
 	if err != nil {
-		return fmt.Errorf("Auroraクラスター起動エラー: %w", err)
+		return fmt.Errorf("auroraクラスター起動エラー: %w", err)
 	}
 
 	return nil

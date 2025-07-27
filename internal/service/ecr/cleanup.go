@@ -20,7 +20,7 @@ func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]s
 	for {
 		listReposOutput, err := ecrClient.DescribeRepositories(context.Background(), listReposInput)
 		if err != nil {
-			return nil, fmt.Errorf("ECRリポジトリ一覧取得エラー: %w", err)
+			return nil, fmt.Errorf("ecrリポジトリ一覧取得エラー: %w", err)
 		}
 
 		for _, repo := range listReposOutput.Repositories {

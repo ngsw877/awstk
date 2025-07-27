@@ -52,7 +52,11 @@ func DeleteParametersFromFile(ssmClient *ssm.Client, opts DeleteParamsOptions) e
 		fmt.Print("本当に削除しますか？ [y/N]: ")
 
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Printf("⚠️  入力エラー: %v\n", err)
+			fmt.Println("削除をキャンセルしました。")
+			return nil
+		}
 		if strings.ToLower(response) != "y" {
 			fmt.Println("削除をキャンセルしました。")
 			return nil
@@ -93,7 +97,11 @@ func loadParameterNamesFromFile(filePath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ファイルを開けません: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Printf("⚠️  ファイルのクローズに失敗: %v\n", err)
+		}
+	}()
 
 	var paramNames []string
 	scanner := bufio.NewScanner(file)

@@ -27,7 +27,7 @@ func DownloadAndExtractGzFiles(s3Client *s3.Client, s3url, outDir string) error 
 	}
 	resp, err := s3Client.ListObjectsV2(ctx, listInput)
 	if err != nil {
-		return fmt.Errorf("S3リスト取得失敗: %w", err)
+		return fmt.Errorf("s3リスト取得失敗: %w", err)
 	}
 	if len(resp.Contents) == 0 {
 		return fmt.Errorf("指定されたパス配下に .gz ファイルが見つかりませんでした")
@@ -66,7 +66,9 @@ func DownloadAndExtractGzFiles(s3Client *s3.Client, s3url, outDir string) error 
 		gzr, err := gzip.NewReader(getResp.Body)
 		if err != nil {
 			fmt.Printf("❌ %s のgzip解凍に失敗: %v\n", key, err)
-			getResp.Body.Close()
+			if closeErr := getResp.Body.Close(); closeErr != nil {
+				fmt.Printf("⚠️  S3レスポンスボディのクローズに失敗: %v\n", closeErr)
+			}
 			continue
 		}
 
@@ -74,21 +76,33 @@ func DownloadAndExtractGzFiles(s3Client *s3.Client, s3url, outDir string) error 
 		outFile, err := os.Create(outPath)
 		if err != nil {
 			fmt.Printf("❌ %s のファイル作成に失敗: %v\n", outPath, err)
-			gzr.Close()
-			getResp.Body.Close()
+			if closeErr := gzr.Close(); closeErr != nil {
+				fmt.Printf("⚠️  %s のgzipリーダーのクローズに失敗: %v\n", key, closeErr)
+			}
+			if closeErr := getResp.Body.Close(); closeErr != nil {
+				fmt.Printf("⚠️  S3レスポンスボディのクローズに失敗: %v\n", closeErr)
+			}
 			continue
 		}
 
 		// 解凍データをファイルに書き込み
 		_, err = io.Copy(outFile, gzr)
-		gzr.Close()
-		outFile.Close()
+		if closeErr := gzr.Close(); closeErr != nil {
+			fmt.Printf("⚠️  %s のgzipリーダーのクローズに失敗: %v\n", key, closeErr)
+		}
+		if closeErr := outFile.Close(); closeErr != nil {
+			fmt.Printf("⚠️  %s のファイルクローズに失敗: %v\n", outPath, closeErr)
+		}
 		if err != nil {
 			fmt.Printf("❌ %s の書き込みに失敗: %v\n", outPath, err)
-			getResp.Body.Close()
+			if closeErr := getResp.Body.Close(); closeErr != nil {
+				fmt.Printf("⚠️  S3レスポンスボディのクローズに失敗: %v\n", closeErr)
+			}
 			continue
 		}
-		getResp.Body.Close()
+		if closeErr := getResp.Body.Close(); closeErr != nil {
+			fmt.Printf("⚠️  S3レスポンスボディのクローズに失敗: %v\n", closeErr)
+		}
 		fmt.Printf("✅ %s → %s\n", key, outPath)
 	}
 

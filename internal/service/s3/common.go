@@ -13,9 +13,7 @@ import (
 // prefix 省略や末尾スラッシュなしも許容します。
 func parseS3Url(s3path string) (bucket, prefix string, err error) {
 	// s3:// プレフィックスが付いている場合は除去
-	if strings.HasPrefix(s3path, "s3://") {
-		s3path = strings.TrimPrefix(s3path, "s3://")
-	}
+	s3path = strings.TrimPrefix(s3path, "s3://")
 
 	// バケット名とプレフィックスを分割
 	parts := strings.SplitN(s3path, "/", 2)

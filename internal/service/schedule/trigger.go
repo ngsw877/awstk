@@ -320,10 +320,14 @@ func waitForExecution(name string, timeout int) error {
 
 	for i := 0; i < actualWaitTime; i++ {
 		time.Sleep(1 * time.Second)
-		bar.Add(1)
+		if err := bar.Add(1); err != nil {
+			fmt.Printf("⚠️  プログレスバー更新エラー: %v\n", err)
+		}
 	}
 
-	bar.Finish()
+	if err := bar.Finish(); err != nil {
+		fmt.Printf("⚠️  プログレスバー終了エラー: %v\n", err)
+	}
 	fmt.Println("\n✓ 実行待機完了")
 
 	return nil

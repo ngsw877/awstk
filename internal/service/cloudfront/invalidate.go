@@ -160,7 +160,7 @@ func resolveDistributionId(cfClient *cloudfront.Client, cfnClient *cloudformatio
 	// スタックからCloudFrontディストリビューションを取得
 	distributions, err := cfn.GetAllCloudFrontFromStack(cfnClient, stackName)
 	if err != nil {
-		return "", fmt.Errorf("CloudFormationスタックからディストリビューションの取得に失敗: %w", err)
+		return "", fmt.Errorf("cloudFormationスタックからディストリビューションの取得に失敗: %w", err)
 	}
 
 	if len(distributions) == 0 {

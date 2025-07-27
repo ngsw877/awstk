@@ -75,13 +75,13 @@ func CleanupResources(clients ClientSet, opts Options) error {
 // validateCleanupOptions はクリーンアップオプションのバリデーションを行います
 func validateCleanupOptions(clients ClientSet) error {
 	if clients.S3Client == nil {
-		return fmt.Errorf("S3クライアントが指定されていません")
+		return fmt.Errorf("s3クライアントが指定されていません")
 	}
 	if clients.EcrClient == nil {
-		return fmt.Errorf("ECRクライアントが指定されていません")
+		return fmt.Errorf("ecrクライアントが指定されていません")
 	}
 	if clients.CfnClient == nil {
-		return fmt.Errorf("CloudFormationクライアントが指定されていません")
+		return fmt.Errorf("cloudFormationクライアントが指定されていません")
 	}
 	return nil
 }

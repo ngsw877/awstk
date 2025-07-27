@@ -26,7 +26,7 @@ func GetStackResources(cfnClient *cloudformation.Client, stackName string) ([]ty
 		StackName: awssdk.String(stackName),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("CloudFormationスタックのリソース取得に失敗: %w", err)
+		return nil, fmt.Errorf("cloudFormationスタックのリソース取得に失敗: %w", err)
 	}
 
 	// スタック存在確認

@@ -92,7 +92,7 @@ func startCanary(client *synthetics.Client, name string) error {
 		Name: awssdk.String(name),
 	})
 	if err != nil {
-		return fmt.Errorf("Canaryの開始に失敗: %w", err)
+		return fmt.Errorf("canaryの開始に失敗: %w", err)
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func stopCanary(client *synthetics.Client, name string) error {
 		Name: awssdk.String(name),
 	})
 	if err != nil {
-		return fmt.Errorf("Canaryの停止に失敗: %w", err)
+		return fmt.Errorf("canaryの停止に失敗: %w", err)
 	}
 	return nil
 }

@@ -52,7 +52,11 @@ func readEmailsFromFile(filename string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Printf("⚠️  ファイルのクローズに失敗: %v\n", err)
+		}
+	}()
 
 	var emails []string
 	scanner := bufio.NewScanner(file)

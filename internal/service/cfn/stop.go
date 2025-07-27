@@ -125,7 +125,7 @@ func stopAuroraCluster(rdsClient *rds.Client, clusterId string) error {
 
 	_, err := rdsClient.StopDBCluster(context.Background(), input)
 	if err != nil {
-		return fmt.Errorf("Auroraクラスター停止エラー: %w", err)
+		return fmt.Errorf("auroraクラスター停止エラー: %w", err)
 	}
 
 	return nil

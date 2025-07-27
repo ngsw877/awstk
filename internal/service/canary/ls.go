@@ -35,7 +35,7 @@ func ListCanaries(client *synthetics.Client) error {
 func getAllCanaries(client *synthetics.Client) ([]Canary, error) {
 	resp, err := client.DescribeCanaries(context.Background(), &synthetics.DescribeCanariesInput{})
 	if err != nil {
-		return nil, fmt.Errorf("Canary一覧の取得に失敗: %w", err)
+		return nil, fmt.Errorf("canary一覧の取得に失敗: %w", err)
 	}
 
 	canaries := make([]Canary, 0, len(resp.Canaries))
