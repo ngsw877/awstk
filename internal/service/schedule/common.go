@@ -2,7 +2,13 @@ package schedule
 
 import (
 	"awstk/internal/service/common"
+	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	"github.com/aws/aws-sdk-go-v2/service/scheduler"
 )
 
 // DisplaySchedules はスケジュール一覧を表示する
@@ -64,4 +70,86 @@ func DisplaySchedules(schedules []Schedule) {
 		fmt.Printf(" (Rules: %d, Scheduler: %d)", len(ruleData), len(schedulerData))
 	}
 	fmt.Println()
+}
+
+// matchPattern はワイルドカードパターンマッチングを行う
+func matchPattern(name, pattern string) bool {
+	// ワイルドカードを含む場合
+	if strings.Contains(pattern, "*") {
+		// glob パターンマッチング
+		matched, _ := filepath.Match(pattern, name)
+		return matched
+	}
+	// ワイルドカードなしの場合は部分一致
+	return strings.Contains(name, pattern)
+}
+
+// listEventBridgeRulesWithFilter はフィルターにマッチするEventBridge Rulesを取得する
+func listEventBridgeRulesWithFilter(client *eventbridge.Client, filter string) ([]*eventbridge.DescribeRuleOutput, error) {
+	ctx := context.Background()
+	var matchedRules []*eventbridge.DescribeRuleOutput
+
+	// 全ルールを取得
+	listInput := &eventbridge.ListRulesInput{}
+	for {
+		listOutput, err := client.ListRules(ctx, listInput)
+		if err != nil {
+			return nil, err
+		}
+
+		// フィルターにマッチするルールを抽出
+		for _, rule := range listOutput.Rules {
+			if rule.Name != nil && matchPattern(*rule.Name, filter) && rule.ScheduleExpression != nil {
+				// 詳細情報を取得
+				describeOutput, err := client.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
+					Name: rule.Name,
+				})
+				if err == nil {
+					matchedRules = append(matchedRules, describeOutput)
+				}
+			}
+		}
+
+		if listOutput.NextToken == nil {
+			break
+		}
+		listInput.NextToken = listOutput.NextToken
+	}
+
+	return matchedRules, nil
+}
+
+// listEventBridgeSchedulersWithFilter はフィルターにマッチするEventBridge Schedulersを取得する
+func listEventBridgeSchedulersWithFilter(client *scheduler.Client, filter string) ([]*scheduler.GetScheduleOutput, error) {
+	ctx := context.Background()
+	var matchedSchedules []*scheduler.GetScheduleOutput
+
+	// 全スケジュールを取得
+	listInput := &scheduler.ListSchedulesInput{}
+	for {
+		listOutput, err := client.ListSchedules(ctx, listInput)
+		if err != nil {
+			return nil, err
+		}
+
+		// フィルターにマッチするスケジュールを抽出
+		for _, schedule := range listOutput.Schedules {
+			if schedule.Name != nil && matchPattern(*schedule.Name, filter) {
+				// 詳細情報を取得
+				getOutput, err := client.GetSchedule(ctx, &scheduler.GetScheduleInput{
+					Name: schedule.Name,
+				})
+				if err == nil {
+					matchedSchedules = append(matchedSchedules, getOutput)
+				}
+			}
+		}
+
+		if listOutput.NextToken == nil {
+			break
+		}
+		listInput.NextToken = listOutput.NextToken
+	}
+
+	return matchedSchedules, nil
 }

@@ -25,7 +25,7 @@ func TriggerSchedule(eventBridgeClient *eventbridge.Client, schedulerClient *sch
 	ctx := context.Background()
 
 	// スケジュールタイプの判別
-	scheduleType, err := detectScheduleType(ctx, eventBridgeClient, schedulerClient, name)
+	scheduleType, err := detectScheduleType(eventBridgeClient, schedulerClient, name)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,8 @@ func TriggerSchedule(eventBridgeClient *eventbridge.Client, schedulerClient *sch
 }
 
 // detectScheduleType はスケジュールのタイプを自動判別する
-func detectScheduleType(ctx context.Context, eventBridgeClient *eventbridge.Client, schedulerClient *scheduler.Client, name string) (string, error) {
+func detectScheduleType(eventBridgeClient *eventbridge.Client, schedulerClient *scheduler.Client, name string) (string, error) {
+	ctx := context.Background()
 	// 並列でチェック
 	type result struct {
 		scheduleType string
