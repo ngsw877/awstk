@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -53,85 +52,96 @@ func CleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
 			// このバケットの削除はスキップし、次のバケットへ
 			continue
 		}
+		fmt.Printf("✅ バケット %s を削除しました\n", bucket)
 	}
 	return nil
 }
 
 // emptyS3Bucket は指定したS3バケットの中身をすべて削除します (バージョン管理対応)
 func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
-	// バケット内のオブジェクトとバージョンをリスト
-	listVersionsOutput, err := s3Client.ListObjectVersions(context.Background(), &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucketName),
-	})
-	if err != nil {
-		return fmt.Errorf("バケット内のオブジェクトバージョン一覧取得エラー: %w", err)
-	}
+	// ページネーション対応のループ
+	var keyMarker *string
+	var versionIdMarker *string
 
-	// 削除対象のオブジェクトと削除マーカーのリストを作成
-	deleteObjects := []types.ObjectIdentifier{}
-	if listVersionsOutput.Versions != nil {
-		for _, version := range listVersionsOutput.Versions {
-			deleteObjects = append(deleteObjects, types.ObjectIdentifier{
-				Key:       version.Key,
-				VersionId: version.VersionId,
-			})
-		}
-	}
-	if listVersionsOutput.DeleteMarkers != nil {
-		for _, marker := range listVersionsOutput.DeleteMarkers {
-			deleteObjects = append(deleteObjects, types.ObjectIdentifier{
-				Key:       marker.Key,
-				VersionId: marker.VersionId,
-			})
-		}
-	}
-
-	// 削除対象がなければ終了
-	if len(deleteObjects) == 0 {
-		fmt.Println("  削除するオブジェクトがありません。")
-		return nil
-	}
-
-	// オブジェクトを一括削除 (最大1000個ずつ)
-	chunkSize := 1000
-	for i := 0; i < len(deleteObjects); i += chunkSize {
-		end := i + chunkSize
-		if end > len(deleteObjects) {
-			end = len(deleteObjects)
-		}
-		batch := deleteObjects[i:end]
-
-		fmt.Printf("  %d件のオブジェクトを削除中...\n", len(batch))
-		_, err = s3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
+	for {
+		// バケット内のオブジェクトとバージョンをリスト
+		listVersionsInput := &s3.ListObjectVersionsInput{
 			Bucket: aws.String(bucketName),
-			Delete: &types.Delete{
-				Objects: batch,
-				Quiet:   aws.Bool(false),
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("オブジェクトの一括削除エラー: %w", err)
 		}
-		// TODO: DeleteObjectsのErrorsを確認して処理を検討
+		if keyMarker != nil {
+			listVersionsInput.KeyMarker = keyMarker
+			listVersionsInput.VersionIdMarker = versionIdMarker
+		}
+
+		listVersionsOutput, err := s3Client.ListObjectVersions(context.Background(), listVersionsInput)
+		if err != nil {
+			return fmt.Errorf("バケット内のオブジェクトバージョン一覧取得エラー: %w", err)
+		}
+
+		// 削除対象のオブジェクトと削除マーカーのリストを作成
+		deleteObjects := []types.ObjectIdentifier{}
+		if listVersionsOutput.Versions != nil {
+			for _, version := range listVersionsOutput.Versions {
+				deleteObjects = append(deleteObjects, types.ObjectIdentifier{
+					Key:       version.Key,
+					VersionId: version.VersionId,
+				})
+			}
+		}
+		if listVersionsOutput.DeleteMarkers != nil {
+			for _, marker := range listVersionsOutput.DeleteMarkers {
+				deleteObjects = append(deleteObjects, types.ObjectIdentifier{
+					Key:       marker.Key,
+					VersionId: marker.VersionId,
+				})
+			}
+		}
+
+		// 削除対象がある場合は削除
+		if len(deleteObjects) > 0 {
+			// オブジェクトを一括削除 (最大1000個ずつ)
+			chunkSize := 1000
+			for i := 0; i < len(deleteObjects); i += chunkSize {
+				end := i + chunkSize
+				if end > len(deleteObjects) {
+					end = len(deleteObjects)
+				}
+				batch := deleteObjects[i:end]
+
+				fmt.Printf("  %d件のオブジェクトを削除中...\n", len(batch))
+				deleteOutput, err := s3Client.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
+					Bucket: aws.String(bucketName),
+					Delete: &types.Delete{
+						Objects: batch,
+						Quiet:   aws.Bool(false),
+					},
+				})
+				if err != nil {
+					return fmt.Errorf("オブジェクトの一括削除エラー: %w", err)
+				}
+
+				// 削除エラーがあった場合は警告を表示
+				if deleteOutput.Errors != nil && len(deleteOutput.Errors) > 0 {
+					for _, deleteErr := range deleteOutput.Errors {
+						fmt.Printf("  ⚠️  オブジェクト削除エラー: %s (バージョンID: %s) - %s\n",
+							*deleteErr.Key,
+							aws.ToString(deleteErr.VersionId),
+							aws.ToString(deleteErr.Message))
+					}
+				}
+			}
+		}
+
+		// 次のページがない場合は終了
+		if !aws.ToBool(listVersionsOutput.IsTruncated) {
+			break
+		}
+
+		// 次のページのマーカーを設定
+		keyMarker = listVersionsOutput.NextKeyMarker
+		versionIdMarker = listVersionsOutput.NextVersionIdMarker
 	}
 
-	// まだオブジェクトが残っている場合は再帰的に呼び出す（NextToken対応は一旦しない）
-	// 簡易的な対応のため、削除後に再度リストして空になるまで繰り返す（非効率だがシンプル）
-	// 実際にはListObjectVersionsのNextTokenを使うのが正しいが、今回は簡易実装
-	// TODO: ページネーション対応
-	time.Sleep(1 * time.Second) // 反映を待つ
-	remainingObjects, err := s3Client.ListObjectVersions(context.Background(), &s3.ListObjectVersionsInput{
-		Bucket: aws.String(bucketName),
-	})
-	if err != nil {
-		return fmt.Errorf("削除後のオブジェクト確認エラー: %w", err)
-	}
-
-	if len(remainingObjects.Versions) > 0 || len(remainingObjects.DeleteMarkers) > 0 {
-		// 残っている場合は再度空にする処理を実行（簡易的な再帰）
-		// 無限ループにならないように注意が必要だが、ここでは単純化
-		return emptyS3Bucket(s3Client, bucketName) // 簡易的な再帰呼び出し
-	}
-
+	fmt.Println("  バケットを空にしました。")
 	return nil
 }
