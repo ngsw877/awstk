@@ -1,6 +1,7 @@
 package canary
 
 import (
+	"awstk/internal/service/common"
 	"bufio"
 	"context"
 	"fmt"
@@ -20,56 +21,12 @@ func getCanariesByFilter(client *synthetics.Client, filter string) ([]Canary, er
 
 	var filtered []Canary
 	for _, canary := range allCanaries {
-		if matchPattern(canary.Name, filter) {
+		if common.MatchPattern(canary.Name, filter) {
 			filtered = append(filtered, canary)
 		}
 	}
 
 	return filtered, nil
-}
-
-// matchPattern ワイルドカードパターンマッチング
-func matchPattern(name, pattern string) bool {
-	// 単純なワイルドカード実装（* のみサポート）
-	pattern = strings.ReplaceAll(pattern, "*", ".*")
-	pattern = "^" + pattern + "$"
-
-	// 簡易的なマッチング（正規表現は使わずに実装）
-	if !strings.Contains(pattern, ".*") {
-		return name == strings.Trim(pattern, "^$")
-	}
-
-	// ワイルドカードがある場合
-	parts := strings.Split(strings.Trim(pattern, "^$"), ".*")
-
-	// 先頭の一致確認
-	if parts[0] != "" && !strings.HasPrefix(name, parts[0]) {
-		return false
-	}
-
-	// 末尾の一致確認
-	if len(parts) > 1 && parts[len(parts)-1] != "" && !strings.HasSuffix(name, parts[len(parts)-1]) {
-		return false
-	}
-
-	// 中間部分の確認
-	remaining := name
-	for i, part := range parts {
-		if part == "" {
-			continue
-		}
-		idx := strings.Index(remaining, part)
-		if idx == -1 {
-			return false
-		}
-		// 最初のパートは先頭一致が必要
-		if i == 0 && idx != 0 {
-			return false
-		}
-		remaining = remaining[idx+len(part):]
-	}
-
-	return true
 }
 
 // confirmAction ユーザーに確認を求める

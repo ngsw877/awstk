@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
 
@@ -39,7 +40,7 @@ func EnableSchedulesWithFilter(eventBridgeClient *eventbridge.Client, schedulerC
 	for _, rule := range rules {
 		if rule.State == "DISABLED" {
 			if err := enableEventBridgeRule(eventBridgeClient, *rule.Name); err != nil {
-				fmt.Printf("  ⚠️  %s (Rule) の有効化に失敗: %v\n", *rule.Name, err)
+				fmt.Printf("  %s %s (Rule) の有効化に失敗: %v\n", common.WarningIcon, *rule.Name, err)
 			} else {
 				enabledCount++
 			}

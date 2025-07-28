@@ -4,8 +4,6 @@ import (
 	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/scheduler"
@@ -72,18 +70,6 @@ func DisplaySchedules(schedules []Schedule) {
 	fmt.Println()
 }
 
-// matchPattern はワイルドカードパターンマッチングを行う
-func matchPattern(name, pattern string) bool {
-	// ワイルドカードを含む場合
-	if strings.Contains(pattern, "*") {
-		// glob パターンマッチング
-		matched, _ := filepath.Match(pattern, name)
-		return matched
-	}
-	// ワイルドカードなしの場合は部分一致
-	return strings.Contains(name, pattern)
-}
-
 // listEventBridgeRulesWithFilter はフィルターにマッチするEventBridge Rulesを取得する
 func listEventBridgeRulesWithFilter(client *eventbridge.Client, filter string) ([]*eventbridge.DescribeRuleOutput, error) {
 	ctx := context.Background()
@@ -99,7 +85,7 @@ func listEventBridgeRulesWithFilter(client *eventbridge.Client, filter string) (
 
 		// フィルターにマッチするルールを抽出
 		for _, rule := range listOutput.Rules {
-			if rule.Name != nil && matchPattern(*rule.Name, filter) && rule.ScheduleExpression != nil {
+			if rule.Name != nil && common.MatchPattern(*rule.Name, filter) && rule.ScheduleExpression != nil {
 				// 詳細情報を取得
 				describeOutput, err := client.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: rule.Name,
@@ -134,7 +120,7 @@ func listEventBridgeSchedulersWithFilter(client *scheduler.Client, filter string
 
 		// フィルターにマッチするスケジュールを抽出
 		for _, schedule := range listOutput.Schedules {
-			if schedule.Name != nil && matchPattern(*schedule.Name, filter) {
+			if schedule.Name != nil && common.MatchPattern(*schedule.Name, filter) {
 				// 詳細情報を取得
 				getOutput, err := client.GetSchedule(ctx, &scheduler.GetScheduleInput{
 					Name: schedule.Name,

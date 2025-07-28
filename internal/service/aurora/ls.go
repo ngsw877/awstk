@@ -47,7 +47,7 @@ func getAuroraClusters(rdsClient *rds.Client, cfnClient *cloudformation.Client, 
 func getAllAuroraClusters(rdsClient *rds.Client) ([]Cluster, error) {
 	resp, err := rdsClient.DescribeDBClusters(context.Background(), &rds.DescribeDBClustersInput{})
 	if err != nil {
-		return nil, fmt.Errorf("auroraクラスター一覧の取得に失敗: %w", err)
+		return nil, fmt.Errorf(common.ListErrorFormat, common.ErrorIcon, "Auroraクラスター", err)
 	}
 
 	clusters := make([]Cluster, 0, len(resp.DBClusters))
