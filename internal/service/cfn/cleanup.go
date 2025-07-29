@@ -12,13 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
-// CleanupOptions はクリーンアップコマンドのオプション
-type CleanupOptions struct {
-	Filter string // スタック名のフィルター（部分一致）
-	Status string // 削除対象のステータス（カンマ区切り）
-	Force  bool   // 確認プロンプトをスキップ
-}
-
 // CleanupStacks は指定した条件に一致するスタックを削除します
 func CleanupStacks(cfnClient *cloudformation.Client, opts CleanupOptions) error {
 	// 削除対象のスタックを検索

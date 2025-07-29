@@ -13,3 +13,18 @@ type Stack struct {
 	Name   string
 	Status string
 }
+
+// CleanupOptions はクリーンアップコマンドのオプション
+type CleanupOptions struct {
+	Filter string // スタック名のフィルター（部分一致）
+	Status string // 削除対象のステータス（カンマ区切り）
+	Force  bool   // 確認プロンプトをスキップ
+}
+
+// ProtectOptions は削除保護コマンドのオプション
+type ProtectOptions struct {
+	Filter string // スタック名のフィルター（部分一致）
+	Status string // 対象のステータス（カンマ区切り）
+	Enable bool   // 削除保護を有効化するかどうか
+	Force  bool   // 確認プロンプトをスキップ
+}

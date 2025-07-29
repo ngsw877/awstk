@@ -164,12 +164,70 @@ var cfnCleanupCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var cfnProtectCmd = &cobra.Command{
+	Use:   "protect",
+	Short: "CloudFormationスタックの削除保護を一括設定するコマンド",
+	Long: `指定した条件に一致するCloudFormationスタックの削除保護を一括で有効化または無効化します。
+フィルターによる名前の部分一致検索、またはステータスによる絞り込みが可能です。
+
+例:
+  # 名前に "prod-" を含むスタックの削除保護を有効化
+  ` + AppName + ` cfn protect --filter prod- --enable
+
+  # 特定ステータスのスタックの削除保護を無効化
+  ` + AppName + ` cfn protect --status CREATE_COMPLETE --disable
+
+  # 両方の条件を組み合わせ
+  ` + AppName + ` cfn protect --filter dev- --status UPDATE_COMPLETE --enable
+
+  # 確認プロンプトをスキップ
+  ` + AppName + ` cfn protect --filter test- --disable --force`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// フラグの値を取得
+		protectFilter, _ := cmd.Flags().GetString("filter")
+		protectStatus, _ := cmd.Flags().GetString("status")
+		protectEnable, _ := cmd.Flags().GetBool("enable")
+		protectDisable, _ := cmd.Flags().GetBool("disable")
+		protectForce, _ := cmd.Flags().GetBool("force")
+		// --enableと--disableの排他チェック
+		if protectEnable && protectDisable {
+			return fmt.Errorf("❌ エラー: --enableと--disableは同時に指定できません")
+		}
+		if !protectEnable && !protectDisable {
+			return fmt.Errorf("❌ エラー: --enableまたは--disableのいずれかを指定してください")
+		}
+
+		// フィルター条件のチェック
+		if protectFilter == "" && protectStatus == "" {
+			return fmt.Errorf("❌ エラー: --filterまたは--statusのいずれかを指定してください")
+		}
+
+		printAwsContext()
+
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+
+		err := cfn.UpdateProtection(cfnClient, cfn.ProtectOptions{
+			Filter: protectFilter,
+			Status: protectStatus,
+			Enable: protectEnable, // --enableならtrue、--disableならfalse
+			Force:  protectForce,
+		})
+		if err != nil {
+			return fmt.Errorf("❌ 削除保護の更新処理でエラー: %w", err)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
 	CfnCmd.AddCommand(cfnStartCmd)
 	CfnCmd.AddCommand(cfnStopCmd)
 	CfnCmd.AddCommand(cfnCleanupCmd)
+	CfnCmd.AddCommand(cfnProtectCmd)
 
 	cfnLsCmd.Flags().BoolVarP(&showAll, "all", "a", false, "全てのステータスのスタックを表示")
 
@@ -181,4 +239,11 @@ func init() {
 	cfnCleanupCmd.Flags().StringVar(&cleanupFilter, "filter", "", "スタック名のフィルター（部分一致）")
 	cfnCleanupCmd.Flags().StringVar(&cleanupStatus, "status", "", "削除対象のステータス（カンマ区切り）")
 	cfnCleanupCmd.Flags().BoolVarP(&cleanupForce, "force", "f", false, "確認プロンプトをスキップ")
+
+	// cfn protectコマンド用のフラグ
+	cfnProtectCmd.Flags().String("filter", "", "スタック名のフィルター（部分一致）")
+	cfnProtectCmd.Flags().String("status", "", "対象のステータス（カンマ区切り）")
+	cfnProtectCmd.Flags().Bool("enable", false, "削除保護を有効化")
+	cfnProtectCmd.Flags().Bool("disable", false, "削除保護を無効化")
+	cfnProtectCmd.Flags().BoolP("force", "f", false, "確認プロンプトをスキップ")
 }
