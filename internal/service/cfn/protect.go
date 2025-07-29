@@ -1,14 +1,12 @@
 package cfn
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // protectionStatus は削除保護の状態を文字列で返します
@@ -29,11 +27,8 @@ func protectionAction(enable bool) string {
 
 // UpdateProtection は指定した条件に一致するスタックの削除保護を更新します
 func UpdateProtection(cfnClient *cloudformation.Client, opts ProtectOptions) error {
-	// 対象のスタックを検索（cleanupと同じロジックを再利用）
-	stacks, err := findStacksForCleanup(cfnClient, CleanupOptions{
-		Filter: opts.Filter,
-		Status: opts.Status,
-	})
+	// 対象のスタックを検索
+	stacks, err := findStacksForProtect(cfnClient, opts)
 	if err != nil {
 		return err
 	}
@@ -52,18 +47,6 @@ func UpdateProtection(cfnClient *cloudformation.Client, opts ProtectOptions) err
 		fmt.Printf("  - %s (現在の削除保護: %s)\n", aws.ToString(stack.StackName), currentStatus)
 	}
 	fmt.Printf("\n合計 %d 個のスタックの削除保護を%sします\n", len(stacks), action)
-
-	// 確認プロンプト
-	if !opts.Force {
-		fmt.Printf("\n本当に削除保護を%sしますか？ [y/N]: ", action)
-		reader := bufio.NewReader(os.Stdin)
-		response, _ := reader.ReadString('\n')
-		response = strings.TrimSpace(strings.ToLower(response))
-		if response != "y" && response != "yes" {
-			fmt.Println("処理をキャンセルしました")
-			return nil
-		}
-	}
 
 	// 削除保護を更新
 	fmt.Printf("\n削除保護の%sを開始します...\n", action)
@@ -103,4 +86,37 @@ func UpdateProtection(cfnClient *cloudformation.Client, opts ProtectOptions) err
 	}
 
 	return nil
+}
+
+// findStacksForProtect は削除保護変更対象のスタックを検索します
+func findStacksForProtect(cfnClient *cloudformation.Client, opts ProtectOptions) ([]types.Stack, error) {
+	var allStacks []types.Stack
+
+	// スタック名が指定されている場合
+	if len(opts.Stacks) > 0 {
+		for _, stackName := range opts.Stacks {
+			if stackName == "" {
+				continue
+			}
+
+			// スタックの詳細情報を取得
+			describeOutput, err := cfnClient.DescribeStacks(context.Background(), &cloudformation.DescribeStacksInput{
+				StackName: aws.String(stackName),
+			})
+			if err != nil {
+				fmt.Printf("⚠️  スタック %s が見つかりません: %v\n", stackName, err)
+				continue
+			}
+			if len(describeOutput.Stacks) > 0 {
+				allStacks = append(allStacks, describeOutput.Stacks[0])
+			}
+		}
+		return allStacks, nil
+	}
+
+	// --filterまたは--statusの場合はfindStacksForCleanupのロジックを使用
+	return findStacksForCleanup(cfnClient, CleanupOptions{
+		Filter: opts.Filter,
+		Status: opts.Status,
+	})
 }

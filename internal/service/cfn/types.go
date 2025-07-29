@@ -23,10 +23,10 @@ type CleanupOptions struct {
 
 // ProtectOptions は削除保護コマンドのオプション
 type ProtectOptions struct {
-	Filter string // スタック名のフィルター（部分一致）
-	Status string // 対象のステータス（カンマ区切り）
-	Enable bool   // 削除保護を有効化するかどうか
-	Force  bool   // 確認プロンプトをスキップ
+	Stacks []string // スタック名のリスト
+	Filter string   // スタック名のフィルター（部分一致）
+	Status string   // 対象のステータス（カンマ区切り）
+	Enable bool     // 削除保護を有効化するかどうか
 }
 
 // DriftOptions はドリフト検出コマンドのオプション

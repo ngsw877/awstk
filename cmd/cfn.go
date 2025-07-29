@@ -180,15 +180,14 @@ var cfnProtectCmd = &cobra.Command{
   # 両方の条件を組み合わせ
   ` + AppName + ` cfn protect --filter dev- --status UPDATE_COMPLETE --enable
 
-  # 確認プロンプトをスキップ
-  ` + AppName + ` cfn protect --filter test- --disable --force`,
+  # 特定のスタックを指定
+  ` + AppName + ` cfn protect stack-a stack-b --enable`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// フラグの値を取得
 		protectFilter, _ := cmd.Flags().GetString("filter")
 		protectStatus, _ := cmd.Flags().GetString("status")
 		protectEnable, _ := cmd.Flags().GetBool("enable")
 		protectDisable, _ := cmd.Flags().GetBool("disable")
-		protectForce, _ := cmd.Flags().GetBool("force")
 		// --enableと--disableの排他チェック
 		if protectEnable && protectDisable {
 			return fmt.Errorf("❌ エラー: --enableと--disableは同時に指定できません")
@@ -197,9 +196,20 @@ var cfnProtectCmd = &cobra.Command{
 			return fmt.Errorf("❌ エラー: --enableまたは--disableのいずれかを指定してください")
 		}
 
-		// フィルター条件のチェック
-		if protectFilter == "" && protectStatus == "" {
-			return fmt.Errorf("❌ エラー: --filterまたは--statusのいずれかを指定してください")
+		// フィルター条件の排他チェック
+		specified := 0
+		if len(args) > 0 {
+			specified++
+		}
+		if protectFilter != "" || protectStatus != "" {
+			specified++
+		}
+
+		if specified == 0 {
+			return fmt.Errorf("❌ エラー: スタック名、--filter、--statusのいずれかを指定してください")
+		}
+		if specified > 1 {
+			return fmt.Errorf("❌ エラー: スタック名と--filter/--statusは同時に指定できません")
 		}
 
 		printAwsContext()
@@ -207,10 +217,10 @@ var cfnProtectCmd = &cobra.Command{
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
 
 		err := cfn.UpdateProtection(cfnClient, cfn.ProtectOptions{
+			Stacks: args,
 			Filter: protectFilter,
 			Status: protectStatus,
 			Enable: protectEnable, // --enableならtrue、--disableならfalse
-			Force:  protectForce,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ 削除保護の更新処理でエラー: %w", err)
@@ -365,11 +375,10 @@ func init() {
 	cfnCleanupCmd.Flags().BoolVarP(&cleanupForce, "force", "f", false, "確認プロンプトをスキップ")
 
 	// cfn protectコマンド用のフラグ
-	cfnProtectCmd.Flags().String("filter", "", "スタック名のフィルター（部分一致）")
-	cfnProtectCmd.Flags().String("status", "", "対象のステータス（カンマ区切り）")
-	cfnProtectCmd.Flags().Bool("enable", false, "削除保護を有効化")
-	cfnProtectCmd.Flags().Bool("disable", false, "削除保護を無効化")
-	cfnProtectCmd.Flags().BoolP("force", "f", false, "確認プロンプトをスキップ")
+	cfnProtectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
+	cfnProtectCmd.Flags().StringP("status", "s", "", "対象のステータス（カンマ区切り）")
+	cfnProtectCmd.Flags().BoolP("enable", "e", false, "削除保護を有効化")
+	cfnProtectCmd.Flags().BoolP("disable", "d", false, "削除保護を無効化")
 
 	// cfn drift-detectコマンド用のフラグ
 	cfnDriftDetectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")

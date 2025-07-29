@@ -253,8 +253,8 @@ CloudFormationスタックの削除保護を一括設定するコマンド
   # 両方の条件を組み合わせ
   awstk cfn protect --filter dev- --status UPDATE_COMPLETE --enable
 
-  # 確認プロンプトをスキップ
-  awstk cfn protect --filter test- --disable --force
+  # 特定のスタックを指定
+  awstk cfn protect stack-a stack-b --enable
 
 ```
 awstk cfn protect [flags]
@@ -263,12 +263,11 @@ awstk cfn protect [flags]
 ### Options
 
 ```
-      --disable         削除保護を無効化
-      --enable          削除保護を有効化
-      --filter string   スタック名のフィルター（部分一致）
-  -f, --force           確認プロンプトをスキップ
+  -d, --disable         削除保護を無効化
+  -e, --enable          削除保護を有効化
+  -F, --filter string   スタック名のフィルター（部分一致）
   -h, --help            help for protect
-      --status string   対象のステータス（カンマ区切り）
+  -s, --status string   対象のステータス（カンマ区切り）
 ```
 
 ### Options inherited from parent commands
