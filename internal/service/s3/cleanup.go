@@ -121,7 +121,7 @@ func emptyS3Bucket(s3Client *s3.Client, bucketName string) error {
 				}
 
 				// 削除エラーがあった場合は警告を表示
-				if deleteOutput.Errors != nil && len(deleteOutput.Errors) > 0 {
+				if len(deleteOutput.Errors) > 0 {
 					for _, deleteErr := range deleteOutput.Errors {
 						fmt.Printf("  ⚠️  オブジェクト削除エラー: %s (バージョンID: %s) - %s\n",
 							*deleteErr.Key,
