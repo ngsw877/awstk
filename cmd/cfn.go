@@ -221,6 +221,128 @@ var cfnProtectCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var cfnDriftDetectCmd = &cobra.Command{
+	Use:   "drift-detect",
+	Short: "CloudFormationスタックのドリフト検出を一括実行するコマンド",
+	Long: `指定した条件に一致するCloudFormationスタックのドリフト検出を一括で実行します。
+フィルターによる名前の部分一致検索、または全スタックを対象にできます。
+
+例:
+  # 名前に "prod-" を含むスタックのドリフト検出
+  ` + AppName + ` cfn drift-detect --filter prod-
+
+  # すべてのスタックのドリフト検出
+  ` + AppName + ` cfn drift-detect --all
+
+  # 特定のスタックを指定
+  ` + AppName + ` cfn drift-detect stack-a stack-b stack-c
+
+  # 実行例
+  ` + AppName + ` cfn drift-detect --filter test-`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// フラグの値を取得
+		driftFilter, _ := cmd.Flags().GetString("filter")
+		driftAll, _ := cmd.Flags().GetBool("all")
+
+		// 排他チェック
+		specified := 0
+		if len(args) > 0 {
+			specified++
+		}
+		if driftFilter != "" {
+			specified++
+		}
+		if driftAll {
+			specified++
+		}
+
+		if specified == 0 {
+			return fmt.Errorf("❌ エラー: スタック名、--filter、--allのいずれかを指定してください")
+		}
+		if specified > 1 {
+			return fmt.Errorf("❌ エラー: スタック名、--filter、--allは同時に指定できません")
+		}
+
+		printAwsContext()
+
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+
+		err := cfn.DetectDrift(cfnClient, cfn.DriftOptions{
+			Stacks: args,
+			Filter: driftFilter,
+			All:    driftAll,
+		})
+		if err != nil {
+			return fmt.Errorf("❌ ドリフト検出処理でエラー: %w", err)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
+var cfnDriftStatusCmd = &cobra.Command{
+	Use:   "drift-status",
+	Short: "CloudFormationスタックのドリフト状態を一括確認するコマンド",
+	Long: `指定した条件に一致するCloudFormationスタックのドリフト状態を一括で確認します。
+フィルターによる名前の部分一致検索、または全スタックを対象にできます。
+
+例:
+  # 名前に "prod-" を含むスタックのドリフト状態確認
+  ` + AppName + ` cfn drift-status --filter prod-
+
+  # すべてのスタックのドリフト状態確認
+  ` + AppName + ` cfn drift-status --all
+
+  # 特定のスタックを指定
+  ` + AppName + ` cfn drift-status stack-a stack-b
+
+  # ドリフトしているスタックのみ表示
+  ` + AppName + ` cfn drift-status --filter prod- --drifted-only`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// フラグの値を取得
+		driftFilter, _ := cmd.Flags().GetString("filter")
+		driftAll, _ := cmd.Flags().GetBool("all")
+		driftedOnly, _ := cmd.Flags().GetBool("drifted-only")
+
+		// 排他チェック
+		specified := 0
+		if len(args) > 0 {
+			specified++
+		}
+		if driftFilter != "" {
+			specified++
+		}
+		if driftAll {
+			specified++
+		}
+
+		if specified == 0 {
+			return fmt.Errorf("❌ エラー: スタック名、--filter、--allのいずれかを指定してください")
+		}
+		if specified > 1 {
+			return fmt.Errorf("❌ エラー: スタック名、--filter、--allは同時に指定できません")
+		}
+
+		printAwsContext()
+
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+
+		err := cfn.ShowDriftStatus(cfnClient, cfn.DriftStatusOptions{
+			Stacks:      args,
+			Filter:      driftFilter,
+			All:         driftAll,
+			DriftedOnly: driftedOnly,
+		})
+		if err != nil {
+			return fmt.Errorf("❌ ドリフト状態確認処理でエラー: %w", err)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
@@ -228,6 +350,8 @@ func init() {
 	CfnCmd.AddCommand(cfnStopCmd)
 	CfnCmd.AddCommand(cfnCleanupCmd)
 	CfnCmd.AddCommand(cfnProtectCmd)
+	CfnCmd.AddCommand(cfnDriftDetectCmd)
+	CfnCmd.AddCommand(cfnDriftStatusCmd)
 
 	cfnLsCmd.Flags().BoolVarP(&showAll, "all", "a", false, "全てのステータスのスタックを表示")
 
@@ -246,4 +370,13 @@ func init() {
 	cfnProtectCmd.Flags().Bool("enable", false, "削除保護を有効化")
 	cfnProtectCmd.Flags().Bool("disable", false, "削除保護を無効化")
 	cfnProtectCmd.Flags().BoolP("force", "f", false, "確認プロンプトをスキップ")
+
+	// cfn drift-detectコマンド用のフラグ
+	cfnDriftDetectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
+	cfnDriftDetectCmd.Flags().BoolP("all", "a", false, "すべてのスタックを対象")
+
+	// cfn drift-statusコマンド用のフラグ
+	cfnDriftStatusCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
+	cfnDriftStatusCmd.Flags().BoolP("all", "a", false, "すべてのスタックを対象")
+	cfnDriftStatusCmd.Flags().BoolP("drifted-only", "d", false, "ドリフトしているスタックのみ表示")
 }

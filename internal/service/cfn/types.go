@@ -28,3 +28,18 @@ type ProtectOptions struct {
 	Enable bool   // 削除保護を有効化するかどうか
 	Force  bool   // 確認プロンプトをスキップ
 }
+
+// DriftOptions はドリフト検出コマンドのオプション
+type DriftOptions struct {
+	Stacks []string // スタック名のリスト
+	Filter string   // スタック名のフィルター（部分一致）
+	All    bool     // すべてのスタックを対象
+}
+
+// DriftStatusOptions はドリフト状態確認コマンドのオプション
+type DriftStatusOptions struct {
+	Stacks      []string // スタック名のリスト
+	Filter      string   // スタック名のフィルター（部分一致）
+	All         bool     // すべてのスタックを対象
+	DriftedOnly bool     // ドリフトしているスタックのみ表示
+}
