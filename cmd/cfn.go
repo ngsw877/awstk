@@ -117,15 +117,68 @@ var cfnStopCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var (
+	cleanupFilter string
+	cleanupStatus string
+	cleanupForce  bool
+)
+
+var cfnCleanupCmd = &cobra.Command{
+	Use:   "cleanup",
+	Short: "CloudFormationスタックを一括削除するコマンド",
+	Long: `指定した条件に一致するCloudFormationスタックを一括削除します。
+フィルターによる名前の部分一致検索、またはステータスによる絞り込みが可能です。
+
+例:
+  # 名前に "test-" を含むスタックを削除
+  ` + AppName + ` cfn cleanup --filter test-
+
+  # 削除失敗状態のスタックをクリーンアップ
+  ` + AppName + ` cfn cleanup --status DELETE_FAILED,ROLLBACK_COMPLETE
+
+  # 両方の条件を組み合わせ
+  ` + AppName + ` cfn cleanup --filter dev- --status CREATE_FAILED
+
+  # 確認プロンプトをスキップ
+  ` + AppName + ` cfn cleanup --filter test- --force`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if cleanupFilter == "" && cleanupStatus == "" {
+			return fmt.Errorf("❌ エラー: --filterまたは--statusのいずれかを指定してください")
+		}
+
+		printAwsContext()
+
+		cfnClient := cloudformation.NewFromConfig(awsCfg)
+
+		err := cfn.CleanupStacks(cfnClient, cfn.CleanupOptions{
+			Filter: cleanupFilter,
+			Status: cleanupStatus,
+			Force:  cleanupForce,
+		})
+		if err != nil {
+			return fmt.Errorf("❌ スタック削除処理でエラー: %w", err)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
 	CfnCmd.AddCommand(cfnStartCmd)
 	CfnCmd.AddCommand(cfnStopCmd)
+	CfnCmd.AddCommand(cfnCleanupCmd)
 
 	cfnLsCmd.Flags().BoolVarP(&showAll, "all", "a", false, "全てのステータスのスタックを表示")
 
 	// cfn start/stopコマンド用のフラグ
 	cfnStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	cfnStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+
+	// cfn cleanupコマンド用のフラグ
+	cfnCleanupCmd.Flags().StringVar(&cleanupFilter, "filter", "", "スタック名のフィルター（部分一致）")
+	cfnCleanupCmd.Flags().StringVar(&cleanupStatus, "status", "", "削除対象のステータス（カンマ区切り）")
+	cfnCleanupCmd.Flags().BoolVarP(&cleanupForce, "force", "f", false, "確認プロンプトをスキップ")
 }
