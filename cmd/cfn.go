@@ -197,19 +197,8 @@ var cfnProtectCmd = &cobra.Command{
 		}
 
 		// フィルター条件の排他チェック
-		specified := 0
-		if len(args) > 0 {
-			specified++
-		}
-		if protectFilter != "" || protectStatus != "" {
-			specified++
-		}
-
-		if specified == 0 {
-			return fmt.Errorf("❌ エラー: スタック名、--filter、--statusのいずれかを指定してください")
-		}
-		if specified > 1 {
-			return fmt.Errorf("❌ エラー: スタック名と--filter/--statusは同時に指定できません")
+		if err := ValidateStackSelection(args, protectFilter != "" || protectStatus != ""); err != nil {
+			return err
 		}
 
 		printAwsContext()
@@ -255,22 +244,8 @@ var cfnDriftDetectCmd = &cobra.Command{
 		driftAll, _ := cmd.Flags().GetBool("all")
 
 		// 排他チェック
-		specified := 0
-		if len(args) > 0 {
-			specified++
-		}
-		if driftFilter != "" {
-			specified++
-		}
-		if driftAll {
-			specified++
-		}
-
-		if specified == 0 {
-			return fmt.Errorf("❌ エラー: スタック名、--filter、--allのいずれかを指定してください")
-		}
-		if specified > 1 {
-			return fmt.Errorf("❌ エラー: スタック名、--filter、--allは同時に指定できません")
+		if err := ValidateStackSelection(args, driftFilter != "" || driftAll); err != nil {
+			return err
 		}
 
 		printAwsContext()
@@ -316,22 +291,8 @@ var cfnDriftStatusCmd = &cobra.Command{
 		driftedOnly, _ := cmd.Flags().GetBool("drifted-only")
 
 		// 排他チェック
-		specified := 0
-		if len(args) > 0 {
-			specified++
-		}
-		if driftFilter != "" {
-			specified++
-		}
-		if driftAll {
-			specified++
-		}
-
-		if specified == 0 {
-			return fmt.Errorf("❌ エラー: スタック名、--filter、--allのいずれかを指定してください")
-		}
-		if specified > 1 {
-			return fmt.Errorf("❌ エラー: スタック名、--filter、--allは同時に指定できません")
+		if err := ValidateStackSelection(args, driftFilter != "" || driftAll); err != nil {
+			return err
 		}
 
 		printAwsContext()

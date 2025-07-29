@@ -92,24 +92,10 @@ var canaryDisableCmd = &cobra.Command{
 
 // validateCanaryFlags は排他的なフラグの検証を行う
 func validateCanaryFlags(cmd *cobra.Command, args []string) error {
-	count := 0
-	if canaryName != "" {
-		count++
-	}
-	if canaryFilter != "" {
-		count++
-	}
-	if canaryAll {
-		count++
-	}
-
-	if count == 0 {
-		return fmt.Errorf("--name, --filter, または --all のいずれかを指定してください")
-	}
-	if count > 1 {
-		return fmt.Errorf("--name, --filter, --all は同時に指定できません")
-	}
-	return nil
+	return ValidateExclusiveOptions(true, true,
+		canaryName != "",
+		canaryFilter != "",
+		canaryAll)
 }
 
 func init() {
