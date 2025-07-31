@@ -81,10 +81,20 @@ func collectTargetLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) (
 		}
 
 		// パターンマッチングを適用
-		pattern := glob.MustCompile(opts.Filter)
-		for _, group := range filteredGroups {
-			if pattern.Match(*group.LogGroupName) {
-				targetGroups = append(targetGroups, *group.LogGroupName)
+		// ワイルドカードが含まれている場合はglobパターン、そうでない場合は部分一致
+		if strings.ContainsAny(opts.Filter, "*?[]") {
+			pattern := glob.MustCompile(opts.Filter)
+			for _, group := range filteredGroups {
+				if pattern.Match(*group.LogGroupName) {
+					targetGroups = append(targetGroups, *group.LogGroupName)
+				}
+			}
+		} else {
+			// ワイルドカードがない場合は部分一致
+			for _, group := range filteredGroups {
+				if strings.Contains(*group.LogGroupName, opts.Filter) {
+					targetGroups = append(targetGroups, *group.LogGroupName)
+				}
 			}
 		}
 	}
