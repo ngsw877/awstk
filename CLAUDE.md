@@ -103,6 +103,7 @@ S3 / ECR / ECS / CloudFormation などをコマンドラインから一括管理
 ## 3. AWS に関する質問への対応
 
 - **ユーザーから AWS に関する質問を受けた場合は、MCP サーバー `awslabs.aws-documentation-mcp-server` を使用して AWS 公式ドキュメントから情報を調査し、正確な回答を提供すること**
+- **CDK（AWS Cloud Development Kit）に関する質問を受けた場合は、MCP サーバー `awslabs.cdk-mcp-server` を使用して CDK 固有の情報や実装方法を調査し、正確な回答を提供すること**
 - 公式ドキュメントの内容を参照した場合は、参照元の URL を併せて提示する
 - 推測や一般的な知識だけでなく、最新の公式情報に基づいた回答を心がける
 
