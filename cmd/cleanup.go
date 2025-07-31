@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
@@ -20,8 +21,8 @@ var cleanupCmd = &cobra.Command{
 // allCleanupCmd represents the all subcommand
 var allCleanupCmd = &cobra.Command{
 	Use:   "all",
-	Short: "S3バケットとECRリポジトリを横断削除",
-	Long: `指定した文字列を含むS3バケットやECRリポジトリを一括削除するコマンドです。
+	Short: "S3バケット、ECRリポジトリ、CloudWatch Logsを横断削除",
+	Long: `指定した文字列を含むS3バケット、ECRリポジトリ、CloudWatch Logsグループを一括削除するコマンドです。
 CloudFormationスタック名を指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
@@ -39,9 +40,10 @@ CloudFormationスタック名を指定することで、スタック内のリソ
 
 		// クライアントセットを作成
 		clients := cleanup.ClientSet{
-			S3Client:  s3.NewFromConfig(awsCfg),
-			EcrClient: ecr.NewFromConfig(awsCfg),
-			CfnClient: cloudformation.NewFromConfig(awsCfg),
+			S3Client:   s3.NewFromConfig(awsCfg),
+			EcrClient:  ecr.NewFromConfig(awsCfg),
+			CfnClient:  cloudformation.NewFromConfig(awsCfg),
+			LogsClient: cloudwatchlogs.NewFromConfig(awsCfg),
 		}
 
 		opts := cleanup.Options{

@@ -3,6 +3,7 @@ package cleanup
 import (
 	"awstk/internal/service/cfn"
 	ecrsvc "awstk/internal/service/ecr"
+	logssvc "awstk/internal/service/logs"
 	s3svc "awstk/internal/service/s3"
 	"fmt"
 )
@@ -17,7 +18,7 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		return err
 	}
 
-	var s3BucketNames, ecrRepoNames []string
+	var s3BucketNames, ecrRepoNames, logGroupNames []string
 	var err error
 
 	// 検索方法によって取得ロジックを分岐
@@ -30,6 +31,8 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		if err != nil {
 			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
 		}
+		// スタックからの削除では現時点でCloudWatch Logsは対象外
+		logGroupNames = []string{}
 	} else {
 		// キーワードから検索する場合
 		fmt.Printf("検索文字列: %s\n", opts.SearchString)
@@ -45,6 +48,12 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
 			ecrRepoNames = []string{}
+		}
+
+		logGroupNames, err = logssvc.GetLogGroupsByFilter(clients.LogsClient, opts.SearchString)
+		if err != nil {
+			fmt.Printf("❌ CloudWatch Logsグループ一覧取得中にエラーが発生しました: %v\n", err)
+			logGroupNames = []string{}
 		}
 	}
 
@@ -68,6 +77,16 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		fmt.Println("  削除対象のECRリポジトリはありません")
 	}
 
+	// CloudWatch Logsグループの削除
+	fmt.Println("CloudWatch Logsグループの削除を開始...")
+	if len(logGroupNames) > 0 {
+		if err := logssvc.CleanupLogGroups(clients.LogsClient, logGroupNames); err != nil {
+			fmt.Printf("❌ CloudWatch Logsグループのクリーンアップ中にエラーが発生しました: %v\n", err)
+		}
+	} else {
+		fmt.Println("  削除対象のCloudWatch Logsグループはありません")
+	}
+
 	fmt.Println("🎉 クリーンアップ完了！")
 	return nil
 }
@@ -82,6 +101,9 @@ func validateCleanupOptions(clients ClientSet) error {
 	}
 	if clients.CfnClient == nil {
 		return fmt.Errorf("cloudFormationクライアントが指定されていません")
+	}
+	if clients.LogsClient == nil {
+		return fmt.Errorf("cloudWatchLogsクライアントが指定されていません")
 	}
 	return nil
 }
