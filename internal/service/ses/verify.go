@@ -26,7 +26,7 @@ func VerifyEmailsFromFile(opts VerifyOptions) (*VerifyResult, error) {
 	originalCount := len(emails)
 
 	// 重複を除去
-	emails = removeDuplicates(emails)
+	emails = removeDuplicateEmails(emails)
 	duplicateRemoved := originalCount - len(emails)
 
 	// メールアドレスを検証
@@ -82,8 +82,8 @@ func readEmailsFromFile(filename string) ([]string, error) {
 	return emails, nil
 }
 
-// removeDuplicates は文字列スライスから重複を除去する
-func removeDuplicates(emails []string) []string {
+// removeDuplicateEmails はメールアドレスの重複を除去（大文字小文字を無視）
+func removeDuplicateEmails(emails []string) []string {
 	seen := make(map[string]bool)
 	var result []string
 

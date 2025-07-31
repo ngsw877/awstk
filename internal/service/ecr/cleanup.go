@@ -1,9 +1,9 @@
 package ecr
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
@@ -23,7 +23,7 @@ func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]s
 		}
 
 		for _, repo := range listReposOutput.Repositories {
-			if strings.Contains(*repo.RepositoryName, searchString) {
+			if common.MatchesFilter(*repo.RepositoryName, searchString) {
 				foundRepos = append(foundRepos, *repo.RepositoryName)
 				fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *repo.RepositoryName)
 			}

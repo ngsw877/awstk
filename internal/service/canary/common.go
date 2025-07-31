@@ -21,7 +21,7 @@ func getCanariesByFilter(client *synthetics.Client, filter string) ([]Canary, er
 
 	var filtered []Canary
 	for _, canary := range allCanaries {
-		if common.MatchPattern(canary.Name, filter) {
+		if common.MatchesFilter(canary.Name, filter) {
 			filtered = append(filtered, canary)
 		}
 	}

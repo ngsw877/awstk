@@ -1,9 +1,9 @@
 package s3
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -20,7 +20,7 @@ func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, e
 
 	foundBuckets := []string{}
 	for _, bucket := range listBucketsOutput.Buckets {
-		if strings.Contains(*bucket.Name, searchString) {
+		if common.MatchesFilter(*bucket.Name, searchString) {
 			foundBuckets = append(foundBuckets, *bucket.Name)
 			fmt.Printf("🔍 検出されたS3バケット: %s\n", *bucket.Name)
 		}

@@ -1,20 +1,34 @@
 package common
 
 import (
-	"path/filepath"
 	"strings"
+
+	"github.com/gobwas/glob"
 )
 
-// MatchPattern はワイルドカードパターンマッチングを行う
-// ワイルドカード（*）を含む場合はglob形式でマッチング、
-// 含まない場合は部分一致で判定する
-func MatchPattern(name, pattern string) bool {
-	// ワイルドカードを含む場合
-	if strings.Contains(pattern, "*") {
-		// glob パターンマッチング
-		matched, _ := filepath.Match(pattern, name)
-		return matched
+// MatchesFilter は文字列がフィルターパターンにマッチするか判定します
+// ワイルドカード文字(*?[])が含まれていればglobパターンマッチング、なければ部分一致
+func MatchesFilter(text, filter string) bool {
+	if strings.ContainsAny(filter, "*?[]") {
+		// ワイルドカードパターンマッチング
+		pattern := glob.MustCompile(filter)
+		return pattern.Match(text)
 	}
-	// ワイルドカードなしの場合は部分一致
-	return strings.Contains(name, pattern)
+	// 部分一致
+	return strings.Contains(text, filter)
+}
+
+// RemoveDuplicates は文字列スライスから重複を除去します
+func RemoveDuplicates(items []string) []string {
+	seen := make(map[string]bool)
+	var result []string
+
+	for _, item := range items {
+		if !seen[item] {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+
+	return result
 }

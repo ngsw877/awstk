@@ -1,12 +1,11 @@
 package logs
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/gobwas/glob"
 )
 
 // DeleteLogGroups は指定されたオプションに基づいてロググループを削除します
@@ -81,41 +80,15 @@ func collectTargetLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) (
 		}
 
 		// パターンマッチングを適用
-		// ワイルドカードが含まれている場合はglobパターン、そうでない場合は部分一致
-		if strings.ContainsAny(opts.Filter, "*?[]") {
-			pattern := glob.MustCompile(opts.Filter)
-			for _, group := range filteredGroups {
-				if pattern.Match(*group.LogGroupName) {
-					targetGroups = append(targetGroups, *group.LogGroupName)
-				}
-			}
-		} else {
-			// ワイルドカードがない場合は部分一致
-			for _, group := range filteredGroups {
-				if strings.Contains(*group.LogGroupName, opts.Filter) {
-					targetGroups = append(targetGroups, *group.LogGroupName)
-				}
+		for _, group := range filteredGroups {
+			if common.MatchesFilter(*group.LogGroupName, opts.Filter) {
+				targetGroups = append(targetGroups, *group.LogGroupName)
 			}
 		}
 	}
 
 	// 重複を除去
-	return removeDuplicates(targetGroups), nil
-}
-
-// removeDuplicates は文字列スライスから重複を除去します
-func removeDuplicates(items []string) []string {
-	seen := make(map[string]bool)
-	var result []string
-
-	for _, item := range items {
-		if !seen[item] {
-			seen[item] = true
-			result = append(result, item)
-		}
-	}
-
-	return result
+	return common.RemoveDuplicates(targetGroups), nil
 }
 
 // GetLogGroupsByFilter はフィルターに一致するロググループを取得します（cleanup allから呼ばれる用）
@@ -128,7 +101,7 @@ func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string) ([
 
 	var matchedGroups []string
 	for _, group := range allGroups {
-		if strings.Contains(*group.LogGroupName, searchString) {
+		if common.MatchesFilter(*group.LogGroupName, searchString) {
 			matchedGroups = append(matchedGroups, *group.LogGroupName)
 			fmt.Printf("🔍 検出されたロググループ: %s\n", *group.LogGroupName)
 		}
