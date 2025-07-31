@@ -29,6 +29,49 @@ var LogsCmd = &cobra.Command{
 	},
 }
 
+// logsDeleteCmd represents the delete command
+var logsDeleteCmd = &cobra.Command{
+	Use:   "delete [log-group-names...]",
+	Short: "CloudWatch Logsグループを削除するコマンド",
+	Long: `指定したCloudWatch Logsグループを削除します。
+ロググループ名の直接指定とフィルターパターンの両方に対応しています。
+
+【使い方】
+  ` + AppName + ` logs delete my-log-group                    # 単一のロググループを削除
+  ` + AppName + ` logs delete log1 log2 log3                  # 複数のロググループを削除
+  ` + AppName + ` logs delete --filter "/aws/lambda/*"        # パターンに一致するロググループを削除
+  ` + AppName + ` logs delete --filter "test-*" prod-log      # フィルターと直接指定の組み合わせ
+  ` + AppName + ` logs delete --filter "*" --empty-only       # 空のロググループをすべて削除
+  ` + AppName + ` logs delete --filter "*" --no-retention     # 保存期間未設定のロググループを削除
+
+【例】
+  ` + AppName + ` logs delete /aws/lambda/my-function
+  → 指定したLambda関数のロググループを削除します。
+  
+  ` + AppName + ` logs delete --filter "test-*" --empty-only
+  → test-で始まる空のロググループのみを削除します。`,
+	RunE: func(cmdCobra *cobra.Command, args []string) error {
+		filter, _ := cmdCobra.Flags().GetString("filter")
+		emptyOnly, _ := cmdCobra.Flags().GetBool("empty-only")
+		noRetention, _ := cmdCobra.Flags().GetBool("no-retention")
+
+		// 引数もフィルターも指定されていない場合はエラー
+		if len(args) == 0 && filter == "" {
+			return fmt.Errorf("削除対象のロググループ名またはフィルターを指定してください")
+		}
+
+		opts := logssvc.DeleteOptions{
+			Filter:      filter,
+			LogGroups:   args,
+			EmptyOnly:   emptyOnly,
+			NoRetention: noRetention,
+		}
+
+		return logssvc.DeleteLogGroups(logsClient, opts)
+	},
+	SilenceUsage: true,
+}
+
 // logsLsCmd represents the ls command
 var logsLsCmd = &cobra.Command{
 	Use:   "ls",
@@ -114,9 +157,15 @@ var logsLsCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(LogsCmd)
 	LogsCmd.AddCommand(logsLsCmd)
+	LogsCmd.AddCommand(logsDeleteCmd)
 
 	// ls コマンドのフラグ
 	logsLsCmd.Flags().BoolP("empty-only", "e", false, "空のログループのみを表示")
 	logsLsCmd.Flags().BoolP("no-retention", "n", false, "保存期間が未設定のログのみを表示")
 	logsLsCmd.Flags().BoolP("details", "d", false, "詳細情報を表示")
+
+	// delete コマンドのフラグ
+	logsDeleteCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン（ワイルドカード対応）")
+	logsDeleteCmd.Flags().BoolP("empty-only", "e", false, "空のログループのみを削除")
+	logsDeleteCmd.Flags().BoolP("no-retention", "n", false, "保存期間が未設定のログのみを削除")
 }

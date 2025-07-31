@@ -42,6 +42,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/synthetics v1.36.1 // indirect
 	github.com/aws/smithy-go v1.22.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect

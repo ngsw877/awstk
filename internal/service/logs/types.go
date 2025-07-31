@@ -19,3 +19,11 @@ type LogGroupDetail struct {
 	StreamCount int32
 	IsEmpty     bool
 }
+
+// DeleteOptions はログ削除時のオプション
+type DeleteOptions struct {
+	Filter      string   // フィルターパターン
+	LogGroups   []string // 削除対象のロググループ名
+	EmptyOnly   bool     // 空のロググループのみ削除
+	NoRetention bool     // 保存期間未設定のロググループのみ削除
+}
