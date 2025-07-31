@@ -4,6 +4,7 @@ import (
 	"awstk/internal/service/common"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
@@ -21,29 +22,44 @@ func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 		return nil
 	}
 
-	// 削除実行
-	successCount := 0
-	failCount := 0
-
-	fmt.Printf("🗑️  %d個のロググループを削除します...\n\n", len(targetGroups))
-
-	for _, logGroupName := range targetGroups {
-		fmt.Printf("削除中: %s ... ", logGroupName)
-
-		_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
-			LogGroupName: &logGroupName,
-		})
-
-		if err != nil {
-			fmt.Printf("❌ 失敗 (%v)\n", err)
-			failCount++
-		} else {
-			fmt.Println("✅ 完了")
-			successCount++
-		}
+	// 並列実行数を設定（最大20並列）
+	maxWorkers := 20
+	if len(targetGroups) < maxWorkers {
+		maxWorkers = len(targetGroups)
 	}
 
-	// サマリー表示
+	executor := common.NewParallelExecutor(maxWorkers)
+	results := make([]common.ProcessResult, len(targetGroups))
+	resultsMutex := &sync.Mutex{}
+
+	fmt.Printf("🗑️  %d個のロググループを最大%d並列で削除します...\n\n", len(targetGroups), maxWorkers)
+
+	for i, logGroupName := range targetGroups {
+		idx := i
+		groupName := logGroupName
+		executor.Execute(func() {
+			fmt.Printf("削除中: %s ... ", groupName)
+
+			_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
+				LogGroupName: &groupName,
+			})
+
+			resultsMutex.Lock()
+			if err != nil {
+				fmt.Printf("❌ 失敗 (%v)\n", err)
+				results[idx] = common.ProcessResult{Item: groupName, Success: false, Error: err}
+			} else {
+				fmt.Println("✅ 完了")
+				results[idx] = common.ProcessResult{Item: groupName, Success: true}
+			}
+			resultsMutex.Unlock()
+		})
+	}
+
+	executor.Wait()
+
+	// 結果の集計
+	successCount, failCount := common.CollectResults(results)
 	fmt.Printf("\n削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
 	if failCount > 0 {
@@ -112,21 +128,49 @@ func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string) ([
 
 // CleanupLogGroups は指定したロググループ一覧を削除します（cleanup allから呼ばれる用）
 func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) error {
-	for _, logGroupName := range logGroupNames {
-		fmt.Printf("ロググループ %s を削除中...\n", logGroupName)
-
-		_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
-			LogGroupName: &logGroupName,
-		})
-
-		if err != nil {
-			fmt.Printf("❌ ロググループ %s の削除に失敗しました: %v\n", logGroupName, err)
-			// エラーをログに記録して続行
-			continue
-		}
-
-		fmt.Printf("✅ ロググループ %s を削除しました\n", logGroupName)
+	if len(logGroupNames) == 0 {
+		return nil
 	}
+
+	// 並列実行数を設定（最大20並列）
+	maxWorkers := 20
+	if len(logGroupNames) < maxWorkers {
+		maxWorkers = len(logGroupNames)
+	}
+
+	executor := common.NewParallelExecutor(maxWorkers)
+	results := make([]common.ProcessResult, len(logGroupNames))
+	resultsMutex := &sync.Mutex{}
+
+	fmt.Printf("🚀 %d個のロググループを最大%d並列で削除します...\n\n", len(logGroupNames), maxWorkers)
+
+	for i, logGroupName := range logGroupNames {
+		idx := i
+		groupName := logGroupName
+		executor.Execute(func() {
+			fmt.Printf("ロググループ %s を削除中...\n", groupName)
+
+			_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
+				LogGroupName: &groupName,
+			})
+
+			resultsMutex.Lock()
+			if err != nil {
+				fmt.Printf("❌ ロググループ %s の削除に失敗しました: %v\n", groupName, err)
+				results[idx] = common.ProcessResult{Item: groupName, Success: false, Error: err}
+			} else {
+				fmt.Printf("✅ ロググループ %s を削除しました\n", groupName)
+				results[idx] = common.ProcessResult{Item: groupName, Success: true}
+			}
+			resultsMutex.Unlock()
+		})
+	}
+
+	executor.Wait()
+
+	// 結果の集計
+	successCount, failCount := common.CollectResults(results)
+	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
 	return nil
 }

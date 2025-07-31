@@ -1,6 +1,7 @@
 package ssm
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -59,19 +61,41 @@ func PutParametersFromFile(ssmClient *ssm.Client, opts PutParamsOptions) error {
 		return nil
 	}
 
-	// パラメータの登録
-	var successCount, failCount int
-	for _, param := range params {
-		err := putParameter(ssmClient, param)
-		if err != nil {
-			fmt.Printf("❌ %s の登録に失敗しました: %v\n", param.Name, err)
-			failCount++
-		} else {
-			fmt.Printf("✅ %s を登録しました\n", param.Name)
-			successCount++
-		}
+	// 並列実行数を設定（最大10並列）
+	maxWorkers := 10
+	if len(params) < maxWorkers {
+		maxWorkers = len(params)
 	}
 
+	executor := common.NewParallelExecutor(maxWorkers)
+	results := make([]common.ProcessResult, len(params))
+	resultsMutex := &sync.Mutex{}
+
+	fmt.Printf("🚀 %d個のパラメータを最大%d並列で登録します...\n\n", len(params), maxWorkers)
+
+	// パラメータの登録
+	for i, param := range params {
+		idx := i
+		p := param
+		executor.Execute(func() {
+			err := putParameter(ssmClient, p)
+
+			resultsMutex.Lock()
+			if err != nil {
+				fmt.Printf("❌ %s の登録に失敗しました: %v\n", p.Name, err)
+				results[idx] = common.ProcessResult{Item: p.Name, Success: false, Error: err}
+			} else {
+				fmt.Printf("✅ %s を登録しました\n", p.Name)
+				results[idx] = common.ProcessResult{Item: p.Name, Success: true}
+			}
+			resultsMutex.Unlock()
+		})
+	}
+
+	executor.Wait()
+
+	// 結果の集計
+	successCount, failCount := common.CollectResults(results)
 	fmt.Printf("\n📊 登録結果: 成功 %d / 失敗 %d / 合計 %d\n", successCount, failCount, len(params))
 
 	if failCount > 0 {

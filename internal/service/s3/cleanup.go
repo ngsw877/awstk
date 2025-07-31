@@ -4,6 +4,7 @@ import (
 	"awstk/internal/service/common"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -31,29 +32,62 @@ func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, e
 
 // CleanupS3Buckets は指定したS3バケット一覧を削除します
 func CleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
-	for _, bucket := range bucketNames {
-		fmt.Printf("バケット %s を空にして削除中...\n", bucket)
-
-		// バケットを空にする (バージョン管理対応)
-		err := emptyS3Bucket(s3Client, bucket)
-		if err != nil {
-			fmt.Printf("❌ バケット %s を空にするのに失敗しました: %v\n", bucket, err)
-			// このバケットの削除はスキップし、次のバケットへ
-			continue
-		}
-
-		// バケットの削除
-		fmt.Printf("  バケット削除中: %s\n", bucket)
-		_, err = s3Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{
-			Bucket: aws.String(bucket),
-		})
-		if err != nil {
-			fmt.Printf("❌ バケット %s の削除に失敗しました: %v\n", bucket, err)
-			// このバケットの削除はスキップし、次のバケットへ
-			continue
-		}
-		fmt.Printf("✅ バケット %s を削除しました\n", bucket)
+	if len(bucketNames) == 0 {
+		return nil
 	}
+
+	// 並列実行数を設定（最大10並列）
+	maxWorkers := 10
+	if len(bucketNames) < maxWorkers {
+		maxWorkers = len(bucketNames)
+	}
+
+	executor := common.NewParallelExecutor(maxWorkers)
+	results := make([]common.ProcessResult, len(bucketNames))
+	resultsMutex := &sync.Mutex{}
+
+	fmt.Printf("🚀 %d個のバケットを最大%d並列で削除します...\n\n", len(bucketNames), maxWorkers)
+
+	for i, bucket := range bucketNames {
+		idx := i
+		bucketName := bucket
+		executor.Execute(func() {
+			fmt.Printf("バケット %s を空にして削除中...\n", bucketName)
+
+			// バケットを空にする (バージョン管理対応)
+			err := emptyS3Bucket(s3Client, bucketName)
+			if err != nil {
+				fmt.Printf("❌ バケット %s を空にするのに失敗しました: %v\n", bucketName, err)
+				resultsMutex.Lock()
+				results[idx] = common.ProcessResult{Item: bucketName, Success: false, Error: err}
+				resultsMutex.Unlock()
+				return
+			}
+
+			// バケットの削除
+			fmt.Printf("  バケット削除中: %s\n", bucketName)
+			_, err = s3Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{
+				Bucket: aws.String(bucketName),
+			})
+
+			resultsMutex.Lock()
+			if err != nil {
+				fmt.Printf("❌ バケット %s の削除に失敗しました: %v\n", bucketName, err)
+				results[idx] = common.ProcessResult{Item: bucketName, Success: false, Error: err}
+			} else {
+				fmt.Printf("✅ バケット %s を削除しました\n", bucketName)
+				results[idx] = common.ProcessResult{Item: bucketName, Success: true}
+			}
+			resultsMutex.Unlock()
+		})
+	}
+
+	executor.Wait()
+
+	// 結果の集計
+	successCount, failCount := common.CollectResults(results)
+	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
+
 	return nil
 }
 

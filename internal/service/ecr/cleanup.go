@@ -4,6 +4,7 @@ import (
 	"awstk/internal/service/common"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
@@ -40,21 +41,51 @@ func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]s
 
 // CleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
 func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
-	for _, repoName := range repoNames {
-		fmt.Printf("リポジトリ %s を削除中...\n", repoName)
-
-		// リポジトリの削除（強制削除フラグで内部のイメージも含めて削除）
-		_, err := ecrClient.DeleteRepository(context.Background(), &ecr.DeleteRepositoryInput{
-			RepositoryName: aws.String(repoName),
-			Force:          true, // 強制削除（イメージが残っていても削除）
-		})
-		if err != nil {
-			fmt.Printf("❌ リポジトリ %s の削除に失敗しました: %v\n", repoName, err)
-			// このリポジトリの削除はスキップし、次のリポジトリへ
-			continue
-		}
-		fmt.Printf("✅ リポジトリ %s を削除しました\n", repoName)
+	if len(repoNames) == 0 {
+		return nil
 	}
+
+	// 並列実行数を設定（最大10並列）
+	maxWorkers := 10
+	if len(repoNames) < maxWorkers {
+		maxWorkers = len(repoNames)
+	}
+
+	executor := common.NewParallelExecutor(maxWorkers)
+	results := make([]common.ProcessResult, len(repoNames))
+	resultsMutex := &sync.Mutex{}
+
+	fmt.Printf("🚀 %d個のリポジトリを最大%d並列で削除します...\n\n", len(repoNames), maxWorkers)
+
+	for i, repoName := range repoNames {
+		idx := i
+		repo := repoName
+		executor.Execute(func() {
+			fmt.Printf("リポジトリ %s を削除中...\n", repo)
+
+			// リポジトリの削除（強制削除フラグで内部のイメージも含めて削除）
+			_, err := ecrClient.DeleteRepository(context.Background(), &ecr.DeleteRepositoryInput{
+				RepositoryName: aws.String(repo),
+				Force:          true, // 強制削除（イメージが残っていても削除）
+			})
+
+			resultsMutex.Lock()
+			if err != nil {
+				fmt.Printf("❌ リポジトリ %s の削除に失敗しました: %v\n", repo, err)
+				results[idx] = common.ProcessResult{Item: repo, Success: false, Error: err}
+			} else {
+				fmt.Printf("✅ リポジトリ %s を削除しました\n", repo)
+				results[idx] = common.ProcessResult{Item: repo, Success: true}
+			}
+			resultsMutex.Unlock()
+		})
+	}
+
+	executor.Wait()
+
+	// 結果の集計
+	successCount, failCount := common.CollectResults(results)
+	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
 	return nil
 }

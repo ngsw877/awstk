@@ -1,11 +1,13 @@
 package ses
 
 import (
+	"awstk/internal/service/common"
 	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ses"
@@ -100,25 +102,51 @@ func removeDuplicateEmails(emails []string) []string {
 
 // verifySesEmails 指定されたメールアドレス一覧をSESで検証する
 func verifySesEmails(sesClient *ses.Client, emails []string) ([]string, []EmailVerificationDetail, error) {
-	var failedEmails []string
-	var details []EmailVerificationDetail
-
-	for _, email := range emails {
-		_, err := sesClient.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
-			EmailAddress: aws.String(email),
-		})
-
-		detail := EmailVerificationDetail{
-			Email:   email,
-			Success: err == nil,
-			Error:   err,
-		}
-		details = append(details, detail)
-
-		if err != nil {
-			failedEmails = append(failedEmails, email)
-		}
+	if len(emails) == 0 {
+		return nil, nil, nil
 	}
+
+	// 並列実行数を設定（最大10並列）
+	maxWorkers := 10
+	if len(emails) < maxWorkers {
+		maxWorkers = len(emails)
+	}
+
+	executor := common.NewParallelExecutor(maxWorkers)
+	details := make([]EmailVerificationDetail, len(emails))
+	detailsMutex := &sync.Mutex{}
+	failedEmailsMutex := &sync.Mutex{}
+	var failedEmails []string
+
+	fmt.Printf("🚀 %d件のメールアドレスを最大%d並列で検証します...\n\n", len(emails), maxWorkers)
+
+	for i, email := range emails {
+		idx := i
+		emailAddr := email
+		executor.Execute(func() {
+			_, err := sesClient.VerifyEmailIdentity(context.Background(), &ses.VerifyEmailIdentityInput{
+				EmailAddress: aws.String(emailAddr),
+			})
+
+			detail := EmailVerificationDetail{
+				Email:   emailAddr,
+				Success: err == nil,
+				Error:   err,
+			}
+
+			detailsMutex.Lock()
+			details[idx] = detail
+			detailsMutex.Unlock()
+
+			if err != nil {
+				failedEmailsMutex.Lock()
+				failedEmails = append(failedEmails, emailAddr)
+				failedEmailsMutex.Unlock()
+			}
+		})
+	}
+
+	executor.Wait()
 
 	return failedEmails, details, nil
 }
