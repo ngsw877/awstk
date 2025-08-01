@@ -74,14 +74,18 @@ cdk deploy
 
 ## クリーンアップデモ
 
-デプロイ後、以下のコマンドでクリーンアップ機能をデモ：
+デプロイ後、CloudFormation出力に表示されるコマンドでクリーンアップ機能をデモ：
 
 ```bash
-# 個別のバケットをクリーンアップ
+# 全てのデモバケットを削除（CloudFormation出力に表示）
 awstk s3 cleanup --filter "awstk-s3cleanupdemo-"
+```
 
-# 全てのデモバケットを削除
-awstk s3 cleanup --filter "awstk-s3cleanupdemo-"
+または、個別にバケット名を指定：
+
+```bash
+# 特定のバケットのみクリーンアップ
+awstk s3 cleanup --filter "awstk-s3cleanupdemo-large-bucket"
 ```
 
 ## 削除方法

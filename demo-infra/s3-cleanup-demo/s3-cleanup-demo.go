@@ -17,6 +17,13 @@ type S3CleanupDemoStackProps struct {
 	awscdk.StackProps
 }
 
+// 定数定義
+const (
+	bucketPrefix = "awstk-s3cleanupdemo-"
+	stackPurpose = "S3CleanupDemo"
+	environment  = "Demo"
+)
+
 func NewS3CleanupDemoStack(scope constructs.Construct, id string, props *S3CleanupDemoStackProps) awscdk.Stack {
 	var sprops awscdk.StackProps
 	if props != nil {
@@ -24,16 +31,22 @@ func NewS3CleanupDemoStack(scope constructs.Construct, id string, props *S3Clean
 	}
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
+	// スタック全体にタグを追加（コスト追跡用）
+	awscdk.Tags_Of(stack).Add(jsii.String("Purpose"), jsii.String(stackPurpose), nil)
+	awscdk.Tags_Of(stack).Add(jsii.String("Environment"), jsii.String(environment), nil)
+
 	// 1. 空のバケット
 	awss3.NewBucket(stack, jsii.String("EmptyBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-empty-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "empty-bucket"),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
 
 	// 2. 通常バケット（10個のオブジェクト）
 	normalBucket := awss3.NewBucket(stack, jsii.String("NormalBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-normal-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "normal-bucket"),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
@@ -48,7 +61,8 @@ func NewS3CleanupDemoStack(scope constructs.Construct, id string, props *S3Clean
 
 	// 3. ネストされたフォルダ構造
 	nestedBucket := awss3.NewBucket(stack, jsii.String("NestedBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-nested-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "nested-bucket"),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
@@ -64,23 +78,26 @@ func NewS3CleanupDemoStack(scope constructs.Construct, id string, props *S3Clean
 
 	// 4. バージョニング有効バケット（複数バージョン）
 	versionedBucket := awss3.NewBucket(stack, jsii.String("VersionedBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-versioned-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "versioned-bucket"),
 		Versioned:         jsii.Bool(true),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
 
 	// 5. バージョニング有効バケット（削除マーカー）
 	deletedMarkerBucket := awss3.NewBucket(stack, jsii.String("DeletedMarkerBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-deleted-marker-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "deleted-marker-bucket"),
 		Versioned:         jsii.Bool(true),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
 
 	// 6. 大量オブジェクトバケット（1000個以上）
 	largeBucket := awss3.NewBucket(stack, jsii.String("LargeBucket"), &awss3.BucketProps{
-		BucketName:        jsii.String("awstk-s3cleanupdemo-large-bucket"),
+		BucketName:        jsii.String(bucketPrefix + "large-bucket"),
+		Encryption:        awss3.BucketEncryption_S3_MANAGED,
 		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 		AutoDeleteObjects: jsii.Bool(true),
 	})
@@ -125,38 +142,35 @@ func NewS3CleanupDemoStack(scope constructs.Construct, id string, props *S3Clean
 		OnEventHandler: dataCreatorFunction,
 	})
 
-	// バージョニングバケット用のカスタムリソース
-	versionedDataResource := awscdk.NewCustomResource(stack, jsii.String("VersionedData"), &awscdk.CustomResourceProps{
-		ServiceToken: provider.ServiceToken(),
-		Properties: &map[string]interface{}{
-			"BucketName":  versionedBucket.BucketName(),
-			"ObjectCount": 5,
-			"Pattern":     "versioned",
-		},
-	})
-	versionedDataResource.Node().AddDependency(versionedBucket)
+	// カスタムリソースの作成ヘルパー関数
+	createDataResource := func(id string, bucket awss3.IBucket, objectCount int, pattern string) {
+		resource := awscdk.NewCustomResource(stack, jsii.String(id), &awscdk.CustomResourceProps{
+			ServiceToken: provider.ServiceToken(),
+			Properties: &map[string]interface{}{
+				"BucketName":  bucket.BucketName(),
+				"ObjectCount": objectCount,
+				"Pattern":     pattern,
+			},
+		})
+		resource.Node().AddDependency(bucket)
+	}
 
-	// 削除マーカーバケット用のカスタムリソース
-	deletedMarkerDataResource := awscdk.NewCustomResource(stack, jsii.String("DeletedMarkerData"), &awscdk.CustomResourceProps{
-		ServiceToken: provider.ServiceToken(),
-		Properties: &map[string]interface{}{
-			"BucketName":  deletedMarkerBucket.BucketName(),
-			"ObjectCount": 3,
-			"Pattern":     "deleted-markers",
-		},
-	})
-	deletedMarkerDataResource.Node().AddDependency(deletedMarkerBucket)
+	// 各バケット用のカスタムリソースを作成
+	createDataResource("VersionedData", versionedBucket, 5, "versioned")
+	createDataResource("DeletedMarkerData", deletedMarkerBucket, 3, "deleted-markers")
+	createDataResource("LargeData", largeBucket, 1200, "normal")
 
-	// 大量データバケット用のカスタムリソース
-	largeDataResource := awscdk.NewCustomResource(stack, jsii.String("LargeData"), &awscdk.CustomResourceProps{
-		ServiceToken: provider.ServiceToken(),
-		Properties: &map[string]interface{}{
-			"BucketName":  largeBucket.BucketName(),
-			"ObjectCount": 1200,
-			"Pattern":     "normal",
-		},
+	// クリーンアップコマンドを出力として追加
+	awscdk.NewCfnOutput(stack, jsii.String("CleanupCommand"), &awscdk.CfnOutputProps{
+		Value:       jsii.String("awstk s3 cleanup --filter \"" + bucketPrefix + "\""),
+		Description: jsii.String("Command to cleanup all demo buckets"),
 	})
-	largeDataResource.Node().AddDependency(largeBucket)
+
+	// スタック名を出力として追加
+	awscdk.NewCfnOutput(stack, jsii.String("StackName"), &awscdk.CfnOutputProps{
+		Value:       stack.StackName(),
+		Description: jsii.String("Stack name for reference"),
+	})
 
 	return stack
 }
