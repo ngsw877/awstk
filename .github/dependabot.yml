@@ -3,24 +3,15 @@
 
 version: 2
 
-# 共通スケジュール & アンカー
-x-weekly-jst: &weekly-jst
-  interval: "weekly"
-  day: "monday"
-  time: "09:00"
-  timezone: "Asia/Tokyo"
-
-# AWS SDK を束ねるグループ定義（アンカー）
-x-groups-aws: &groups-aws
-  aws-sdk:
-    patterns:
-      - "github.com/aws/aws-sdk-go-v2*"
-
 updates:
   # ──────────────── 本体 ────────────────
   - package-ecosystem: "gomod"
     directory: "/"
-    schedule: *weekly-jst
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
@@ -31,35 +22,59 @@ updates:
       # AWS SDK のメジャー・マイナーは手動、パッチは自動
       - dependency-name: "github.com/aws/aws-sdk-go-v2/*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
-    groups: *groups-aws
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
     labels: ["dependencies", "go"]
 
   # ──────────────── demo-infra (awstk-lab) ────────────────
   - package-ecosystem: "gomod"
     directory: "/demo-infra/awstk-lab"
-    schedule: *weekly-jst
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "deps(demo-infra)"
-    groups: *groups-aws
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
     labels: ["dependencies", "go", "demo-infra", "cdk"]
 
   # ──────────────── demo-infra (cdk-workshop) ────────────────
   - package-ecosystem: "gomod"
     directory: "/demo-infra/cdk-workshop"
-    schedule: *weekly-jst
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "deps(demo-infra)"
-    groups: *groups-aws
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
     labels: ["dependencies", "go", "demo-infra", "cdk"]
 
   # ──────────────── demo-infra (s3-cleanup-demo) ────────────────
   - package-ecosystem: "gomod"
     directory: "/demo-infra/s3-cleanup-demo"
-    schedule: *weekly-jst
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "deps(demo-infra)"
-    groups: *groups-aws
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
     labels: ["dependencies", "go", "demo-infra", "cdk"] 

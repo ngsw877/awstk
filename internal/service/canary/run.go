@@ -72,7 +72,7 @@ func RunCanariesByFilter(client *synthetics.Client, filters []string, dryRun boo
 
 	// 確認
 	if !skipConfirm {
-		if !confirmAction(fmt.Sprintf("%d個のCanaryを%ししますか？", len(uniqueCanaries), actionType)) {
+		if !confirmAction(fmt.Sprintf("%d個のCanaryを%sしますか？", len(uniqueCanaries), actionType)) {
 			fmt.Println("キャンセルしました")
 			return nil
 		}
