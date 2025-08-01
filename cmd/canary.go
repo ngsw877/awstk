@@ -11,21 +11,25 @@ import (
 var (
 	canaryName       string
 	canaryFilter     string
+	canaryFilters    []string
 	canaryAll        bool
 	canaryYes        bool
+	canaryDryRun     bool
 	syntheticsClient *synthetics.Client
 )
 
 var CanaryCmd = &cobra.Command{
 	Use:   "canary",
 	Short: "AWS Synthetics Canary操作コマンド",
-	Long: `AWS Synthetics Canaryの一覧表示、有効化/無効化を行います。
+	Long: `AWS Synthetics Canaryの一覧表示、有効化/無効化、手動実行を行います。
 
 使用例:
   ` + AppName + ` canary ls                          # Canary一覧を表示
   ` + AppName + ` canary enable --name my-canary     # 特定のCanaryを有効化
   ` + AppName + ` canary disable --filter "test-*"   # パターンに一致するCanaryを無効化
-  ` + AppName + ` canary enable --all                # 全てのCanaryを有効化`,
+  ` + AppName + ` canary enable --all                # 全てのCanaryを有効化
+  ` + AppName + ` canary run --name my-canary        # 特定のCanaryを手動実行
+  ` + AppName + ` canary run --filter "api-*" --yes  # パターンに一致するCanaryを一括実行`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// 親のPersistentPreRunEを実行（awsCtx設定とAWS設定読み込み）
 		if err := RootCmd.PersistentPreRunE(cmd, args); err != nil {
@@ -90,6 +94,27 @@ var canaryDisableCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var canaryRunCmd = &cobra.Command{
+	Use:   "run",
+	Short: "Canaryを手動実行するコマンド",
+	Long: `指定したCanaryを手動で実行します。
+--name または --filter を指定してください。`,
+	PreRunE: validateRunCanaryFlags,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if canaryName != "" {
+			if canaryDryRun {
+				return canary.RunCanaryDryRun(syntheticsClient, canaryName)
+			}
+			return canary.RunCanary(syntheticsClient, canaryName)
+		}
+		if len(canaryFilters) > 0 {
+			return canary.RunCanariesByFilter(syntheticsClient, canaryFilters, canaryDryRun, canaryYes)
+		}
+		return fmt.Errorf("--name または --filter のいずれかを指定してください")
+	},
+	SilenceUsage: true,
+}
+
 // validateCanaryFlags は排他的なフラグの検証を行う
 func validateCanaryFlags(cmd *cobra.Command, args []string) error {
 	return ValidateExclusiveOptions(true, true,
@@ -98,11 +123,28 @@ func validateCanaryFlags(cmd *cobra.Command, args []string) error {
 		canaryAll)
 }
 
+// validateRunCanaryFlags はrunコマンドのフラグ検証を行う
+func validateRunCanaryFlags(cmd *cobra.Command, args []string) error {
+	hasName := canaryName != ""
+	hasFilter := len(canaryFilters) > 0
+
+	if !hasName && !hasFilter {
+		return fmt.Errorf("--name または --filter のいずれかを指定してください")
+	}
+
+	if hasName && hasFilter {
+		return fmt.Errorf("--name と --filter は同時に指定できません")
+	}
+
+	return nil
+}
+
 func init() {
 	RootCmd.AddCommand(CanaryCmd)
 	CanaryCmd.AddCommand(canaryLsCmd)
 	CanaryCmd.AddCommand(canaryEnableCmd)
 	CanaryCmd.AddCommand(canaryDisableCmd)
+	CanaryCmd.AddCommand(canaryRunCmd)
 
 	// Enable/Disableコマンドのフラグ設定
 	for _, cmd := range []*cobra.Command{canaryEnableCmd, canaryDisableCmd} {
@@ -111,4 +153,10 @@ func init() {
 		cmd.Flags().BoolVarP(&canaryAll, "all", "a", false, "全てのCanaryを対象")
 		cmd.Flags().BoolVarP(&canaryYes, "yes", "y", false, "確認なしで実行")
 	}
+
+	// Runコマンドのフラグ設定
+	canaryRunCmd.Flags().StringVarP(&canaryName, "name", "n", "", "Canary名")
+	canaryRunCmd.Flags().StringSliceVarP(&canaryFilters, "filter", "f", []string{}, "名前パターン（複数指定可能、ワイルドカード対応）")
+	canaryRunCmd.Flags().BoolVarP(&canaryDryRun, "dry-run", "d", false, "ドライラン実行")
+	canaryRunCmd.Flags().BoolVarP(&canaryYes, "yes", "y", false, "確認なしで実行")
 }
