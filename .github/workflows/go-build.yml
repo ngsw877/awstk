@@ -6,14 +6,20 @@ on:
       - '**.md'
       - 'docs/**'
       - 'README*'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'README*'
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  build-root:
+    name: Build Root Project
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,6 +36,22 @@ jobs:
           go vet ./...
           go build ./...
 
+  build-cdk:
+    name: Build CDK Projects
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [awstk-lab, cdk-workshop, s3-cleanup-demo]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
       - name: Setup Node (for CDK)
         uses: actions/setup-node@v4
         with:
@@ -38,20 +60,16 @@ jobs:
       - name: Install AWS CDK CLI
         run: npm install -g aws-cdk@2
 
-      - name: CDK synth demo-infra projects
+      - name: Build and synth CDK project (${{ matrix.project }})
         run: |
-          echo "Synthesizing demo-infra stacks"
-          for dir in demo-infra/*/; do
-            if [ -f "$dir/cdk.json" ]; then
-              echo "cdk synth in $dir"
-              cd "$dir"
-              # go mod tidy & build to ensure jsii compile step passes
-              if [ -f "go.mod" ]; then
-                go vet ./...
-                go build ./...
-              fi
-              # synth (offline)
-              cdk synth --all --no-lookups
-              cd - > /dev/null
-            fi
-          done 
+          echo "Building and synthesizing ${{ matrix.project }}"
+          cd demo-infra/${{ matrix.project }}
+          
+          # Go build first
+          if [ -f "go.mod" ]; then
+            go vet ./...
+            go build ./...
+          fi
+          
+          # CDK synth (offline)
+          cdk synth --all --no-lookups 
