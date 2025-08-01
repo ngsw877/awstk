@@ -6,12 +6,6 @@ on:
       - '**.md'
       - 'docs/**'
       - 'README*'
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'README*'
 
 permissions:
   contents: read
