@@ -186,4 +186,6 @@ func init() {
 	cfTenantInvalidateCmd.Flags().BoolP("all", "a", false, "全テナントを無効化")
 	cfTenantInvalidateCmd.Flags().BoolP("list", "l", false, "テナント一覧から選択")
 	cfTenantInvalidateCmd.Flags().BoolP("wait", "w", false, "無効化完了まで待機")
+	// --all と --list は同時指定不可
+	cfTenantInvalidateCmd.MarkFlagsMutuallyExclusive("all", "list")
 }

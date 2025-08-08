@@ -2,7 +2,6 @@ package cmd
 
 import (
 	ecrsvc "awstk/internal/service/ecr"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/spf13/cobra"
@@ -39,9 +38,6 @@ var ecrCleanupCmd = &cobra.Command{
   ` + AppName + ` ecr cleanup -f "test-repo" -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filter, _ := cmd.Flags().GetString("filter")
-		if filter == "" {
-			return fmt.Errorf("❌ エラー: フィルター (-f) を指定してください")
-		}
 
 		printAwsContextWithInfo("検索文字列", filter)
 
@@ -98,4 +94,5 @@ func init() {
 
 	// cleanup コマンドのフラグ
 	ecrCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
+	_ = ecrCleanupCmd.MarkFlagRequired("filter")
 }

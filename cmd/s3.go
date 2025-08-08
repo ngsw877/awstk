@@ -186,6 +186,8 @@ func init() {
 	S3Cmd.AddCommand(s3AvailCmd)
 	S3Cmd.AddCommand(s3CleanupCmd)
 	s3GunzipCmd.Flags().StringP("out", "o", "", "解凍ファイルの出力先ディレクトリ (デフォルト: ./outputs/)")
+	// ディレクトリ補完
+	_ = s3GunzipCmd.MarkFlagDirname("out")
 
 	// ls コマンドに --time フラグを追加
 	s3LsCmd.Flags().BoolP("time", "t", false, "ファイルの更新日時も一緒に表示")
@@ -194,5 +196,5 @@ func init() {
 
 	// cleanup コマンドのフラグ
 	s3CleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
-	s3CleanupCmd.MarkFlagRequired("filter")
+	_ = s3CleanupCmd.MarkFlagRequired("filter")
 }

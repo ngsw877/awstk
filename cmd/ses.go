@@ -47,5 +47,5 @@ func init() {
 	RootCmd.AddCommand(SesCmd)
 	SesCmd.AddCommand(sesVerifyCmd)
 	sesVerifyCmd.Flags().StringVarP(&emailFile, "file", "f", "", "メールアドレス一覧ファイル（1行1メールアドレス）")
-	sesVerifyCmd.MarkFlagRequired("file")
+	_ = sesVerifyCmd.MarkFlagRequired("file")
 }

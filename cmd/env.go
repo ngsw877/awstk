@@ -125,10 +125,14 @@ func init() {
 	// env set のフラグ
 	envSetCmd.Flags().StringVarP(&envStackName, "stack", "S", "", "設定するスタック名")
 	envSetCmd.Flags().StringVarP(&envProfile, "profile", "P", "", "設定するプロファイル名")
+	// どちらか1つ必須
+	envSetCmd.MarkFlagsOneRequired("stack", "profile")
 
 	// env show のフラグは不要（常に全て表示）
 
 	// env unset のフラグ
 	envUnsetCmd.Flags().BoolP("stack", "S", false, "スタック名を削除")
 	envUnsetCmd.Flags().BoolP("profile", "P", false, "プロファイル名を削除")
+	// どちらか1つ必須
+	envUnsetCmd.MarkFlagsOneRequired("stack", "profile")
 }

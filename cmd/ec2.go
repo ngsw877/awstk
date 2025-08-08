@@ -42,10 +42,6 @@ var ec2StartCmd = &cobra.Command{
 例:
   ` + AppName + ` ec2 start -i i-1234567890abcdef0`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if ec2InstanceId == "" {
-			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
-		}
-
 		fmt.Printf("🚀 EC2インスタンス (%s) を起動します...\n", ec2InstanceId)
 		err := ec2svc.StartEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
@@ -67,10 +63,6 @@ var ec2StopCmd = &cobra.Command{
 例:
   ` + AppName + ` ec2 stop -i i-1234567890abcdef0`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if ec2InstanceId == "" {
-			return fmt.Errorf("❌ エラー: インスタンスID (-i) を指定してください")
-		}
-
 		fmt.Printf("🛑 EC2インスタンス (%s) を停止します...\n", ec2InstanceId)
 		err := ec2svc.StopEc2Instance(ec2Client, ec2InstanceId)
 		if err != nil {
@@ -102,6 +94,8 @@ func init() {
 
 	// フラグの追加
 	ec2StartCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")
+	_ = ec2StartCmd.MarkFlagRequired("instance")
 	ec2StopCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")
+	_ = ec2StopCmd.MarkFlagRequired("instance")
 	ec2LsCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 }
