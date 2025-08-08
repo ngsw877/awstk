@@ -25,10 +25,6 @@ var sesVerifyCmd = &cobra.Command{
 例:
   ` + AppName + ` ses verify -f emails.txt`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if emailFile == "" {
-			return fmt.Errorf("❌ エラー: メールアドレスファイル (-f) を指定してください")
-		}
-
 		sesClient := ses.NewFromConfig(awsCfg)
 
 		opts := sesSvc.VerifyOptions{
@@ -51,4 +47,5 @@ func init() {
 	RootCmd.AddCommand(SesCmd)
 	SesCmd.AddCommand(sesVerifyCmd)
 	sesVerifyCmd.Flags().StringVarP(&emailFile, "file", "f", "", "メールアドレス一覧ファイル（1行1メールアドレス）")
+	sesVerifyCmd.MarkFlagRequired("file")
 }

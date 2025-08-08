@@ -136,4 +136,7 @@ func init() {
 	// 共通フラグをRdsCmd（親コマンド）に定義
 	RdsCmd.PersistentFlags().StringVarP(&rdsInstanceId, "instance", "i", "", "RDSインスタンス名")
 	RdsCmd.PersistentFlags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	// start/stop は stack または instance のいずれか必須
+	rdsStartCmd.MarkFlagsOneRequired("stack", "instance")
+	rdsStopCmd.MarkFlagsOneRequired("stack", "instance")
 }

@@ -142,10 +142,6 @@ var cfnCleanupCmd = &cobra.Command{
   # 確認プロンプトをスキップ
   ` + AppName + ` cfn cleanup --filter test- --force`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if cleanupFilter == "" && cleanupStatus == "" {
-			return fmt.Errorf("❌ エラー: --filterまたは--statusのいずれかを指定してください")
-		}
-
 		printAwsContext()
 
 		cfnClient := cloudformation.NewFromConfig(awsCfg)
@@ -187,14 +183,6 @@ var cfnProtectCmd = &cobra.Command{
 		protectFilter, _ := cmd.Flags().GetString("filter")
 		protectStatus, _ := cmd.Flags().GetString("status")
 		protectEnable, _ := cmd.Flags().GetBool("enable")
-		protectDisable, _ := cmd.Flags().GetBool("disable")
-		// --enableと--disableの排他チェック
-		if protectEnable && protectDisable {
-			return fmt.Errorf("❌ エラー: --enableと--disableは同時に指定できません")
-		}
-		if !protectEnable && !protectDisable {
-			return fmt.Errorf("❌ エラー: --enableまたは--disableのいずれかを指定してください")
-		}
 
 		// フィルター条件の排他チェック
 		if err := ValidateStackSelection(args, protectFilter != "" || protectStatus != ""); err != nil {
@@ -334,12 +322,17 @@ func init() {
 	cfnCleanupCmd.Flags().StringVar(&cleanupFilter, "filter", "", "スタック名のフィルター（部分一致）")
 	cfnCleanupCmd.Flags().StringVar(&cleanupStatus, "status", "", "削除対象のステータス（カンマ区切り）")
 	cfnCleanupCmd.Flags().BoolVarP(&cleanupForce, "force", "f", false, "確認プロンプトをスキップ")
+	// どちらか1つ必須
+	cfnCleanupCmd.MarkFlagsOneRequired("filter", "status")
 
 	// cfn protectコマンド用のフラグ
 	cfnProtectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
 	cfnProtectCmd.Flags().StringP("status", "s", "", "対象のステータス（カンマ区切り）")
 	cfnProtectCmd.Flags().BoolP("enable", "e", false, "削除保護を有効化")
 	cfnProtectCmd.Flags().BoolP("disable", "d", false, "削除保護を無効化")
+	// enable/disable は相互排他かつどちらか1つ必須
+	cfnProtectCmd.MarkFlagsMutuallyExclusive("enable", "disable")
+	cfnProtectCmd.MarkFlagsOneRequired("enable", "disable")
 
 	// cfn drift-detectコマンド用のフラグ
 	cfnDriftDetectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")

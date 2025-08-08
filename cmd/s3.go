@@ -153,9 +153,6 @@ var s3CleanupCmd = &cobra.Command{
   ` + AppName + ` s3 cleanup -f "test-bucket" -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filter, _ := cmd.Flags().GetString("filter")
-		if filter == "" {
-			return fmt.Errorf("❌ エラー: フィルター (-f) を指定してください")
-		}
 
 		printAwsContextWithInfo("検索文字列", filter)
 
@@ -197,4 +194,5 @@ func init() {
 
 	// cleanup コマンドのフラグ
 	s3CleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
+	s3CleanupCmd.MarkFlagRequired("filter")
 }

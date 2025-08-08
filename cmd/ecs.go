@@ -341,6 +341,9 @@ func init() {
 	ecsExecCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsExecCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsExecCmd.Flags().StringVarP(&containerName, "container", "t", "app", "接続するコンテナ名")
+	ecsExecCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsExecCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsExecCmd.MarkFlagsRequiredTogether("cluster", "service")
 
 	// startコマンドのフラグを設定
 	ecsStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -349,12 +352,18 @@ func init() {
 	ecsStartCmd.Flags().IntVarP(&minCapacity, "min", "m", 1, "最小キャパシティ")
 	ecsStartCmd.Flags().IntVarP(&maxCapacity, "max", "M", 2, "最大キャパシティ")
 	ecsStartCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+	ecsStartCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsStartCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsStartCmd.MarkFlagsRequiredTogether("cluster", "service")
 
 	// stopコマンドのフラグを設定
 	ecsStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStopCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsStopCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+	ecsStopCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsStopCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsStopCmd.MarkFlagsRequiredTogether("cluster", "service")
 
 	// runコマンドのフラグを設定
 	ecsRunCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -364,6 +373,9 @@ func init() {
 	ecsRunCmd.Flags().StringVarP(&taskDefinition, "task-definition", "d", "", "タスク定義 (指定しない場合はサービスのタスク定義を使用)")
 	ecsRunCmd.Flags().StringVarP(&commandString, "command", "C", "", "実行するコマンド")
 	ecsRunCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
+	ecsRunCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsRunCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsRunCmd.MarkFlagsRequiredTogether("cluster", "service")
 
 	// redeployコマンドのフラグを設定
 	ecsRedeployCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
@@ -371,9 +383,15 @@ func init() {
 	ecsRedeployCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
 	ecsRedeployCmd.Flags().IntVar(&timeoutSeconds, "timeout", 300, "待機タイムアウト（秒）")
 	ecsRedeployCmd.Flags().Bool("no-wait", false, "デプロイ完了を待機せずに即座に終了する")
+	ecsRedeployCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsRedeployCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsRedeployCmd.MarkFlagsRequiredTogether("cluster", "service")
 
 	// statusコマンドのフラグを設定
 	ecsStatusCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
 	ecsStatusCmd.Flags().StringVarP(&clusterName, "cluster", "c", "", "ECSクラスター名 (-Sが指定されていない場合に必須)")
 	ecsStatusCmd.Flags().StringVarP(&serviceName, "service", "s", "", "ECSサービス名 (-Sが指定されていない場合に必須)")
+	ecsStatusCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	ecsStatusCmd.MarkFlagsMutuallyExclusive("stack", "service")
+	ecsStatusCmd.MarkFlagsRequiredTogether("cluster", "service")
 }
