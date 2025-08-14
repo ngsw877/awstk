@@ -21,6 +21,19 @@ func List(client *sdkiam.Client, opts ListOptions) error {
 		return fmt.Errorf("iam client is nil")
 	}
 
+	// -1: 引数なし（never used のみ）  /  >0: 指定日数以上未使用
+	if opts.UnusedDays == -1 {
+		items, err := listNeverUsedRoles(client, opts)
+		if err != nil {
+			return err
+		}
+		_ = common.DisplayList(items, "未使用のIAMロール", toUnusedRolesTable, &common.DisplayOptions{
+			ShowCount:    true,
+			EmptyMessage: common.FormatEmptyMessage("未使用のIAMロール"),
+		})
+		return nil
+	}
+
 	if opts.UnusedDays > 0 {
 		items, err := listUnusedRoles(client, opts)
 		if err != nil {
@@ -197,4 +210,56 @@ func toUnusedRolesTable(items []UnusedRole) ([]common.TableColumn, [][]string) {
 		rows[i] = []string{r.Name, formatLastUsedLocal(r.LastUsed)}
 	}
 	return cols, rows
+}
+
+// ===== never used 抽出 =====
+
+func listNeverUsedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, error) {
+	paginator := sdkiam.NewListRolesPaginator(client, &sdkiam.ListRolesInput{})
+	var roles []types.Role
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.Background())
+		if err != nil {
+			return nil, common.FormatListError("IAMロール", err)
+		}
+		roles = append(roles, page.Roles...)
+	}
+
+	excludes := common.RemoveDuplicates(opts.Exclude)
+	names := make([]string, 0, len(roles))
+	for _, r := range roles {
+		name := aws.ToString(r.RoleName)
+		if isServiceLinkedRole(r) || isServiceLinkedRoleName(name) {
+			continue
+		}
+		if matchesAnyFilter(name, excludes) {
+			continue
+		}
+		names = append(names, name)
+	}
+
+	exec := common.NewParallelExecutor(8)
+	var mu sync.Mutex
+	var out []UnusedRole
+	for _, rn := range names {
+		roleName := rn
+		exec.Execute(func() {
+			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleName)})
+			if err != nil {
+				return
+			}
+			var last *time.Time
+			if outRole.Role.RoleLastUsed != nil && outRole.Role.RoleLastUsed.LastUsedDate != nil {
+				t := *outRole.Role.RoleLastUsed.LastUsedDate
+				last = &t
+			}
+			if last == nil {
+				mu.Lock()
+				out = append(out, UnusedRole{Name: roleName, Arn: aws.ToString(outRole.Role.Arn), LastUsed: last})
+				mu.Unlock()
+			}
+		})
+	}
+	exec.Wait()
+	return out, nil
 }
