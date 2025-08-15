@@ -9,6 +9,15 @@
       "disabled": false,
       "autoApprove": []
     },
+    "aws-knowledge-mcp-server": {
+      "command": "uvx",
+      "args": [
+          "mcp-proxy",
+          "--transport",
+          "streamablehttp",
+          "https://knowledge-mcp.global.api.aws"
+      ]
+    },
     "awslabs.cdk-mcp-server": {
       "command": "uvx",
       "args": ["awslabs.cdk-mcp-server@latest"],
