@@ -11,6 +11,7 @@
 .PHONY: precommit-enable
 .PHONY: precommit-disable
 .PHONY: precommit-status
+.PHONY: sync-mcp
 
 # 開発環境セットアップ
 setup:
@@ -23,6 +24,10 @@ docs:
 # AI用ドキュメント同期
 sync-ai-docs:
 	go run scripts/sync-ai-docs/main.go
+
+# MCP設定同期
+sync-mcp:
+	go run scripts/sync-mcp/main.go
 
 # フォーマット
 fmt:

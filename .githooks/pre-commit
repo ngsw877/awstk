@@ -4,6 +4,7 @@
 # 1. Cursor Rules が変更された場合に CLAUDE.md を自動更新
 # 2. コマンド定義が変更された場合にドキュメントを自動更新
 # 3. Goコードが変更された場合に自動フォーマット
+# 4. .mcp.json 変更時に .cursor/mcp.json へ同期
 
 # Cursor Rules ファイルが変更されているかチェック
 if ! git diff --cached --quiet --exit-code -- .cursor/rules/; then
@@ -35,6 +36,19 @@ if ! git diff --cached --quiet --exit-code -- cmd/; then
     # 生成されたドキュメントをステージングエリアに追加
     git add docs/
     echo "Documentation has been updated and staged"
+fi
+
+# MCP config sync (.mcp.json -> .cursor/mcp.json)
+if ! git diff --cached --quiet --exit-code -- .mcp.json; then
+    echo "MCP config changed, syncing to .cursor/mcp.json..."
+    if ! make sync-mcp; then
+        echo "Error: Failed to sync MCP config"
+        exit 1
+    fi
+    if [ -f ".cursor/mcp.json" ]; then
+        git add .cursor/mcp.json
+        echo ".cursor/mcp.json has been updated and staged"
+    fi
 fi
 
 # Goコードが変更されているかチェック
