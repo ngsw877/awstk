@@ -37,17 +37,18 @@ func GetStackResources(cfnClient *cloudformation.Client, stackName string) ([]ty
 	return resp.StackResources, nil
 }
 
-// GetCleanupResourcesFromStack はCloudFormationスタックからS3バケットとECRリポジトリのリソース一覧を取得します
-func GetCleanupResourcesFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, []string, error) {
+// GetCleanupResourcesFromStack はCloudFormationスタックからS3バケット/ECRリポジトリ/CloudWatch Logsグループを取得します
+func GetCleanupResourcesFromStack(cfnClient *cloudformation.Client, stackName string) ([]string, []string, []string, error) {
 	// 共通関数を使用してスタックリソースを取得
 	stackResources, err := GetStackResources(cfnClient, stackName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	// S3バケットとECRリポジトリを抽出
+	// S3バケットとECRリポジトリ、ロググループを抽出
 	s3Resources := []string{}
 	ecrResources := []string{}
+	logGroups := []string{}
 
 	for _, resource := range stackResources {
 		// リソースタイプに基づいて振り分け
@@ -64,9 +65,15 @@ func GetCleanupResourcesFromStack(cfnClient *cloudformation.Client, stackName st
 			ecrResources = append(ecrResources, *resource.PhysicalResourceId)
 			fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *resource.PhysicalResourceId)
 		}
+
+		// CloudWatch Logs ロググループ
+		if resourceType == "AWS::Logs::LogGroup" && resource.PhysicalResourceId != nil {
+			logGroups = append(logGroups, *resource.PhysicalResourceId)
+			fmt.Printf("🔍 検出されたロググループ: %s\n", *resource.PhysicalResourceId)
+		}
 	}
 
-	return s3Resources, ecrResources, nil
+	return s3Resources, ecrResources, logGroups, nil
 }
 
 // getStartStopResourcesFromStack はCloudFormationスタックから起動・停止可能なリソースの識別子を取得します

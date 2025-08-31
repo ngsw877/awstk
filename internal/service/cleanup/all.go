@@ -5,7 +5,11 @@ import (
 	ecrsvc "awstk/internal/service/ecr"
 	logssvc "awstk/internal/service/logs"
 	s3svc "awstk/internal/service/s3"
+	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/aws/smithy-go"
 )
 
 // CleanupResources は指定した文字列を含むAWSリソースをクリーンアップします
@@ -22,17 +26,30 @@ func CleanupResources(clients ClientSet, opts Options) error {
 	var err error
 
 	// 検索方法によって取得ロジックを分岐
-	if opts.StackName != "" {
+	if opts.StackId != "" {
+		// スタックIDから検索する場合
+		fmt.Printf("CloudFormationスタックID: %s\n", opts.StackId)
+		fmt.Println("スタックに関連するリソースの削除を開始します...")
+
+		s3BucketNames, ecrRepoNames, logGroupNames, err = cfn.GetCleanupResourcesFromStack(clients.CfnClient, opts.StackId)
+		if err != nil {
+			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
+		}
+	} else if opts.StackName != "" {
 		// スタック名から検索する場合
 		fmt.Printf("CloudFormationスタック: %s\n", opts.StackName)
 		fmt.Println("スタックに関連するリソースの削除を開始します...")
 
-		s3BucketNames, ecrRepoNames, err = cfn.GetCleanupResourcesFromStack(clients.CfnClient, opts.StackName)
+		s3BucketNames, ecrRepoNames, logGroupNames, err = cfn.GetCleanupResourcesFromStack(clients.CfnClient, opts.StackName)
 		if err != nil {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "ValidationError" && strings.Contains(apiErr.ErrorMessage(), "does not exist") {
+				fmt.Printf("❌ スタック '%s' は存在しません。\n", opts.StackName)
+				fmt.Println("ℹ️ 削除済みスタックの履歴が90日以内にある場合、--stack-id に削除済みスタックのID(ARN)を指定してください")
+				return fmt.Errorf("スタック '%s' が見つかりません", opts.StackName)
+			}
 			return fmt.Errorf("スタックからのリソース取得エラー: %w", err)
 		}
-		// スタックからの削除では現時点でCloudWatch Logsは対象外
-		logGroupNames = []string{}
 	} else {
 		// キーワードから検索する場合
 		fmt.Printf("検索文字列: %s\n", opts.SearchString)
@@ -110,11 +127,21 @@ func validateCleanupOptions(clients ClientSet) error {
 
 // validateOptions はオプションの論理バリデーションを行います
 func validateOptions(opts Options) error {
-	if opts.SearchString != "" && opts.StackName != "" {
-		return fmt.Errorf("検索キーワードとスタック名は同時に指定できません。いずれか一方を指定してください")
+	count := 0
+	if opts.SearchString != "" {
+		count++
 	}
-	if opts.SearchString == "" && opts.StackName == "" {
-		return fmt.Errorf("検索キーワードまたはスタック名のいずれかを指定してください")
+	if opts.StackName != "" {
+		count++
+	}
+	if opts.StackId != "" {
+		count++
+	}
+	if count == 0 {
+		return fmt.Errorf("検索キーワード、スタック名、またはスタックIDのいずれかを指定してください")
+	}
+	if count > 1 {
+		return fmt.Errorf("検索キーワード、スタック名、スタックIDは同時に指定できません。いずれか一つのみ指定してください")
 	}
 	return nil
 }

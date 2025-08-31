@@ -19,4 +19,5 @@ type ClientSet struct {
 type Options struct {
 	SearchString string // 検索文字列
 	StackName    string // CloudFormationスタック名
+	StackId      string // CloudFormationスタックID (ARN可)
 }
