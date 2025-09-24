@@ -73,8 +73,13 @@ func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 	excludes := common.RemoveDuplicates(opts.Exclude)
 	for _, r := range roles {
 		name := aws.ToString(r.RoleName)
-		if isServiceLinkedRole(r) || isServiceLinkedRoleName(name) {
+
+		// staticcheck誤検知回避のため、変数に格納してから使用
+		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinkedByName := isServiceLinkedRoleByName(name)
+		if isServiceLinked || isServiceLinkedByName {
 			// サービスリンクは表示には残すが備考フラグにするので継続
+			continue // 処理をスキップ
 		}
 		if matchesAnyFilter(name, excludes) {
 			continue
@@ -82,7 +87,7 @@ func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 		roleItems = append(roleItems, RoleItem{
 			Name:            name,
 			Arn:             aws.ToString(r.Arn),
-			IsServiceLinked: isServiceLinkedRole(r) || isServiceLinkedRoleName(name),
+			IsServiceLinked: isServiceLinkedRole(r) || isServiceLinkedRoleByName(name), // サービスリンク判定
 		})
 	}
 
@@ -127,7 +132,11 @@ func listUnusedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, err
 	names := make([]string, 0, len(roles))
 	for _, r := range roles {
 		name := aws.ToString(r.RoleName)
-		if isServiceLinkedRole(r) || isServiceLinkedRoleName(name) {
+
+		// staticcheck誤検知回避のため、変数に格納してから使用
+		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinkedByName := isServiceLinkedRoleByName(name)
+		if isServiceLinked || isServiceLinkedByName {
 			continue
 		}
 		if matchesAnyFilter(name, excludes) {
@@ -164,8 +173,8 @@ func listUnusedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, err
 
 // ===== 判定/整形ヘルパー =====
 
-func isServiceLinkedRole(r types.Role) bool    { return aws.ToString(r.Path) == "/aws-service-role/" }
-func isServiceLinkedRoleName(name string) bool { return strings.HasPrefix(name, "AWSServiceRoleFor") }
+func isServiceLinkedRole(r types.Role) bool      { return aws.ToString(r.Path) == "/aws-service-role/" }
+func isServiceLinkedRoleByName(name string) bool { return strings.HasPrefix(name, "AWSServiceRoleFor") }
 func matchesAnyFilter(name string, filters []string) bool {
 	if len(filters) == 0 {
 		return false
@@ -229,7 +238,11 @@ func listNeverUsedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, 
 	names := make([]string, 0, len(roles))
 	for _, r := range roles {
 		name := aws.ToString(r.RoleName)
-		if isServiceLinkedRole(r) || isServiceLinkedRoleName(name) {
+
+		// staticcheck誤検知回避のため、変数に格納してから使用
+		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinkedByName := isServiceLinkedRoleByName(name)
+		if isServiceLinked || isServiceLinkedByName {
 			continue
 		}
 		if matchesAnyFilter(name, excludes) {
