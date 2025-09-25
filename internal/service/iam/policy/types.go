@@ -1,19 +1,19 @@
 package policy
 
-// ListOptions defines options for listing IAM policies.
+// ListOptions IamPolicyListOptions IAMポリシー一覧取得時のオプション
 type ListOptions struct {
 	UnattachedOnly bool
 	Exclude        []string
 }
 
-// PolicyItem represents a general IAM policy info for list-all.
+// PolicyItem IamPolicy IAMポリシー一覧表示用の情報
 type PolicyItem struct {
 	Name            string
 	Arn             string
 	AttachmentCount int32
 }
 
-// UnusedPolicy represents an unused IAM customer managed policy.
+// UnusedPolicy IamPolicyUnused 未使用IAMポリシーの情報
 type UnusedPolicy struct {
 	Name string
 	Arn  string

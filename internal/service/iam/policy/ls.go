@@ -10,113 +10,119 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 )
 
-// ListOptions is defined in types.go
-
-// List prints IAM customer managed policies. If UnattachedOnly is true, only unattached ones are printed.
-func List(client *sdkiam.Client, opts ListOptions) error {
+// ListIamPolicies cmdから呼ばれるメイン関数（Get + Display）
+func ListIamPolicies(client *sdkiam.Client, opts ListOptions) error {
 	if client == nil {
 		return fmt.Errorf("iam client is nil")
 	}
 
+	// Get: データ取得
 	if opts.UnattachedOnly {
-		items, err := listUnusedPolicies(client, opts)
+		items, err := getUnusedIamPolicies(client, opts)
 		if err != nil {
 			return err
 		}
-		_ = common.DisplayList(items, "未使用のカスタマー管理ポリシー", toUnusedPoliciesTable, &common.DisplayOptions{
+		// Display: 共通表示処理
+		return common.DisplayList(items, "未使用のカスタマー管理ポリシー", unusedIamPoliciesToTableData, &common.DisplayOptions{
 			ShowCount:    true,
 			EmptyMessage: common.FormatEmptyMessage("未使用のカスタマー管理ポリシー"),
 		})
-		return nil
 	}
 
-	items, err := listAllPolicies(client, opts)
+	items, err := getAllIamPolicies(client, opts)
 	if err != nil {
 		return err
 	}
-	_ = common.DisplayList(items, "カスタマー管理ポリシー一覧", toPolicyItemsTable, &common.DisplayOptions{ShowCount: true})
-	return nil
+	// Display: 共通表示処理
+	return common.DisplayList(items, "カスタマー管理ポリシー一覧", iamPoliciesToTableData, &common.DisplayOptions{ShowCount: true})
 }
 
-// ===== データ取得 =====
-
-// PolicyItem and UnusedPolicy are defined in types.go
-
-func listAllPolicies(client *sdkiam.Client, opts ListOptions) ([]PolicyItem, error) {
+// getAllIamPolicies カスタマー管理ポリシー一覧を取得
+func getAllIamPolicies(client *sdkiam.Client, opts ListOptions) ([]PolicyItem, error) {
 	paginator := sdkiam.NewListPoliciesPaginator(client, &sdkiam.ListPoliciesInput{Scope: types.PolicyScopeTypeLocal})
-	var items []PolicyItem
+	filters := common.RemoveDuplicates(opts.Exclude)
+
+	var policies []PolicyItem
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
 			return nil, common.FormatListError("カスタマー管理ポリシー", err)
 		}
-		for _, p := range page.Policies {
-			name := aws.ToString(p.PolicyName)
-			if matchesAnyFilter(name, common.RemoveDuplicates(opts.Exclude)) {
+		for _, policy := range page.Policies {
+			name := aws.ToString(policy.PolicyName)
+			if matchesAnyFilter(name, filters) {
 				continue
 			}
-			ac := int32(0)
-			if p.AttachmentCount != nil {
-				ac = *p.AttachmentCount
+			attachmentCount := int32(0)
+			if policy.AttachmentCount != nil {
+				attachmentCount = *policy.AttachmentCount
 			}
-			items = append(items, PolicyItem{Name: name, Arn: aws.ToString(p.Arn), AttachmentCount: ac})
+			policies = append(policies, PolicyItem{
+				Name:            name,
+				Arn:             aws.ToString(policy.Arn),
+				AttachmentCount: attachmentCount,
+			})
 		}
 	}
-	return items, nil
+	return policies, nil
 }
 
-func listUnusedPolicies(client *sdkiam.Client, opts ListOptions) ([]UnusedPolicy, error) {
+// getUnusedIamPolicies 未アタッチのカスタマー管理ポリシー一覧を取得
+func getUnusedIamPolicies(client *sdkiam.Client, opts ListOptions) ([]UnusedPolicy, error) {
 	paginator := sdkiam.NewListPoliciesPaginator(client, &sdkiam.ListPoliciesInput{Scope: types.PolicyScopeTypeLocal})
-	var out []UnusedPolicy
+	filters := common.RemoveDuplicates(opts.Exclude)
+
+	var unusedPolicies []UnusedPolicy
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
 			return nil, common.FormatListError("カスタマー管理ポリシー", err)
 		}
-		for _, pol := range page.Policies {
-			name := aws.ToString(pol.PolicyName)
-			if matchesAnyFilter(name, common.RemoveDuplicates(opts.Exclude)) {
+		for _, policy := range page.Policies {
+			name := aws.ToString(policy.PolicyName)
+			if matchesAnyFilter(name, filters) {
 				continue
 			}
-			if pol.AttachmentCount != nil && *pol.AttachmentCount == 0 {
-				out = append(out, UnusedPolicy{Name: name, Arn: aws.ToString(pol.Arn), Note: "未アタッチ"})
+			if policy.AttachmentCount != nil && *policy.AttachmentCount == 0 {
+				unusedPolicies = append(unusedPolicies, UnusedPolicy{Name: name, Arn: aws.ToString(policy.Arn), Note: "未アタッチ"})
 			}
 		}
 	}
-	return out, nil
+	return unusedPolicies, nil
 }
 
-// ===== ヘルパー/表示 =====
-
+// matchesAnyFilter 除外パターンに一致するか判定
 func matchesAnyFilter(name string, filters []string) bool {
 	if len(filters) == 0 {
 		return false
 	}
-	for _, f := range filters {
-		if f == "" {
+	for _, filter := range filters {
+		if filter == "" {
 			continue
 		}
-		if common.MatchesFilter(name, f) {
+		if common.MatchesFilter(name, filter) {
 			return true
 		}
 	}
 	return false
 }
 
-func toUnusedPoliciesTable(items []UnusedPolicy) ([]common.TableColumn, [][]string) {
-	cols := []common.TableColumn{{Header: "ポリシー名"}, {Header: "理由"}}
+// unusedIamPoliciesToTableData 未使用カスタマー管理ポリシー情報をテーブルデータに変換
+func unusedIamPoliciesToTableData(items []UnusedPolicy) ([]common.TableColumn, [][]string) {
+	columns := []common.TableColumn{{Header: "ポリシー名"}, {Header: "理由"}}
 	rows := make([][]string, len(items))
-	for i, p := range items {
-		rows[i] = []string{p.Name, p.Note}
+	for index, policy := range items {
+		rows[index] = []string{policy.Name, policy.Note}
 	}
-	return cols, rows
+	return columns, rows
 }
 
-func toPolicyItemsTable(items []PolicyItem) ([]common.TableColumn, [][]string) {
-	cols := []common.TableColumn{{Header: "ポリシー名"}, {Header: "attachments"}}
+// iamPoliciesToTableData カスタマー管理ポリシー情報をテーブルデータに変換
+func iamPoliciesToTableData(items []PolicyItem) ([]common.TableColumn, [][]string) {
+	columns := []common.TableColumn{{Header: "ポリシー名"}, {Header: "attachments"}}
 	rows := make([][]string, len(items))
-	for i, p := range items {
-		rows[i] = []string{p.Name, fmt.Sprintf("%d", p.AttachmentCount)}
+	for index, policy := range items {
+		rows[index] = []string{policy.Name, fmt.Sprintf("%d", policy.AttachmentCount)}
 	}
-	return cols, rows
+	return columns, rows
 }

@@ -2,13 +2,13 @@ package role
 
 import "time"
 
-// ListOptions defines options for listing IAM roles.
+// ListOptions IamRoleListOptions IAMロール一覧取得時のオプション
 type ListOptions struct {
 	UnusedDays int
 	Exclude    []string
 }
 
-// RoleItem represents a general IAM role info for list-all.
+// RoleItem IamRole IAMロール一覧表示用の情報
 type RoleItem struct {
 	Name            string
 	Arn             string
@@ -16,7 +16,7 @@ type RoleItem struct {
 	IsServiceLinked bool
 }
 
-// UnusedRole represents an unused IAM role candidate.
+// UnusedRole IamRoleUnused 未使用IAMロールの情報
 type UnusedRole struct {
 	Name     string
 	Arn      string

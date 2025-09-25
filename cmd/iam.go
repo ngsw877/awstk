@@ -52,7 +52,7 @@ var iamRoleLsCmd = &cobra.Command{
   ` + AppName + ` iam role ls -u 180          # 180日以上未使用のロールのみ
   ` + AppName + ` iam role ls -x AWSServiceRoleFor -x AWSReservedSSO`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return imRole.List(iamClient, imRole.ListOptions{
+		return imRole.ListIamRoles(iamClient, imRole.ListOptions{
 			UnusedDays: iamRoleUnusedDays,
 			Exclude:    iamRoleExclude,
 		})
@@ -76,7 +76,7 @@ var iamPolicyLsCmd = &cobra.Command{
   ` + AppName + ` iam policy ls --unattached  # 未アタッチのみ
   ` + AppName + ` iam policy ls -x AWSReserved`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return imPolicy.List(iamClient, imPolicy.ListOptions{
+		return imPolicy.ListIamPolicies(iamClient, imPolicy.ListOptions{
 			UnattachedOnly: iamPolicyUnattached,
 			Exclude:        iamPolicyExclude,
 		})

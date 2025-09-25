@@ -13,52 +13,48 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam/types"
 )
 
-// ListOptions is defined in types.go
-
-// List prints IAM roles. If UnusedDays > 0, it prints only unused roles.
-func List(client *sdkiam.Client, opts ListOptions) error {
+// ListIamRoles cmdから呼ばれるメイン関数（Get + Display）
+func ListIamRoles(client *sdkiam.Client, opts ListOptions) error {
 	if client == nil {
 		return fmt.Errorf("iam client is nil")
 	}
 
+	// Get: データ取得
 	// -1: 引数なし（never used のみ）  /  >0: 指定日数以上未使用
 	if opts.UnusedDays == -1 {
-		items, err := listNeverUsedRoles(client, opts)
+		items, err := getNeverUsedIamRoles(client, opts)
 		if err != nil {
 			return err
 		}
-		_ = common.DisplayList(items, "未使用のIAMロール", toUnusedRolesTable, &common.DisplayOptions{
+		// Display: 共通表示処理
+		return common.DisplayList(items, "未使用のIAMロール", unusedIamRolesToTableData, &common.DisplayOptions{
 			ShowCount:    true,
 			EmptyMessage: common.FormatEmptyMessage("未使用のIAMロール"),
 		})
-		return nil
 	}
 
 	if opts.UnusedDays > 0 {
-		items, err := listUnusedRoles(client, opts)
+		items, err := getUnusedIamRoles(client, opts)
 		if err != nil {
 			return err
 		}
-		_ = common.DisplayList(items, "未使用のIAMロール", toUnusedRolesTable, &common.DisplayOptions{
+		// Display: 共通表示処理
+		return common.DisplayList(items, "未使用のIAMロール", unusedIamRolesToTableData, &common.DisplayOptions{
 			ShowCount:    true,
 			EmptyMessage: common.FormatEmptyMessage("未使用のIAMロール"),
 		})
-		return nil
 	}
 
-	items, err := listAllRoles(client, opts)
+	items, err := getAllIamRoles(client, opts)
 	if err != nil {
 		return err
 	}
-	_ = common.DisplayList(items, "IAMロール一覧", toRoleItemsTable, &common.DisplayOptions{ShowCount: true})
-	return nil
+	// Display: 共通表示処理
+	return common.DisplayList(items, "IAMロール一覧", iamRolesToTableData, &common.DisplayOptions{ShowCount: true})
 }
 
-// ===== データ取得 =====
-
-// RoleItem and UnusedRole are defined in types.go
-
-func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
+// getAllIamRoles IAMロール一覧を取得
+func getAllIamRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 	paginator := sdkiam.NewListRolesPaginator(client, &sdkiam.ListRolesInput{})
 	var roles []types.Role
 	for paginator.HasMorePages() {
@@ -71,11 +67,11 @@ func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 
 	roleItems := make([]RoleItem, 0, len(roles))
 	excludes := common.RemoveDuplicates(opts.Exclude)
-	for _, r := range roles {
-		name := aws.ToString(r.RoleName)
+	for _, role := range roles {
+		name := aws.ToString(role.RoleName)
 
 		// staticcheck誤検知回避のため、変数に格納してから使用
-		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinked := isServiceLinkedRole(role)
 		isServiceLinkedByName := isServiceLinkedRoleByName(name)
 		if isServiceLinked || isServiceLinkedByName {
 			// サービスリンクは表示には残すが備考フラグにするので継続
@@ -86,28 +82,28 @@ func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 		}
 		roleItems = append(roleItems, RoleItem{
 			Name:            name,
-			Arn:             aws.ToString(r.Arn),
-			IsServiceLinked: isServiceLinkedRole(r) || isServiceLinkedRoleByName(name), // サービスリンク判定
+			Arn:             aws.ToString(role.Arn),
+			IsServiceLinked: isServiceLinkedRole(role) || isServiceLinkedRoleByName(name), // サービスリンク判定
 		})
 	}
 
-	// last-used 並列取得
+	// 最終使用日時を並列取得
 	exec := common.NewParallelExecutor(8)
 	var mu sync.Mutex
-	for i := range roleItems {
-		idx := i
+	for index := range roleItems {
+		itemIndex := index
 		exec.Execute(func() {
-			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleItems[idx].Name)})
+			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleItems[itemIndex].Name)})
 			if err != nil {
 				return
 			}
 			var last *time.Time
 			if outRole.Role.RoleLastUsed != nil && outRole.Role.RoleLastUsed.LastUsedDate != nil {
-				t := *outRole.Role.RoleLastUsed.LastUsedDate
-				last = &t
+				lastUsedTime := *outRole.Role.RoleLastUsed.LastUsedDate
+				last = &lastUsedTime
 			}
 			mu.Lock()
-			roleItems[idx].LastUsed = last
+			roleItems[itemIndex].LastUsed = last
 			mu.Unlock()
 		})
 	}
@@ -115,7 +111,8 @@ func listAllRoles(client *sdkiam.Client, opts ListOptions) ([]RoleItem, error) {
 	return roleItems, nil
 }
 
-func listUnusedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, error) {
+// getUnusedIamRoles 指定日数以上未使用のIAMロールを取得
+func getUnusedIamRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, error) {
 	paginator := sdkiam.NewListRolesPaginator(client, &sdkiam.ListRolesInput{})
 	var roles []types.Role
 	for paginator.HasMorePages() {
@@ -129,12 +126,12 @@ func listUnusedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, err
 	excludes := common.RemoveDuplicates(opts.Exclude)
 	cutoff := time.Now().AddDate(0, 0, -opts.UnusedDays)
 
-	names := make([]string, 0, len(roles))
-	for _, r := range roles {
-		name := aws.ToString(r.RoleName)
+	roleNames := make([]string, 0, len(roles))
+	for _, role := range roles {
+		name := aws.ToString(role.RoleName)
 
 		// staticcheck誤検知回避のため、変数に格納してから使用
-		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinked := isServiceLinkedRole(role)
 		isServiceLinkedByName := isServiceLinkedRoleByName(name)
 		if isServiceLinked || isServiceLinkedByName {
 			continue
@@ -142,88 +139,93 @@ func listUnusedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, err
 		if matchesAnyFilter(name, excludes) {
 			continue
 		}
-		names = append(names, name)
+		roleNames = append(roleNames, name)
 	}
 
 	exec := common.NewParallelExecutor(8)
 	var mu sync.Mutex
-	var out []UnusedRole
-	for _, rn := range names {
-		roleName := rn
+	var unusedRoles []UnusedRole
+	for _, roleName := range roleNames {
+		roleNameCopy := roleName
 		exec.Execute(func() {
-			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleName)})
+			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleNameCopy)})
 			if err != nil {
 				return
 			}
 			var last *time.Time
 			if outRole.Role.RoleLastUsed != nil && outRole.Role.RoleLastUsed.LastUsedDate != nil {
-				t := *outRole.Role.RoleLastUsed.LastUsedDate
-				last = &t
+				lastUsedTime := *outRole.Role.RoleLastUsed.LastUsedDate
+				last = &lastUsedTime
 			}
 			if last == nil || last.Before(cutoff) {
 				mu.Lock()
-				out = append(out, UnusedRole{Name: roleName, Arn: aws.ToString(outRole.Role.Arn), LastUsed: last})
+				unusedRoles = append(unusedRoles, UnusedRole{Name: roleNameCopy, Arn: aws.ToString(outRole.Role.Arn), LastUsed: last})
 				mu.Unlock()
 			}
 		})
 	}
 	exec.Wait()
-	return out, nil
+	return unusedRoles, nil
 }
 
-// ===== 判定/整形ヘルパー =====
+// isServiceLinkedRole サービスリンクロールか判定
+func isServiceLinkedRole(role types.Role) bool {
+	return aws.ToString(role.Path) == "/aws-service-role/"
+}
 
-func isServiceLinkedRole(r types.Role) bool      { return aws.ToString(r.Path) == "/aws-service-role/" }
+// isServiceLinkedRoleByName ロール名からサービスリンクロールか判定
 func isServiceLinkedRoleByName(name string) bool { return strings.HasPrefix(name, "AWSServiceRoleFor") }
+
+// matchesAnyFilter 除外パターンに一致するか判定
 func matchesAnyFilter(name string, filters []string) bool {
 	if len(filters) == 0 {
 		return false
 	}
-	for _, f := range filters {
-		if f == "" {
+	for _, filter := range filters {
+		if filter == "" {
 			continue
 		}
-		if common.MatchesFilter(name, f) {
+		if common.MatchesFilter(name, filter) {
 			return true
 		}
 	}
 	return false
 }
 
-// ===== 表示ヘルパー =====
-
-func formatLastUsedLocal(t *time.Time) string {
-	if t == nil {
+// formatIamRoleLastUsedLocal IAMロールの最終使用日時をローカル時刻に整形
+func formatIamRoleLastUsedLocal(lastUsedTime *time.Time) string {
+	if lastUsedTime == nil {
 		return "never"
 	}
-	return t.In(time.Local).Format("2006-01-02 15:04:05 MST")
+	return lastUsedTime.In(time.Local).Format("2006-01-02 15:04:05 MST")
 }
 
-func toRoleItemsTable(items []RoleItem) ([]common.TableColumn, [][]string) {
+// iamRolesToTableData IAMロール情報をテーブルデータに変換
+func iamRolesToTableData(items []RoleItem) ([]common.TableColumn, [][]string) {
 	cols := []common.TableColumn{{Header: "ロール名"}, {Header: "最終使用"}, {Header: "備考"}}
 	rows := make([][]string, len(items))
-	for i, r := range items {
+	for index, roleItem := range items {
 		note := ""
-		if r.IsServiceLinked {
+		if roleItem.IsServiceLinked {
 			note = "service-linked"
 		}
-		rows[i] = []string{r.Name, formatLastUsedLocal(r.LastUsed), note}
+		rows[index] = []string{roleItem.Name, formatIamRoleLastUsedLocal(roleItem.LastUsed), note}
 	}
 	return cols, rows
 }
 
-func toUnusedRolesTable(items []UnusedRole) ([]common.TableColumn, [][]string) {
+// unusedIamRolesToTableData 未使用IAMロール情報をテーブルデータに変換
+func unusedIamRolesToTableData(items []UnusedRole) ([]common.TableColumn, [][]string) {
 	cols := []common.TableColumn{{Header: "ロール名"}, {Header: "最終使用"}}
 	rows := make([][]string, len(items))
-	for i, r := range items {
-		rows[i] = []string{r.Name, formatLastUsedLocal(r.LastUsed)}
+	for index, unusedRole := range items {
+		rows[index] = []string{unusedRole.Name, formatIamRoleLastUsedLocal(unusedRole.LastUsed)}
 	}
 	return cols, rows
 }
 
-// ===== never used 抽出 =====
-
-func listNeverUsedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, error) {
+// getNeverUsedIamRoles 一度も使用されていないIAMロールを取得
+func getNeverUsedIamRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, error) {
 	paginator := sdkiam.NewListRolesPaginator(client, &sdkiam.ListRolesInput{})
 	var roles []types.Role
 	for paginator.HasMorePages() {
@@ -235,12 +237,12 @@ func listNeverUsedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, 
 	}
 
 	excludes := common.RemoveDuplicates(opts.Exclude)
-	names := make([]string, 0, len(roles))
-	for _, r := range roles {
-		name := aws.ToString(r.RoleName)
+	roleNames := make([]string, 0, len(roles))
+	for _, role := range roles {
+		name := aws.ToString(role.RoleName)
 
 		// staticcheck誤検知回避のため、変数に格納してから使用
-		isServiceLinked := isServiceLinkedRole(r)
+		isServiceLinked := isServiceLinkedRole(role)
 		isServiceLinkedByName := isServiceLinkedRoleByName(name)
 		if isServiceLinked || isServiceLinkedByName {
 			continue
@@ -248,31 +250,31 @@ func listNeverUsedRoles(client *sdkiam.Client, opts ListOptions) ([]UnusedRole, 
 		if matchesAnyFilter(name, excludes) {
 			continue
 		}
-		names = append(names, name)
+		roleNames = append(roleNames, name)
 	}
 
 	exec := common.NewParallelExecutor(8)
 	var mu sync.Mutex
-	var out []UnusedRole
-	for _, rn := range names {
-		roleName := rn
+	var unusedRoles []UnusedRole
+	for _, roleName := range roleNames {
+		roleNameCopy := roleName
 		exec.Execute(func() {
-			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleName)})
+			outRole, err := client.GetRole(context.Background(), &sdkiam.GetRoleInput{RoleName: aws.String(roleNameCopy)})
 			if err != nil {
 				return
 			}
 			var last *time.Time
 			if outRole.Role.RoleLastUsed != nil && outRole.Role.RoleLastUsed.LastUsedDate != nil {
-				t := *outRole.Role.RoleLastUsed.LastUsedDate
-				last = &t
+				lastUsedTime := *outRole.Role.RoleLastUsed.LastUsedDate
+				last = &lastUsedTime
 			}
 			if last == nil {
 				mu.Lock()
-				out = append(out, UnusedRole{Name: roleName, Arn: aws.ToString(outRole.Role.Arn), LastUsed: last})
+				unusedRoles = append(unusedRoles, UnusedRole{Name: roleNameCopy, Arn: aws.ToString(outRole.Role.Arn), LastUsed: last})
 				mu.Unlock()
 			}
 		})
 	}
 	exec.Wait()
-	return out, nil
+	return unusedRoles, nil
 }
