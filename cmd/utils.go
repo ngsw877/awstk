@@ -45,25 +45,3 @@ func ValidateStackSelection(args []string, hasOptions bool) error {
 
 	return nil
 }
-
-// ValidateExclusiveOptions は複数のオプションの排他チェックを行います
-// requireOne: true の場合、いずれか1つの指定が必須
-// exclusive: true の場合、同時指定不可
-func ValidateExclusiveOptions(requireOne, exclusive bool, options ...bool) error {
-	count := 0
-	for _, opt := range options {
-		if opt {
-			count++
-		}
-	}
-
-	if requireOne && count == 0 {
-		return fmt.Errorf("❌ エラー: いずれかのオプションを指定してください")
-	}
-
-	if exclusive && count > 1 {
-		return fmt.Errorf("❌ エラー: オプションは同時に指定できません")
-	}
-
-	return nil
-}

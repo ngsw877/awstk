@@ -37,13 +37,3 @@ type DeleteOptions struct {
 	Force  bool
 	DryRun bool
 }
-
-// DeleteResult DeleteResultは削除操作の結果を保持します
-type DeleteResult struct {
-	ZoneId         string
-	ZoneName       string
-	RecordsDeleted int
-	RecordsFailed  int
-	Success        bool
-	Error          error
-}
