@@ -65,7 +65,7 @@ var canaryEnableCmd = &cobra.Command{
 			return canary.EnableCanariesByFilter(syntheticsClient, canaryFilter, canaryYes)
 		}
 		if canaryName != "" {
-			return canary.EnableCanary(syntheticsClient, canaryName)
+			return canary.EnableCanaryByName(syntheticsClient, canaryName)
 		}
 		return fmt.Errorf("オプションが指定されていません")
 	},
@@ -85,7 +85,7 @@ var canaryDisableCmd = &cobra.Command{
 			return canary.DisableCanariesByFilter(syntheticsClient, canaryFilter, canaryYes)
 		}
 		if canaryName != "" {
-			return canary.DisableCanary(syntheticsClient, canaryName)
+			return canary.DisableCanaryByName(syntheticsClient, canaryName)
 		}
 		return fmt.Errorf("オプションが指定されていません")
 	},

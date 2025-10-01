@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/synthetics"
 )
 
-// DisableCanary 指定したCanaryを無効化
-func DisableCanary(client *synthetics.Client, name string) error {
+// DisableCanaryByName 指定した名前のCanaryを無効化
+func DisableCanaryByName(client *synthetics.Client, name string) error {
 	// 現在の状態を確認
 	canaries, err := getAllCanaries(client)
 	if err != nil {

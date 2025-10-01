@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/synthetics"
 )
 
-// EnableCanary 指定したCanaryを有効化
-func EnableCanary(client *synthetics.Client, name string) error {
+// EnableCanaryByName 指定した名前のCanaryを有効化
+func EnableCanaryByName(client *synthetics.Client, name string) error {
 	// 現在の状態を確認
 	canaries, err := getAllCanaries(client)
 	if err != nil {
