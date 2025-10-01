@@ -3,7 +3,7 @@ module awstk
 go 1.24.2
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.38.0
+	github.com/aws/aws-sdk-go-v2 v1.39.2
 	github.com/aws/aws-sdk-go-v2/config v1.29.18
 	github.com/aws/aws-sdk-go-v2/service/applicationautoscaling v1.36.5
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.60.3
@@ -23,10 +23,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ses v1.30.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.60.2
 	github.com/aws/aws-sdk-go-v2/service/synthetics v1.36.1
+	github.com/aws/smithy-go v1.23.0
 	github.com/gobwas/glob v0.2.3
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/schollz/progressbar/v3 v3.18.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 )
 
 require (
@@ -44,14 +45,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.25.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.34.1 // indirect
-	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
