@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"awstk/internal/aws"
 	"awstk/internal/service/cfn"
 	"awstk/internal/service/common"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -302,9 +304,84 @@ var cfnDriftStatusCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var (
+	deployTemplatePath string
+	deployStackName    string
+	deployParameters   string
+	deployNoExecute    bool
+)
+
+var cfnDeployCmd = &cobra.Command{
+	Use:   "deploy",
+	Short: "CloudFormationスタックをデプロイするコマンド",
+	Long: `指定したテンプレートファイルからCloudFormationスタックをデプロイします。
+内部的に aws cloudformation deploy コマンドを実行します。
+
+例:
+  # 基本的なデプロイ
+  ` + AppName + ` cfn deploy -t template.yaml -S my-stack
+
+  # パラメータを指定してデプロイ（key=value形式）
+  ` + AppName + ` cfn deploy -t template.yaml -S my-stack -p KeyName=mykey,InstanceType=t3.micro
+
+  # パラメータをJSONファイルから読み込み
+  ` + AppName + ` cfn deploy -t template.yaml -S my-stack -p params.json
+
+  # Change Setの作成のみ（実行は手動）
+  ` + AppName + ` cfn deploy -t template.yaml -S my-stack -n`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if deployTemplatePath == "" {
+			return fmt.Errorf("❌ エラー: テンプレートファイルパス (--template) を指定してください")
+		}
+		if deployStackName == "" {
+			return fmt.Errorf("❌ エラー: スタック名 (--stack) を指定してください")
+		}
+
+		printAwsContext()
+
+		awsCtx := aws.Context{Region: region, Profile: profile}
+
+		// パラメータの処理
+		var params map[string]string
+		var paramFile string
+
+		if deployParameters != "" {
+			// .jsonで終わる場合はファイルパスとして扱う
+			if strings.HasSuffix(strings.ToLower(deployParameters), ".json") {
+				paramFile = deployParameters
+			} else {
+				// key=value形式をパース
+				params = make(map[string]string)
+				pairs := strings.Split(deployParameters, ",")
+				for _, pair := range pairs {
+					kv := strings.SplitN(pair, "=", 2)
+					if len(kv) == 2 {
+						params[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+					}
+				}
+			}
+		}
+
+		err := cfn.DeployStack(awsCtx, cfn.DeployOptions{
+			TemplatePath:  deployTemplatePath,
+			StackName:     deployStackName,
+			Parameters:    params,
+			ParameterFile: paramFile,
+			NoExecute:     deployNoExecute,
+		})
+		if err != nil {
+			return fmt.Errorf("❌ デプロイ処理でエラー: %w", err)
+		}
+
+		return nil
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(CfnCmd)
 	CfnCmd.AddCommand(cfnLsCmd)
+	CfnCmd.AddCommand(cfnDeployCmd)
 	CfnCmd.AddCommand(cfnStartCmd)
 	CfnCmd.AddCommand(cfnStopCmd)
 	CfnCmd.AddCommand(cfnCleanupCmd)
@@ -313,6 +390,14 @@ func init() {
 	CfnCmd.AddCommand(cfnDriftStatusCmd)
 
 	cfnLsCmd.Flags().BoolVarP(&showAll, "all", "a", false, "全てのステータスのスタックを表示")
+
+	// cfn deployコマンド用のフラグ
+	cfnDeployCmd.Flags().StringVarP(&deployTemplatePath, "template", "t", "", "テンプレートファイルのパス")
+	cfnDeployCmd.Flags().StringVarP(&deployStackName, "stack", "S", "", "スタック名")
+	cfnDeployCmd.Flags().StringVarP(&deployParameters, "parameters", "p", "", "パラメータ（key=value形式またはJSONファイルパス）")
+	cfnDeployCmd.Flags().BoolVarP(&deployNoExecute, "no-execute", "n", false, "Change Setの作成のみで実行しない")
+	_ = cfnDeployCmd.MarkFlagRequired("template")
+	_ = cfnDeployCmd.MarkFlagRequired("stack")
 
 	// cfn start/stopコマンド用のフラグ
 	cfnStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
