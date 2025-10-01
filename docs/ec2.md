@@ -58,8 +58,8 @@ awstk ec2 ls [flags]
 ### Options
 
 ```
-  -h, --help           help for ls
-  -S, --stack string   CloudFormationスタック名
+  -h, --help                help for ls
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands

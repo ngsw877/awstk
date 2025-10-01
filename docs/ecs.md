@@ -69,11 +69,11 @@ awstk ecs exec [flags]
 ### Options
 
 ```
-  -c, --cluster string     ECSクラスター名 (-Sが指定されていない場合に必須)
-  -t, --container string   接続するコンテナ名 (default "app")
-  -h, --help               help for exec
-  -s, --service string     ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string       CloudFormationスタック名
+  -c, --cluster string      ECSクラスター名 (-Sが指定されていない場合に必須)
+  -t, --container string    接続するコンテナ名 (default "app")
+  -h, --help                help for exec
+  -s, --service string      ECSサービス名 (-Sが指定されていない場合に必須)
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -114,12 +114,12 @@ awstk ecs redeploy [flags]
 ### Options
 
 ```
-  -c, --cluster string   ECSクラスター名 (-Sが指定されていない場合に必須)
-  -h, --help             help for redeploy
-      --no-wait          デプロイ完了を待機せずに即座に終了する
-  -s, --service string   ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string     CloudFormationスタック名
-      --timeout int      待機タイムアウト（秒） (default 300)
+  -c, --cluster string      ECSクラスター名 (-Sが指定されていない場合に必須)
+  -h, --help                help for redeploy
+      --no-wait             デプロイ完了を待機せずに即座に終了する
+  -s, --service string      ECSサービス名 (-Sが指定されていない場合に必須)
+  -S, --stack-name string   CloudFormationスタック名
+      --timeout int         待機タイムアウト（秒） (default 300)
 ```
 
 ### Options inherited from parent commands
@@ -165,7 +165,7 @@ awstk ecs run [flags]
   -t, --container string         実行するコンテナ名 (default "app")
   -h, --help                     help for run
   -s, --service string           ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string             CloudFormationスタック名
+  -S, --stack-name string        CloudFormationスタック名
   -d, --task-definition string   タスク定義 (指定しない場合はサービスのタスク定義を使用)
       --timeout int              待機タイムアウト（秒） (default 300)
 ```
@@ -207,13 +207,13 @@ awstk ecs start [flags]
 ### Options
 
 ```
-  -c, --cluster string   ECSクラスター名 (-Sが指定されていない場合に必須)
-  -h, --help             help for start
-  -M, --max int          最大キャパシティ (default 2)
-  -m, --min int          最小キャパシティ (default 1)
-  -s, --service string   ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string     CloudFormationスタック名
-      --timeout int      待機タイムアウト（秒） (default 300)
+  -c, --cluster string      ECSクラスター名 (-Sが指定されていない場合に必須)
+  -h, --help                help for start
+  -M, --max int             最大キャパシティ (default 2)
+  -m, --min int             最小キャパシティ (default 1)
+  -s, --service string      ECSサービス名 (-Sが指定されていない場合に必須)
+  -S, --stack-name string   CloudFormationスタック名
+      --timeout int         待機タイムアウト（秒） (default 300)
 ```
 
 ### Options inherited from parent commands
@@ -251,10 +251,10 @@ awstk ecs status [flags]
 ### Options
 
 ```
-  -c, --cluster string   ECSクラスター名 (-Sが指定されていない場合に必須)
-  -h, --help             help for status
-  -s, --service string   ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string     CloudFormationスタック名
+  -c, --cluster string      ECSクラスター名 (-Sが指定されていない場合に必須)
+  -h, --help                help for status
+  -s, --service string      ECSサービス名 (-Sが指定されていない場合に必須)
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -294,11 +294,11 @@ awstk ecs stop [flags]
 ### Options
 
 ```
-  -c, --cluster string   ECSクラスター名 (-Sが指定されていない場合に必須)
-  -h, --help             help for stop
-  -s, --service string   ECSサービス名 (-Sが指定されていない場合に必須)
-  -S, --stack string     CloudFormationスタック名
-      --timeout int      待機タイムアウト（秒） (default 300)
+  -c, --cluster string      ECSクラスター名 (-Sが指定されていない場合に必須)
+  -h, --help                help for stop
+  -s, --service string      ECSサービス名 (-Sが指定されていない場合に必須)
+  -S, --stack-name string   CloudFormationスタック名
+      --timeout int         待機タイムアウト（秒） (default 300)
 ```
 
 ### Options inherited from parent commands

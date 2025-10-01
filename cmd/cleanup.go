@@ -71,6 +71,6 @@ func init() {
 	RootCmd.AddCommand(cleanupCmd)
 	cleanupCmd.AddCommand(allCleanupCmd)
 	allCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
-	allCleanupCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	allCleanupCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	allCleanupCmd.Flags().StringP("stack-id", "i", "", "CloudFormationスタックID(ARN可)")
 }

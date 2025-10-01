@@ -179,7 +179,7 @@ func init() {
 	// フラグの追加
 	cfInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")
 	cfInvalidateCmd.Flags().BoolP("wait", "w", false, "無効化完了まで待機")
-	cfInvalidateCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	cfInvalidateCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 
 	// tenant invalidate フラグ
 	cfTenantInvalidateCmd.Flags().StringSliceP("path", "p", []string{"/*"}, "無効化するパス（デフォルト: /*）")

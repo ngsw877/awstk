@@ -188,17 +188,17 @@ func init() {
 
 	// フラグの追加
 	auroraStartCmd.Flags().StringP("cluster", "c", "", "Aurora DBクラスター名")
-	auroraStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraStartCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	// stack と cluster は同時指定不可
-	auroraStartCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
+	auroraStartCmd.MarkFlagsMutuallyExclusive("stack-name", "cluster")
 	auroraStopCmd.Flags().StringP("cluster", "c", "", "Aurora DBクラスター名")
-	auroraStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraStopCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	// stack と cluster は同時指定不可
-	auroraStopCmd.MarkFlagsMutuallyExclusive("stack", "cluster")
-	auroraLsCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraStopCmd.MarkFlagsMutuallyExclusive("stack-name", "cluster")
+	auroraLsCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	auroraAcuCmd.Flags().StringP("cluster", "c", "", "Aurora DBクラスター名")
-	auroraAcuCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	auroraAcuCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	auroraAcuCmd.Flags().BoolP("all", "a", false, "全てのServerless v2クラスターを表示")
 	// all / stack / cluster は同時指定不可（どれか1つ）
-	auroraAcuCmd.MarkFlagsMutuallyExclusive("all", "stack", "cluster")
+	auroraAcuCmd.MarkFlagsMutuallyExclusive("all", "stack-name", "cluster")
 }

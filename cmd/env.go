@@ -33,7 +33,7 @@ var envSetCmd = &cobra.Command{
 		var commands []string
 
 		if envStackName != "" {
-			exportCmd, err := env.GetExportCommand("stack", envStackName)
+			exportCmd, err := env.GetExportCommand("stack-name", envStackName)
 			if err != nil {
 				return err
 			}
@@ -123,16 +123,16 @@ func init() {
 	EnvCmd.AddCommand(envUnsetCmd)
 
 	// env set のフラグ
-	envSetCmd.Flags().StringVarP(&envStackName, "stack", "S", "", "設定するスタック名")
+	envSetCmd.Flags().StringVarP(&envStackName, "stack-name", "S", "", "設定するスタック名")
 	envSetCmd.Flags().StringVarP(&envProfile, "profile", "P", "", "設定するプロファイル名")
 	// どちらか1つ必須
-	envSetCmd.MarkFlagsOneRequired("stack", "profile")
+	envSetCmd.MarkFlagsOneRequired("stack-name", "profile")
 
 	// env show のフラグは不要（常に全て表示）
 
 	// env unset のフラグ
-	envUnsetCmd.Flags().BoolP("stack", "S", false, "スタック名を削除")
+	envUnsetCmd.Flags().BoolP("stack-name", "S", false, "スタック名を削除")
 	envUnsetCmd.Flags().BoolP("profile", "P", false, "プロファイル名を削除")
 	// どちらか1つ必須
-	envUnsetCmd.MarkFlagsOneRequired("stack", "profile")
+	envUnsetCmd.MarkFlagsOneRequired("stack-name", "profile")
 }

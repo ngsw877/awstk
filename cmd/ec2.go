@@ -97,5 +97,5 @@ func init() {
 	_ = ec2StartCmd.MarkFlagRequired("instance")
 	ec2StopCmd.Flags().StringVarP(&ec2InstanceId, "instance", "i", "", "EC2インスタンスID")
 	_ = ec2StopCmd.MarkFlagRequired("instance")
-	ec2LsCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	ec2LsCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 }

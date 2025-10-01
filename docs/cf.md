@@ -63,10 +63,10 @@ awstk cf invalidate [distribution-id] [flags]
 ### Options
 
 ```
-  -h, --help           help for invalidate
-  -p, --path strings   無効化するパス（デフォルト: /*） (default [/*])
-  -S, --stack string   CloudFormationスタック名
-  -w, --wait           無効化完了まで待機
+  -h, --help                help for invalidate
+  -p, --path strings        無効化するパス（デフォルト: /*） (default [/*])
+  -S, --stack-name string   CloudFormationスタック名
+  -w, --wait                無効化完了まで待機
 ```
 
 ### Options inherited from parent commands

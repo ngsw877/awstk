@@ -65,10 +65,10 @@ awstk aurora acu [flags]
 ### Options
 
 ```
-  -a, --all              全てのServerless v2クラスターを表示
-  -c, --cluster string   Aurora DBクラスター名
-  -h, --help             help for acu
-  -S, --stack string     CloudFormationスタック名
+  -a, --all                 全てのServerless v2クラスターを表示
+  -c, --cluster string      Aurora DBクラスター名
+  -h, --help                help for acu
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -101,8 +101,8 @@ awstk aurora ls [flags]
 ### Options
 
 ```
-  -h, --help           help for ls
-  -S, --stack string   CloudFormationスタック名
+  -h, --help                help for ls
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -140,9 +140,9 @@ awstk aurora start [flags]
 ### Options
 
 ```
-  -c, --cluster string   Aurora DBクラスター名
-  -h, --help             help for start
-  -S, --stack string     CloudFormationスタック名
+  -c, --cluster string      Aurora DBクラスター名
+  -h, --help                help for start
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -180,9 +180,9 @@ awstk aurora stop [flags]
 ### Options
 
 ```
-  -c, --cluster string   Aurora DBクラスター名
-  -h, --help             help for stop
-  -S, --stack string     CloudFormationスタック名
+  -c, --cluster string      Aurora DBクラスター名
+  -h, --help                help for stop
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands

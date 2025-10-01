@@ -22,9 +22,9 @@ RDSインスタンスを操作するためのコマンド群です。
 ### Options
 
 ```
-  -h, --help              help for rds
-  -i, --instance string   RDSインスタンス名
-  -S, --stack string      CloudFormationスタック名
+  -h, --help                help for rds
+  -i, --instance string     RDSインスタンス名
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -66,10 +66,10 @@ awstk rds ls [flags]
 ### Options inherited from parent commands
 
 ```
-  -i, --instance string   RDSインスタンス名
-  -P, --profile string    AWSプロファイル
-  -R, --region string     AWSリージョン (default "ap-northeast-1")
-  -S, --stack string      CloudFormationスタック名
+  -i, --instance string     RDSインスタンス名
+  -P, --profile string      AWSプロファイル
+  -R, --region string       AWSリージョン (default "ap-northeast-1")
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### SEE ALSO
@@ -106,10 +106,10 @@ awstk rds start [flags]
 ### Options inherited from parent commands
 
 ```
-  -i, --instance string   RDSインスタンス名
-  -P, --profile string    AWSプロファイル
-  -R, --region string     AWSリージョン (default "ap-northeast-1")
-  -S, --stack string      CloudFormationスタック名
+  -i, --instance string     RDSインスタンス名
+  -P, --profile string      AWSプロファイル
+  -R, --region string       AWSリージョン (default "ap-northeast-1")
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### SEE ALSO
@@ -146,10 +146,10 @@ awstk rds stop [flags]
 ### Options inherited from parent commands
 
 ```
-  -i, --instance string   RDSインスタンス名
-  -P, --profile string    AWSプロファイル
-  -R, --region string     AWSリージョン (default "ap-northeast-1")
-  -S, --stack string      CloudFormationスタック名
+  -i, --instance string     RDSインスタンス名
+  -P, --profile string      AWSプロファイル
+  -R, --region string       AWSリージョン (default "ap-northeast-1")
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### SEE ALSO

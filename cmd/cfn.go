@@ -393,15 +393,15 @@ func init() {
 
 	// cfn deployコマンド用のフラグ
 	cfnDeployCmd.Flags().StringVarP(&deployTemplatePath, "template", "t", "", "テンプレートファイルのパス")
-	cfnDeployCmd.Flags().StringVarP(&deployStackName, "stack", "S", "", "スタック名")
+	cfnDeployCmd.Flags().StringVarP(&deployStackName, "stack-name", "S", "", "スタック名")
 	cfnDeployCmd.Flags().StringVarP(&deployParameters, "parameters", "p", "", "パラメータ（key=value形式またはJSONファイルパス）")
 	cfnDeployCmd.Flags().BoolVarP(&deployNoExecute, "no-execute", "n", false, "Change Setの作成のみで実行しない")
 	_ = cfnDeployCmd.MarkFlagRequired("template")
-	_ = cfnDeployCmd.MarkFlagRequired("stack")
+	_ = cfnDeployCmd.MarkFlagRequired("stack-name")
 
 	// cfn start/stopコマンド用のフラグ
-	cfnStartCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
-	cfnStopCmd.Flags().StringVarP(&stackName, "stack", "S", "", "CloudFormationスタック名")
+	cfnStartCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
+	cfnStopCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 
 	// cfn cleanupコマンド用のフラグ
 	cfnCleanupCmd.Flags().StringVar(&cleanupFilter, "filter", "", "スタック名のフィルター（部分一致）")

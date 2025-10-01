@@ -57,9 +57,9 @@ awstk env set [flags]
 ### Options
 
 ```
-  -h, --help             help for set
-  -P, --profile string   設定するプロファイル名
-  -S, --stack string     設定するスタック名
+  -h, --help                help for set
+  -P, --profile string      設定するプロファイル名
+  -S, --stack-name string   設定するスタック名
 ```
 
 ### SEE ALSO
@@ -119,9 +119,9 @@ awstk env unset [flags]
 ### Options
 
 ```
-  -h, --help      help for unset
-  -P, --profile   プロファイル名を削除
-  -S, --stack     スタック名を削除
+  -h, --help         help for unset
+  -P, --profile      プロファイル名を削除
+  -S, --stack-name   スタック名を削除
 ```
 
 ### SEE ALSO

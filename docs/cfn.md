@@ -135,7 +135,7 @@ awstk cfn deploy [flags]
   -h, --help                help for deploy
   -n, --no-execute          Change Setの作成のみで実行しない
   -p, --parameters string   パラメータ（key=value形式またはJSONファイルパス）
-  -S, --stack string        スタック名
+  -S, --stack-name string   スタック名
   -t, --template string     テンプレートファイルのパス
 ```
 
@@ -357,8 +357,8 @@ awstk cfn start [flags]
 ### Options
 
 ```
-  -h, --help           help for start
-  -S, --stack string   CloudFormationスタック名
+  -h, --help                help for start
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
@@ -395,8 +395,8 @@ awstk cfn stop [flags]
 ### Options
 
 ```
-  -h, --help           help for stop
-  -S, --stack string   CloudFormationスタック名
+  -h, --help                help for stop
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands

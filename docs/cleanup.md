@@ -60,10 +60,10 @@ awstk cleanup all [flags]
 ### Options
 
 ```
-  -f, --filter string     削除対象のフィルターパターン
-  -h, --help              help for all
-  -S, --stack string      CloudFormationスタック名
-  -i, --stack-id string   CloudFormationスタックID(ARN可)
+  -f, --filter string       削除対象のフィルターパターン
+  -h, --help                help for all
+  -i, --stack-id string     CloudFormationスタックID(ARN可)
+  -S, --stack-name string   CloudFormationスタック名
 ```
 
 ### Options inherited from parent commands
