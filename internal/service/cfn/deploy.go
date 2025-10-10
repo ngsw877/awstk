@@ -3,10 +3,15 @@ package cfn
 import (
 	"awstk/internal/aws"
 	"awstk/internal/cli"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
 // DeployOptions はデプロイコマンドのオプション
@@ -59,6 +64,14 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 
 	// AWS CLIコマンドを実行
 	if err := cli.ExecuteAwsCommand(ctx, args); err != nil {
+		// エラー時にスタックイベントを取得して整形表示
+		fmt.Fprintf(os.Stderr, "\n📋 エラーの詳細:\n\n")
+
+		// AWS SDKでスタックイベントを取得
+		if displayErr := displayFailedEvents(ctx, opts.StackName); displayErr != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  イベント情報の取得に失敗しました: %v\n", displayErr)
+		}
+
 		return fmt.Errorf("デプロイに失敗しました: %w", err)
 	}
 
@@ -68,6 +81,92 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 	} else {
 		fmt.Printf("\n✅ デプロイが完了しました\n")
 	}
+
+	return nil
+}
+
+// displayFailedEvents はスタックの失敗イベントを読みやすく表示する
+func displayFailedEvents(ctx aws.Context, stackName string) error {
+	// AWS SDK設定をロード
+	cfg, err := aws.LoadAwsConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("AWS設定の読み込みに失敗: %w", err)
+	}
+
+	// CloudFormation クライアントを作成
+	client := cloudformation.NewFromConfig(cfg)
+
+	// スタックイベントを取得
+	input := &cloudformation.DescribeStackEventsInput{
+		StackName: awssdk.String(stackName),
+	}
+
+	result, err := client.DescribeStackEvents(context.Background(), input)
+	if err != nil {
+		return fmt.Errorf("スタックイベントの取得に失敗: %w", err)
+	}
+
+	// 失敗イベントのみをフィルタ（リソースIDごとに最新のものだけ）
+	seenResources := make(map[string]bool)
+	failedEvents := []types.StackEvent{}
+	for _, event := range result.StackEvents {
+		status := string(event.ResourceStatus)
+		resourceId := awssdk.ToString(event.LogicalResourceId)
+
+		// 既に表示したリソースはスキップ
+		if seenResources[resourceId] {
+			continue
+		}
+
+		if strings.HasSuffix(status, "_FAILED") {
+			failedEvents = append(failedEvents, event)
+			seenResources[resourceId] = true
+
+			if len(failedEvents) >= 5 { // 最大5件まで
+				break
+			}
+		}
+	}
+
+	if len(failedEvents) == 0 {
+		fmt.Fprintf(os.Stderr, "⚠️  失敗イベントが見つかりませんでした\n")
+		return nil
+	}
+
+	// 読みやすい形式で表示
+	for i, event := range failedEvents {
+		if i > 0 {
+			fmt.Fprintf(os.Stderr, "\n")
+		}
+		fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+		fmt.Fprintf(os.Stderr, "📍 リソース: %s\n", awssdk.ToString(event.LogicalResourceId))
+		fmt.Fprintf(os.Stderr, "⏰ 時刻: %s\n", event.Timestamp.Format("2006-01-02 15:04:05"))
+		fmt.Fprintf(os.Stderr, "❌ ステータス: %s\n", event.ResourceStatus)
+
+		if event.ResourceStatusReason != nil {
+			fmt.Fprintf(os.Stderr, "💬 理由:\n")
+			// 長いメッセージを折り返して表示
+			reason := awssdk.ToString(event.ResourceStatusReason)
+			const maxWidth = 70
+			for len(reason) > 0 {
+				if len(reason) <= maxWidth {
+					fmt.Fprintf(os.Stderr, "   %s\n", reason)
+					break
+				}
+				// 適切な位置で折り返し
+				breakPoint := maxWidth
+				for breakPoint > 0 && reason[breakPoint] != ' ' {
+					breakPoint--
+				}
+				if breakPoint == 0 {
+					breakPoint = maxWidth
+				}
+				fmt.Fprintf(os.Stderr, "   %s\n", reason[:breakPoint])
+				reason = strings.TrimSpace(reason[breakPoint:])
+			}
+		}
+	}
+	fmt.Fprintf(os.Stderr, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 	return nil
 }
