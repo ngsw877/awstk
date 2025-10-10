@@ -14,15 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 
-// DeployOptions はデプロイコマンドのオプション
-type DeployOptions struct {
-	TemplatePath  string
-	StackName     string
-	Parameters    map[string]string
-	ParameterFile string
-	NoExecute     bool
-}
-
 // DeployStack は指定したテンプレートファイルからCloudFormationスタックをデプロイ
 func DeployStack(ctx aws.Context, opts DeployOptions) error {
 	// テンプレートファイルの存在確認
@@ -54,7 +45,7 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 	args = append(args, "--capabilities", "CAPABILITY_NAMED_IAM")
 
 	// --no-execute-changeset オプション
-	if opts.NoExecute {
+	if opts.IsChangeSetOnly {
 		args = append(args, "--no-execute-changeset")
 	}
 
@@ -82,7 +73,7 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 	if hasNoChanges {
 		// 変更なしの場合
 		fmt.Printf("\n✅ スタックは最新の状態です（変更なし）\n")
-	} else if opts.NoExecute {
+	} else if opts.IsChangeSetOnly {
 		// 変更あり + Change Set作成のみ
 		fmt.Printf("\n✅ Change Setの作成が完了しました\n")
 	} else {

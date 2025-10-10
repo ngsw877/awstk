@@ -43,3 +43,12 @@ type DriftStatusOptions struct {
 	All         bool     // すべてのスタックを対象
 	DriftedOnly bool     // ドリフトしているスタックのみ表示
 }
+
+// DeployOptions はデプロイコマンドのオプション
+type DeployOptions struct {
+	TemplatePath    string
+	StackName       string
+	Parameters      map[string]string
+	ParameterFile   string
+	IsChangeSetOnly bool
+}

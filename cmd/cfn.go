@@ -305,10 +305,10 @@ var cfnDriftStatusCmd = &cobra.Command{
 }
 
 var (
-	deployTemplatePath string
-	deployStackName    string
-	deployParameters   string
-	deployNoExecute    bool
+	deployTemplatePath    string
+	deployStackName       string
+	deployParameters      string
+	deployIsChangeSetOnly bool
 )
 
 var cfnDeployCmd = &cobra.Command{
@@ -363,11 +363,11 @@ var cfnDeployCmd = &cobra.Command{
 		}
 
 		err := cfn.DeployStack(awsCtx, cfn.DeployOptions{
-			TemplatePath:  deployTemplatePath,
-			StackName:     deployStackName,
-			Parameters:    params,
-			ParameterFile: paramFile,
-			NoExecute:     deployNoExecute,
+			TemplatePath:    deployTemplatePath,
+			StackName:       deployStackName,
+			Parameters:      params,
+			ParameterFile:   paramFile,
+			IsChangeSetOnly: deployIsChangeSetOnly,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ デプロイ処理でエラー: %w", err)
@@ -395,7 +395,7 @@ func init() {
 	cfnDeployCmd.Flags().StringVarP(&deployTemplatePath, "template", "t", "", "テンプレートファイルのパス")
 	cfnDeployCmd.Flags().StringVarP(&deployStackName, "stack-name", "S", "", "スタック名")
 	cfnDeployCmd.Flags().StringVarP(&deployParameters, "parameters", "p", "", "パラメータ（key=value形式またはJSONファイルパス）")
-	cfnDeployCmd.Flags().BoolVarP(&deployNoExecute, "no-execute", "n", false, "Change Setの作成のみで実行しない")
+	cfnDeployCmd.Flags().BoolVarP(&deployIsChangeSetOnly, "no-execute", "n", false, "Change Setの作成のみで実行しない")
 	_ = cfnDeployCmd.MarkFlagRequired("template")
 	_ = cfnDeployCmd.MarkFlagRequired("stack-name")
 
