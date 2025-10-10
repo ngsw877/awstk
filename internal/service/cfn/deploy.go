@@ -62,8 +62,9 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 	fmt.Printf("   スタック名: %s\n", opts.StackName)
 	fmt.Printf("   テンプレート: %s\n", opts.TemplatePath)
 
-	// AWS CLIコマンドを実行
-	if err := cli.ExecuteAwsCommand(ctx, args); err != nil {
+	// AWS CLIコマンドを実行（出力をキャプチャ）
+	result, err := cli.ExecuteAwsCommandWithCapture(ctx, args)
+	if err != nil {
 		// エラー時にスタックイベントを取得して整形表示
 		fmt.Fprintf(os.Stderr, "\n📋 エラーの詳細:\n\n")
 
@@ -75,10 +76,17 @@ func DeployStack(ctx aws.Context, opts DeployOptions) error {
 		return fmt.Errorf("デプロイに失敗しました: %w", err)
 	}
 
-	if opts.NoExecute {
+	// 成功時のメッセージ
+	hasNoChanges := strings.Contains(result.Stdout, "No changes to deploy")
+
+	if hasNoChanges {
+		// 変更なしの場合
+		fmt.Printf("\n✅ スタックは最新の状態です（変更なし）\n")
+	} else if opts.NoExecute {
+		// 変更あり + Change Set作成のみ
 		fmt.Printf("\n✅ Change Setの作成が完了しました\n")
-		fmt.Printf("   AWS Management Consoleで内容を確認し、手動で実行してください\n")
 	} else {
+		// 変更あり + デプロイ完了
 		fmt.Printf("\n✅ デプロイが完了しました\n")
 	}
 
