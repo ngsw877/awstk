@@ -23,7 +23,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ses v1.30.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.60.2
 	github.com/aws/aws-sdk-go-v2/service/synthetics v1.36.1
-	github.com/aws/smithy-go v1.23.0
+	github.com/aws/smithy-go v1.23.1
 	github.com/gobwas/glob v0.2.3
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/schollz/progressbar/v3 v3.18.0
