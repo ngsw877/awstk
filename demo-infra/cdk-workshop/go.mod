@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/aws/aws-cdk-go/awscdk/v2 v2.217.0
 	github.com/aws/constructs-go/constructs/v10 v10.4.2
-	github.com/aws/jsii-runtime-go v1.114.1
+	github.com/aws/jsii-runtime-go v1.117.0
 	github.com/cdklabs/cdk-dynamo-table-viewer-go/dynamotableviewer v0.2.488
 	github.com/google/go-cmp v0.7.0
 )
