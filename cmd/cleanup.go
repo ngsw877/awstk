@@ -3,7 +3,6 @@ package cmd
 import (
 	cleanup "awstk/internal/service/cleanup"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
@@ -34,12 +33,6 @@ CloudFormationスタック名またはスタックIDを指定することで、�
 		resolveStackName()
 		filter, _ := cmd.Flags().GetString("filter")
 		stackID, _ := cmd.Flags().GetString("stack-id")
-		if stackID == "" {
-			if v := os.Getenv("AWS_STACK_ID"); v != "" {
-				fmt.Println("🔍 環境変数 AWS_STACK_ID の値を使用します")
-				stackID = v
-			}
-		}
 
 		printAwsContext()
 
