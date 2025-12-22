@@ -2,6 +2,7 @@ package cleanup
 
 import (
 	"awstk/internal/service/cfn"
+	"awstk/internal/service/common"
 	ecrsvc "awstk/internal/service/ecr"
 	logssvc "awstk/internal/service/logs"
 	s3svc "awstk/internal/service/s3"
@@ -74,12 +75,14 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		}
 	}
 
+	// 結果を格納するスライス
+	var results []common.CleanupResult
+
 	// S3バケットの削除
 	fmt.Println("S3バケットの削除を開始...")
 	if len(s3BucketNames) > 0 {
-		if err := s3svc.CleanupS3Buckets(clients.S3Client, s3BucketNames); err != nil {
-			fmt.Printf("❌ S3バケットのクリーンアップ中にエラーが発生しました: %v\n", err)
-		}
+		s3Result := s3svc.CleanupS3Buckets(clients.S3Client, s3BucketNames)
+		results = append(results, s3Result)
 	} else {
 		fmt.Println("  削除対象のS3バケットはありません")
 	}
@@ -87,9 +90,8 @@ func CleanupResources(clients ClientSet, opts Options) error {
 	// ECRリポジトリの削除
 	fmt.Println("ECRリポジトリの削除を開始...")
 	if len(ecrRepoNames) > 0 {
-		if err := ecrsvc.CleanupEcrRepositories(clients.EcrClient, ecrRepoNames); err != nil {
-			fmt.Printf("❌ ECRリポジトリのクリーンアップ中にエラーが発生しました: %v\n", err)
-		}
+		ecrResult := ecrsvc.CleanupEcrRepositories(clients.EcrClient, ecrRepoNames)
+		results = append(results, ecrResult)
 	} else {
 		fmt.Println("  削除対象のECRリポジトリはありません")
 	}
@@ -97,15 +99,57 @@ func CleanupResources(clients ClientSet, opts Options) error {
 	// CloudWatch Logsグループの削除
 	fmt.Println("CloudWatch Logsグループの削除を開始...")
 	if len(logGroupNames) > 0 {
-		if err := logssvc.CleanupLogGroups(clients.LogsClient, logGroupNames); err != nil {
-			fmt.Printf("❌ CloudWatch Logsグループのクリーンアップ中にエラーが発生しました: %v\n", err)
-		}
+		logsResult := logssvc.CleanupLogGroups(clients.LogsClient, logGroupNames)
+		results = append(results, logsResult)
 	} else {
 		fmt.Println("  削除対象のCloudWatch Logsグループはありません")
 	}
 
-	fmt.Println("🎉 クリーンアップ完了！")
+	// サマリー表示
+	printCleanupSummary(results)
+
 	return nil
+}
+
+// printCleanupSummary はクリーンアップ結果のサマリーを表示します
+func printCleanupSummary(results []common.CleanupResult) {
+	fmt.Println()
+	fmt.Println("════════════════════════════════════════════════════════════")
+	fmt.Println("                    クリーンアップ サマリー")
+	fmt.Println("════════════════════════════════════════════════════════════")
+
+	totalDeleted := 0
+	totalFailed := 0
+
+	for _, result := range results {
+		if result.TotalCount() == 0 {
+			continue
+		}
+
+		fmt.Printf("\n【%s】\n", result.ResourceType)
+
+		if len(result.Deleted) > 0 {
+			fmt.Printf("  ✅ 削除成功: %d件\n", len(result.Deleted))
+			for _, name := range result.Deleted {
+				fmt.Printf("     - %s\n", name)
+			}
+		}
+
+		if len(result.Failed) > 0 {
+			fmt.Printf("  ❌ 削除失敗: %d件\n", len(result.Failed))
+			for _, name := range result.Failed {
+				fmt.Printf("     - %s\n", name)
+			}
+		}
+
+		totalDeleted += len(result.Deleted)
+		totalFailed += len(result.Failed)
+	}
+
+	fmt.Println()
+	fmt.Println("────────────────────────────────────────────────────────────")
+	fmt.Printf("合計: 削除成功 %d件 / 削除失敗 %d件\n", totalDeleted, totalFailed)
+	fmt.Println("════════════════════════════════════════════════════════════")
 }
 
 // validateCleanupOptions はクリーンアップオプションのバリデーションを行います

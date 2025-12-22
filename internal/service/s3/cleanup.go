@@ -31,9 +31,15 @@ func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, e
 }
 
 // CleanupS3Buckets は指定したS3バケット一覧を削除します
-func CleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
+func CleanupS3Buckets(s3Client *s3.Client, bucketNames []string) common.CleanupResult {
+	result := common.CleanupResult{
+		ResourceType: "S3バケット",
+		Deleted:      []string{},
+		Failed:       []string{},
+	}
+
 	if len(bucketNames) == 0 {
-		return nil
+		return result
 	}
 
 	// 並列実行数を設定（最大10並列）
@@ -88,7 +94,7 @@ func CleanupS3Buckets(s3Client *s3.Client, bucketNames []string) error {
 	successCount, failCount := common.CollectResults(results)
 	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
-	return nil
+	return common.CollectCleanupResult("S3バケット", results)
 }
 
 // emptyS3Bucket は指定したS3バケットの中身をすべて削除します (バージョン管理対応)

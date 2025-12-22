@@ -53,3 +53,32 @@ func CollectResults(results []ProcessResult) (successCount, failCount int) {
 	}
 	return
 }
+
+// CleanupResult はクリーンアップ処理の結果を保持する構造体
+type CleanupResult struct {
+	ResourceType string   // リソースタイプ（例: "S3バケット", "ECRリポジトリ"）
+	Deleted      []string // 削除成功したリソース名
+	Failed       []string // 削除失敗したリソース名
+}
+
+// TotalCount は対象リソースの総数を返します
+func (r CleanupResult) TotalCount() int {
+	return len(r.Deleted) + len(r.Failed)
+}
+
+// CollectCleanupResult はProcessResultからCleanupResultを生成します
+func CollectCleanupResult(resourceType string, results []ProcessResult) CleanupResult {
+	result := CleanupResult{
+		ResourceType: resourceType,
+		Deleted:      []string{},
+		Failed:       []string{},
+	}
+	for _, r := range results {
+		if r.Success {
+			result.Deleted = append(result.Deleted, r.Item)
+		} else {
+			result.Failed = append(result.Failed, r.Item)
+		}
+	}
+	return result
+}

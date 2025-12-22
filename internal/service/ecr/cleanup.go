@@ -40,9 +40,15 @@ func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]s
 }
 
 // CleanupEcrRepositories は指定したECRリポジトリ一覧を削除します
-func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
+func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) common.CleanupResult {
+	result := common.CleanupResult{
+		ResourceType: "ECRリポジトリ",
+		Deleted:      []string{},
+		Failed:       []string{},
+	}
+
 	if len(repoNames) == 0 {
-		return nil
+		return result
 	}
 
 	// 並列実行数を設定（最大10並列）
@@ -87,7 +93,7 @@ func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) error {
 	successCount, failCount := common.CollectResults(results)
 	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
-	return nil
+	return common.CollectCleanupResult("ECRリポジトリ", results)
 }
 
 // CleanupRepositoriesByFilter はフィルターに基づいてリポジトリを削除する
@@ -104,9 +110,9 @@ func CleanupRepositoriesByFilter(ecrClient *ecr.Client, filter string) error {
 	}
 
 	// リポジトリを削除
-	err = CleanupEcrRepositories(ecrClient, repositories)
-	if err != nil {
-		return fmt.Errorf("❌ ECRリポジトリ削除エラー: %w", err)
+	result := CleanupEcrRepositories(ecrClient, repositories)
+	if len(result.Failed) > 0 {
+		return fmt.Errorf("❌ %d個のECRリポジトリの削除に失敗しました", len(result.Failed))
 	}
 
 	fmt.Println("✅ ECRリポジトリの削除が完了しました")

@@ -168,9 +168,9 @@ var s3CleanupCmd = &cobra.Command{
 		}
 
 		// バケットを削除
-		err = s3svc.CleanupS3Buckets(s3Client, buckets)
-		if err != nil {
-			return fmt.Errorf("❌ S3バケット削除エラー: %w", err)
+		result := s3svc.CleanupS3Buckets(s3Client, buckets)
+		if len(result.Failed) > 0 {
+			return fmt.Errorf("❌ %d個のS3バケットの削除に失敗しました", len(result.Failed))
 		}
 
 		fmt.Println("✅ S3バケットの削除が完了しました")

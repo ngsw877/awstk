@@ -127,9 +127,15 @@ func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string) ([
 }
 
 // CleanupLogGroups は指定したロググループ一覧を削除します（cleanup allから呼ばれる用）
-func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) error {
+func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) common.CleanupResult {
+	result := common.CleanupResult{
+		ResourceType: "CloudWatch Logsグループ",
+		Deleted:      []string{},
+		Failed:       []string{},
+	}
+
 	if len(logGroupNames) == 0 {
-		return nil
+		return result
 	}
 
 	// 並列実行数を設定（最大20並列）
@@ -172,5 +178,5 @@ func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) err
 	successCount, failCount := common.CollectResults(results)
 	fmt.Printf("\n✅ 削除完了: 成功 %d個, 失敗 %d個\n", successCount, failCount)
 
-	return nil
+	return common.CollectCleanupResult("CloudWatch Logsグループ", results)
 }
