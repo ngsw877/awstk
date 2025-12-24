@@ -10,12 +10,20 @@ import (
 
 var (
 	iamClient *awsiam.Client
-	// role flags
+	// role ls flags
 	iamRoleUnusedDays int
 	iamRoleExclude    []string
-	// policy flags
+	// role delete flags
+	iamRoleDeleteFilter     string
+	iamRoleDeleteUnusedDays int
+	iamRoleDeleteExclude    []string
+	// policy ls flags
 	iamPolicyUnattached bool
 	iamPolicyExclude    []string
+	// policy delete flags
+	iamPolicyDeleteFilter     string
+	iamPolicyDeleteUnattached bool
+	iamPolicyDeleteExclude    []string
 )
 
 // IamCmd represents the iam command
@@ -84,12 +92,53 @@ var iamPolicyLsCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var iamRoleDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "IAMロールを削除",
+	Long: `フィルターに一致するIAMロールを削除します。
+
+例:
+  ` + AppName + ` iam role delete -f "test-*"              # パターンマッチで削除
+  ` + AppName + ` iam role delete -f "test" -u 180         # 180日未使用 AND "test"含む
+  ` + AppName + ` iam role delete -f "test" -u             # 一度も未使用 AND "test"含む
+  ` + AppName + ` iam role delete -f "test" -x AWSReserved # 除外パターン指定`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return imRole.DeleteRoles(iamClient, imRole.DeleteOptions{
+			Filter:     iamRoleDeleteFilter,
+			UnusedDays: iamRoleDeleteUnusedDays,
+			Exclude:    iamRoleDeleteExclude,
+		})
+	},
+	SilenceUsage: true,
+}
+
+var iamPolicyDeleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "IAMポリシーを削除",
+	Long: `フィルターに一致するカスタマー管理ポリシーを削除します。
+
+例:
+  ` + AppName + ` iam policy delete -f "test-*"              # パターンマッチで削除
+  ` + AppName + ` iam policy delete -f "test" --unattached   # 未アタッチ AND "test"含む
+  ` + AppName + ` iam policy delete -f "test" -x AWSReserved # 除外パターン指定`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return imPolicy.DeletePolicies(iamClient, imPolicy.DeleteOptions{
+			Filter:         iamPolicyDeleteFilter,
+			UnattachedOnly: iamPolicyDeleteUnattached,
+			Exclude:        iamPolicyDeleteExclude,
+		})
+	},
+	SilenceUsage: true,
+}
+
 func init() {
 	RootCmd.AddCommand(IamCmd)
 	IamCmd.AddCommand(IamRoleCmd)
 	IamCmd.AddCommand(IamPolicyCmd)
 	IamRoleCmd.AddCommand(iamRoleLsCmd)
+	IamRoleCmd.AddCommand(iamRoleDeleteCmd)
 	IamPolicyCmd.AddCommand(iamPolicyLsCmd)
+	IamPolicyCmd.AddCommand(iamPolicyDeleteCmd)
 
 	// iam role ls flags
 	iamRoleLsCmd.Flags().IntVarP(&iamRoleUnusedDays, "unused-days", "u", 0, "未使用とみなす経過日数（引数なし=一度も使用なし、数値指定=指定日数以上未使用、0=全件）")
@@ -98,7 +147,22 @@ func init() {
 	}
 	iamRoleLsCmd.Flags().StringSliceVarP(&iamRoleExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
 
+	// iam role delete flags
+	iamRoleDeleteCmd.Flags().StringVarP(&iamRoleDeleteFilter, "filter", "f", "", "削除対象のフィルターパターン（必須）")
+	_ = iamRoleDeleteCmd.MarkFlagRequired("filter")
+	iamRoleDeleteCmd.Flags().IntVarP(&iamRoleDeleteUnusedDays, "unused-days", "u", 0, "未使用とみなす経過日数（引数なし=一度も使用なし、数値指定=指定日数以上未使用、0=全件）")
+	if unusedDaysFlag := iamRoleDeleteCmd.Flags().Lookup("unused-days"); unusedDaysFlag != nil {
+		unusedDaysFlag.NoOptDefVal = "-1"
+	}
+	iamRoleDeleteCmd.Flags().StringSliceVarP(&iamRoleDeleteExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
+
 	// iam policy ls flags
 	iamPolicyLsCmd.Flags().BoolVarP(&iamPolicyUnattached, "unattached", "u", false, "未アタッチのポリシーのみ表示")
 	iamPolicyLsCmd.Flags().StringSliceVarP(&iamPolicyExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
+
+	// iam policy delete flags
+	iamPolicyDeleteCmd.Flags().StringVarP(&iamPolicyDeleteFilter, "filter", "f", "", "削除対象のフィルターパターン（必須）")
+	_ = iamPolicyDeleteCmd.MarkFlagRequired("filter")
+	iamPolicyDeleteCmd.Flags().BoolVarP(&iamPolicyDeleteUnattached, "unattached", "u", false, "未アタッチのポリシーのみ削除")
+	iamPolicyDeleteCmd.Flags().StringSliceVarP(&iamPolicyDeleteExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
 }

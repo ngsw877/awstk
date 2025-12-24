@@ -19,3 +19,10 @@ type UnusedPolicy struct {
 	Arn  string
 	Note string
 }
+
+// DeleteOptions IAMポリシー削除時のオプション
+type DeleteOptions struct {
+	Filter         string   // 必須: 削除対象のフィルターパターン
+	UnattachedOnly bool     // 未アタッチのみ対象
+	Exclude        []string // 除外パターン
+}
