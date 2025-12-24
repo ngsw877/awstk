@@ -38,18 +38,16 @@ func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 		idx := i
 		groupName := logGroupName
 		executor.Execute(func() {
-			fmt.Printf("削除中: %s ... ", groupName)
-
 			_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
 				LogGroupName: &groupName,
 			})
 
 			resultsMutex.Lock()
 			if err != nil {
-				fmt.Printf("❌ 失敗 (%v)\n", err)
+				fmt.Printf("❌ %s ... 失敗 (%v)\n", groupName, err)
 				results[idx] = common.ProcessResult{Item: groupName, Success: false, Error: err}
 			} else {
-				fmt.Println("✅ 完了")
+				fmt.Printf("✅ %s ... 完了\n", groupName)
 				results[idx] = common.ProcessResult{Item: groupName, Success: true}
 			}
 			resultsMutex.Unlock()
