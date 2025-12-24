@@ -123,6 +123,7 @@ var (
 	cleanupFilter string
 	cleanupStatus string
 	cleanupForce  bool
+	cleanupExact  bool
 )
 
 var cfnCleanupCmd = &cobra.Command{
@@ -152,6 +153,7 @@ var cfnCleanupCmd = &cobra.Command{
 			Filter: cleanupFilter,
 			Status: cleanupStatus,
 			Force:  cleanupForce,
+			Exact:  cleanupExact,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ スタック削除処理でエラー: %w", err)
@@ -185,6 +187,7 @@ var cfnProtectCmd = &cobra.Command{
 		protectFilter, _ := cmd.Flags().GetString("filter")
 		protectStatus, _ := cmd.Flags().GetString("status")
 		protectEnable, _ := cmd.Flags().GetBool("enable")
+		protectExact, _ := cmd.Flags().GetBool("exact")
 
 		// フィルター条件の排他チェック
 		if err := ValidateStackSelection(args, protectFilter != "" || protectStatus != ""); err != nil {
@@ -200,6 +203,7 @@ var cfnProtectCmd = &cobra.Command{
 			Filter: protectFilter,
 			Status: protectStatus,
 			Enable: protectEnable, // --enableならtrue、--disableならfalse
+			Exact:  protectExact,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ 削除保護の更新処理でエラー: %w", err)
@@ -232,6 +236,7 @@ var cfnDriftDetectCmd = &cobra.Command{
 		// フラグの値を取得
 		driftFilter, _ := cmd.Flags().GetString("filter")
 		driftAll, _ := cmd.Flags().GetBool("all")
+		driftExact, _ := cmd.Flags().GetBool("exact")
 
 		// 排他チェック
 		if err := ValidateStackSelection(args, driftFilter != "" || driftAll); err != nil {
@@ -246,6 +251,7 @@ var cfnDriftDetectCmd = &cobra.Command{
 			Stacks: args,
 			Filter: driftFilter,
 			All:    driftAll,
+			Exact:  driftExact,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ ドリフト検出処理でエラー: %w", err)
@@ -279,6 +285,7 @@ var cfnDriftStatusCmd = &cobra.Command{
 		driftFilter, _ := cmd.Flags().GetString("filter")
 		driftAll, _ := cmd.Flags().GetBool("all")
 		driftedOnly, _ := cmd.Flags().GetBool("drifted-only")
+		driftStatusExact, _ := cmd.Flags().GetBool("exact")
 
 		// 排他チェック
 		if err := ValidateStackSelection(args, driftFilter != "" || driftAll); err != nil {
@@ -294,6 +301,7 @@ var cfnDriftStatusCmd = &cobra.Command{
 			Filter:      driftFilter,
 			All:         driftAll,
 			DriftedOnly: driftedOnly,
+			Exact:       driftStatusExact,
 		})
 		if err != nil {
 			return fmt.Errorf("❌ ドリフト状態確認処理でエラー: %w", err)
@@ -407,6 +415,7 @@ func init() {
 	cfnCleanupCmd.Flags().StringVar(&cleanupFilter, "filter", "", "スタック名のフィルター（部分一致）")
 	cfnCleanupCmd.Flags().StringVar(&cleanupStatus, "status", "", "削除対象のステータス（カンマ区切り）")
 	cfnCleanupCmd.Flags().BoolVarP(&cleanupForce, "force", "f", false, "確認プロンプトをスキップ")
+	cfnCleanupCmd.Flags().BoolVar(&cleanupExact, "exact", false, "大文字小文字を区別してマッチ")
 	// どちらか1つ必須
 	cfnCleanupCmd.MarkFlagsOneRequired("filter", "status")
 
@@ -415,6 +424,7 @@ func init() {
 	cfnProtectCmd.Flags().StringP("status", "s", "", "対象のステータス（カンマ区切り）")
 	cfnProtectCmd.Flags().BoolP("enable", "e", false, "削除保護を有効化")
 	cfnProtectCmd.Flags().BoolP("disable", "d", false, "削除保護を無効化")
+	cfnProtectCmd.Flags().Bool("exact", false, "大文字小文字を区別してマッチ")
 	// enable/disable は相互排他かつどちらか1つ必須
 	cfnProtectCmd.MarkFlagsMutuallyExclusive("enable", "disable")
 	cfnProtectCmd.MarkFlagsOneRequired("enable", "disable")
@@ -422,9 +432,11 @@ func init() {
 	// cfn drift-detectコマンド用のフラグ
 	cfnDriftDetectCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
 	cfnDriftDetectCmd.Flags().BoolP("all", "a", false, "すべてのスタックを対象")
+	cfnDriftDetectCmd.Flags().Bool("exact", false, "大文字小文字を区別してマッチ")
 
 	// cfn drift-statusコマンド用のフラグ
 	cfnDriftStatusCmd.Flags().StringP("filter", "F", "", "スタック名のフィルター（部分一致）")
 	cfnDriftStatusCmd.Flags().BoolP("all", "a", false, "すべてのスタックを対象")
 	cfnDriftStatusCmd.Flags().BoolP("drifted-only", "d", false, "ドリフトしているスタックのみ表示")
+	cfnDriftStatusCmd.Flags().Bool("exact", false, "大文字小文字を区別してマッチ")
 }

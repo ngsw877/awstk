@@ -51,6 +51,7 @@ ECRリポジトリを削除するコマンド
 
 例:
   awstk ecr cleanup -f "test-repo" -P my-profile
+  awstk ecr cleanup -f "Test" --exact    # 大文字小文字を区別
 
 ```
 awstk ecr cleanup [flags]
@@ -59,6 +60,7 @@ awstk ecr cleanup [flags]
 ### Options
 
 ```
+      --exact           大文字小文字を区別してマッチ
   -f, --filter string   削除対象のフィルターパターン
   -h, --help            help for cleanup
 ```

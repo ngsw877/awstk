@@ -13,9 +13,9 @@ import (
 )
 
 // CleanupLoadBalancersByFilter はフィルターに一致するロードバランサーを削除する
-func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, withTargetGroups bool, lbType string) error {
+func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, withTargetGroups bool, lbType string, exact bool) error {
 	// フィルターに一致するロードバランサーを取得
-	lbs, err := GetLoadBalancersByFilter(client, filter, lbType)
+	lbs, err := GetLoadBalancersByFilter(client, filter, lbType, exact)
 	if err != nil {
 		return fmt.Errorf("ロードバランサー一覧取得エラー: %w", err)
 	}

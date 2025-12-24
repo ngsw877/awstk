@@ -1,6 +1,7 @@
 package cfn
 
 import (
+	"awstk/internal/service/common"
 	"bufio"
 	"context"
 	"fmt"
@@ -128,7 +129,7 @@ func findStacksForCleanup(cfnClient *cloudformation.Client, opts CleanupOptions)
 
 		// 名前フィルターを適用
 		for _, summary := range output.StackSummaries {
-			if opts.Filter == "" || strings.Contains(aws.ToString(summary.StackName), opts.Filter) {
+			if opts.Filter == "" || common.MatchesFilter(aws.ToString(summary.StackName), opts.Filter, opts.Exact) {
 				// スタックの詳細情報を取得（削除保護の確認のため）
 				describeOutput, err := cfnClient.DescribeStacks(context.Background(), &cloudformation.DescribeStacksInput{
 					StackName: summary.StackName,

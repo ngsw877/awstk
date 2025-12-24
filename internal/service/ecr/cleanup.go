@@ -11,7 +11,8 @@ import (
 )
 
 // GetEcrRepositoriesByFilter はフィルターに一致するECRリポジトリ名の一覧を取得します
-func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]string, error) {
+// exact が true の場合、大文字小文字を区別します
+func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string, exact bool) ([]string, error) {
 	// リポジトリ一覧を取得
 	listReposInput := &ecr.DescribeRepositoriesInput{}
 	foundRepos := []string{}
@@ -24,7 +25,7 @@ func GetEcrRepositoriesByFilter(ecrClient *ecr.Client, searchString string) ([]s
 		}
 
 		for _, repo := range listReposOutput.Repositories {
-			if common.MatchesFilter(*repo.RepositoryName, searchString) {
+			if common.MatchesFilter(*repo.RepositoryName, searchString, exact) {
 				foundRepos = append(foundRepos, *repo.RepositoryName)
 				fmt.Printf("🔍 検出されたECRリポジトリ: %s\n", *repo.RepositoryName)
 			}
@@ -97,9 +98,10 @@ func CleanupEcrRepositories(ecrClient *ecr.Client, repoNames []string) common.Cl
 }
 
 // CleanupRepositoriesByFilter はフィルターに基づいてリポジトリを削除する
-func CleanupRepositoriesByFilter(ecrClient *ecr.Client, filter string) error {
+// exact が true の場合、大文字小文字を区別します
+func CleanupRepositoriesByFilter(ecrClient *ecr.Client, filter string, exact bool) error {
 	// フィルターに一致するリポジトリを取得
-	repositories, err := GetEcrRepositoriesByFilter(ecrClient, filter)
+	repositories, err := GetEcrRepositoriesByFilter(ecrClient, filter, exact)
 	if err != nil {
 		return fmt.Errorf("❌ ECRリポジトリ一覧取得エラー: %w", err)
 	}

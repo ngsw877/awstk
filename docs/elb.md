@@ -62,6 +62,7 @@ awstk elb cleanup [flags]
 ### Options
 
 ```
+      --exact                大文字小文字を区別してマッチ
   -f, --filter string        削除対象のフィルターパターン
   -h, --help                 help for cleanup
       --type string          ロードバランサータイプでフィルタ (alb, nlb, gwlb)

@@ -185,7 +185,7 @@ func matchesAnyFilter(name string, filters []string) bool {
 		if filter == "" {
 			continue
 		}
-		if common.MatchesFilter(name, filter) {
+		if common.MatchesFilter(name, filter, false) {
 			return true
 		}
 	}

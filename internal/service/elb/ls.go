@@ -1,6 +1,7 @@
 package elb
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
 	"strconv"
@@ -238,7 +239,7 @@ func truncate(s string, maxLen int) string {
 }
 
 // GetLoadBalancersByFilter はフィルターに一致するロードバランサーを取得する
-func GetLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, lbType string) ([]types.LoadBalancer, error) {
+func GetLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, lbType string, exact bool) ([]types.LoadBalancer, error) {
 	allLBs, err := describeLoadBalancers(client, lbType)
 	if err != nil {
 		return nil, err
@@ -246,7 +247,7 @@ func GetLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter stri
 
 	var filtered []types.LoadBalancer
 	for _, lb := range allLBs {
-		if lb.LoadBalancerName != nil && strings.Contains(*lb.LoadBalancerName, filter) {
+		if lb.LoadBalancerName != nil && common.MatchesFilter(*lb.LoadBalancerName, filter, exact) {
 			filtered = append(filtered, lb)
 		}
 	}

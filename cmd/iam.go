@@ -17,6 +17,7 @@ var (
 	iamRoleDeleteFilter     string
 	iamRoleDeleteUnusedDays int
 	iamRoleDeleteExclude    []string
+	iamRoleDeleteExact      bool
 	// policy ls flags
 	iamPolicyUnattached bool
 	iamPolicyExclude    []string
@@ -24,6 +25,7 @@ var (
 	iamPolicyDeleteFilter     string
 	iamPolicyDeleteUnattached bool
 	iamPolicyDeleteExclude    []string
+	iamPolicyDeleteExact      bool
 )
 
 // IamCmd represents the iam command
@@ -107,6 +109,7 @@ var iamRoleDeleteCmd = &cobra.Command{
 			Filter:     iamRoleDeleteFilter,
 			UnusedDays: iamRoleDeleteUnusedDays,
 			Exclude:    iamRoleDeleteExclude,
+			Exact:      iamRoleDeleteExact,
 		})
 	},
 	SilenceUsage: true,
@@ -126,6 +129,7 @@ var iamPolicyDeleteCmd = &cobra.Command{
 			Filter:         iamPolicyDeleteFilter,
 			UnattachedOnly: iamPolicyDeleteUnattached,
 			Exclude:        iamPolicyDeleteExclude,
+			Exact:          iamPolicyDeleteExact,
 		})
 	},
 	SilenceUsage: true,
@@ -155,6 +159,7 @@ func init() {
 		unusedDaysFlag.NoOptDefVal = "-1"
 	}
 	iamRoleDeleteCmd.Flags().StringSliceVarP(&iamRoleDeleteExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
+	iamRoleDeleteCmd.Flags().BoolVar(&iamRoleDeleteExact, "exact", false, "大文字小文字を区別してマッチ")
 
 	// iam policy ls flags
 	iamPolicyLsCmd.Flags().BoolVarP(&iamPolicyUnattached, "unattached", "u", false, "未アタッチのポリシーのみ表示")
@@ -165,4 +170,5 @@ func init() {
 	_ = iamPolicyDeleteCmd.MarkFlagRequired("filter")
 	iamPolicyDeleteCmd.Flags().BoolVarP(&iamPolicyDeleteUnattached, "unattached", "u", false, "未アタッチのポリシーのみ削除")
 	iamPolicyDeleteCmd.Flags().StringSliceVarP(&iamPolicyDeleteExclude, "exclude", "x", []string{}, "除外パターン（名前に含む文字列、複数指定可）")
+	iamPolicyDeleteCmd.Flags().BoolVar(&iamPolicyDeleteExact, "exact", false, "大文字小文字を区別してマッチ")
 }

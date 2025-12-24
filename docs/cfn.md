@@ -82,6 +82,7 @@ awstk cfn cleanup [flags]
 ### Options
 
 ```
+      --exact           大文字小文字を区別してマッチ
       --filter string   スタック名のフィルター（部分一致）
   -f, --force           確認プロンプトをスキップ
   -h, --help            help for cleanup
@@ -184,6 +185,7 @@ awstk cfn drift-detect [flags]
 
 ```
   -a, --all             すべてのスタックを対象
+      --exact           大文字小文字を区別してマッチ
   -F, --filter string   スタック名のフィルター（部分一致）
   -h, --help            help for drift-detect
 ```
@@ -234,6 +236,7 @@ awstk cfn drift-status [flags]
 ```
   -a, --all             すべてのスタックを対象
   -d, --drifted-only    ドリフトしているスタックのみ表示
+      --exact           大文字小文字を区別してマッチ
   -F, --filter string   スタック名のフィルター（部分一致）
   -h, --help            help for drift-status
 ```
@@ -318,6 +321,7 @@ awstk cfn protect [flags]
 ```
   -d, --disable         削除保護を無効化
   -e, --enable          削除保護を有効化
+      --exact           大文字小文字を区別してマッチ
   -F, --filter string   スタック名のフィルター（部分一致）
   -h, --help            help for protect
   -s, --status string   対象のステータス（カンマ区切り）

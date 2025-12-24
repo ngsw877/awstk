@@ -12,7 +12,8 @@ import (
 )
 
 // GetS3BucketsByFilter はフィルターに一致するS3バケット名の一覧を取得します
-func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, error) {
+// exact が true の場合、大文字小文字を区別します
+func GetS3BucketsByFilter(s3Client *s3.Client, searchString string, exact bool) ([]string, error) {
 	// バケット一覧を取得
 	listBucketsOutput, err := s3Client.ListBuckets(context.Background(), &s3.ListBucketsInput{})
 	if err != nil {
@@ -21,7 +22,7 @@ func GetS3BucketsByFilter(s3Client *s3.Client, searchString string) ([]string, e
 
 	foundBuckets := []string{}
 	for _, bucket := range listBucketsOutput.Buckets {
-		if common.MatchesFilter(*bucket.Name, searchString) {
+		if common.MatchesFilter(*bucket.Name, searchString, exact) {
 			foundBuckets = append(foundBuckets, *bucket.Name)
 			fmt.Printf("🔍 検出されたS3バケット: %s\n", *bucket.Name)
 		}

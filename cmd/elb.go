@@ -7,7 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var elbv2Client *elasticloadbalancingv2.Client
+var (
+	elbv2Client     *elasticloadbalancingv2.Client
+	elbCleanupExact bool
+)
 
 // ElbCmd represents the elb command
 var ElbCmd = &cobra.Command{
@@ -80,7 +83,7 @@ var elbCleanupCmd = &cobra.Command{
 
 		printAwsContextWithInfo("検索文字列", filter)
 
-		return elbsvc.CleanupLoadBalancersByFilter(elbv2Client, filter, withTargetGroups, lbType)
+		return elbsvc.CleanupLoadBalancersByFilter(elbv2Client, filter, withTargetGroups, lbType, elbCleanupExact)
 	},
 	SilenceUsage: true,
 }
@@ -99,5 +102,6 @@ func init() {
 	elbCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
 	elbCleanupCmd.Flags().Bool("with-target-groups", false, "関連するターゲットグループも削除")
 	elbCleanupCmd.Flags().String("type", "", "ロードバランサータイプでフィルタ (alb, nlb, gwlb)")
+	elbCleanupCmd.Flags().BoolVar(&elbCleanupExact, "exact", false, "大文字小文字を区別してマッチ")
 	_ = elbCleanupCmd.MarkFlagRequired("filter")
 }

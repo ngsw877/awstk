@@ -33,6 +33,7 @@ CloudFormationスタック名またはスタックIDを指定することで、�
 		resolveStackName()
 		filter, _ := cmd.Flags().GetString("filter")
 		stackID, _ := cmd.Flags().GetString("stack-id")
+		exact, _ := cmd.Flags().GetBool("exact")
 
 		printAwsContext()
 
@@ -48,6 +49,7 @@ CloudFormationスタック名またはスタックIDを指定することで、�
 			SearchString: filter,
 			StackName:    stackName,
 			StackId:      stackID,
+			Exact:        exact,
 		}
 
 		if err := cleanup.CleanupResources(clients, opts); err != nil {
@@ -66,4 +68,5 @@ func init() {
 	allCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
 	allCleanupCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	allCleanupCmd.Flags().StringP("stack-id", "i", "", "CloudFormationスタックID(ARN可)")
+	allCleanupCmd.Flags().Bool("exact", false, "大文字小文字を区別してマッチ")
 }

@@ -118,5 +118,6 @@ func findStacksForProtect(cfnClient *cloudformation.Client, opts ProtectOptions)
 	return findStacksForCleanup(cfnClient, CleanupOptions{
 		Filter: opts.Filter,
 		Status: opts.Status,
+		Exact:  opts.Exact,
 	})
 }

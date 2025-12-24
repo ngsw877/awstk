@@ -97,7 +97,7 @@ func collectTargetLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) (
 
 		// パターンマッチングを適用
 		for _, group := range filteredGroups {
-			if common.MatchesFilter(*group.LogGroupName, opts.Filter) {
+			if common.MatchesFilter(*group.LogGroupName, opts.Filter, opts.Exact) {
 				targetGroups = append(targetGroups, *group.LogGroupName)
 			}
 		}
@@ -108,7 +108,8 @@ func collectTargetLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) (
 }
 
 // GetLogGroupsByFilter はフィルターに一致するロググループを取得します（cleanup allから呼ばれる用）
-func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string) ([]string, error) {
+// exact が true の場合、大文字小文字を区別します
+func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string, exact bool) ([]string, error) {
 	// すべてのロググループを取得
 	allGroups, err := ListLogGroups(client)
 	if err != nil {
@@ -117,7 +118,7 @@ func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string) ([
 
 	var matchedGroups []string
 	for _, group := range allGroups {
-		if common.MatchesFilter(*group.LogGroupName, searchString) {
+		if common.MatchesFilter(*group.LogGroupName, searchString, exact) {
 			matchedGroups = append(matchedGroups, *group.LogGroupName)
 			fmt.Printf("🔍 検出されたロググループ: %s\n", *group.LogGroupName)
 		}

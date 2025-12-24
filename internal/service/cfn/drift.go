@@ -1,9 +1,9 @@
 package cfn
 
 import (
+	"awstk/internal/service/common"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
@@ -95,6 +95,7 @@ func ShowDriftStatus(cfnClient *cloudformation.Client, opts DriftStatusOptions) 
 		Stacks: opts.Stacks,
 		Filter: opts.Filter,
 		All:    opts.All,
+		Exact:  opts.Exact,
 	})
 	if err != nil {
 		return err
@@ -227,7 +228,7 @@ func findStacksForDrift(cfnClient *cloudformation.Client, opts DriftOptions) ([]
 
 		// フィルター処理
 		for _, summary := range output.StackSummaries {
-			if opts.All || (opts.Filter != "" && strings.Contains(aws.ToString(summary.StackName), opts.Filter)) {
+			if opts.All || (opts.Filter != "" && common.MatchesFilter(aws.ToString(summary.StackName), opts.Filter, opts.Exact)) {
 				// スタックの詳細情報を取得
 				describeOutput, err := cfnClient.DescribeStacks(context.Background(), &cloudformation.DescribeStacksInput{
 					StackName: summary.StackName,

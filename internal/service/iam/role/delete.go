@@ -102,7 +102,7 @@ func getRolesForDeletion(client *sdkiam.Client, opts DeleteOptions) ([]string, e
 			}
 
 			// フィルターパターンチェック
-			if !common.MatchesFilter(name, opts.Filter) {
+			if !common.MatchesFilter(name, opts.Filter, opts.Exact) {
 				continue
 			}
 

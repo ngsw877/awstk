@@ -96,7 +96,7 @@ func getPoliciesForDeletion(client *sdkiam.Client, opts DeleteOptions) ([]Policy
 			}
 
 			// フィルターパターンチェック
-			if !common.MatchesFilter(name, opts.Filter) {
+			if !common.MatchesFilter(name, opts.Filter, opts.Exact) {
 				continue
 			}
 

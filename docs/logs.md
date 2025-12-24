@@ -69,6 +69,7 @@ awstk logs delete [log-group-names...] [flags]
 
 ```
   -e, --empty-only      空のログループのみを削除
+      --exact           大文字小文字を区別してマッチ
   -f, --filter string   削除対象のフィルターパターン（ワイルドカード対応）
   -h, --help            help for delete
   -n, --no-retention    保存期間が未設定のログのみを削除

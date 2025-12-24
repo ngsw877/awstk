@@ -56,19 +56,19 @@ func CleanupResources(clients ClientSet, opts Options) error {
 		fmt.Printf("検索文字列: %s\n", opts.SearchString)
 		fmt.Println("検索文字列に一致するリソースの削除を開始します...")
 
-		s3BucketNames, err = s3svc.GetS3BucketsByFilter(clients.S3Client, opts.SearchString)
+		s3BucketNames, err = s3svc.GetS3BucketsByFilter(clients.S3Client, opts.SearchString, opts.Exact)
 		if err != nil {
 			fmt.Printf("❌ S3バケット一覧取得中にエラーが発生しました: %v\n", err)
 			s3BucketNames = []string{}
 		}
 
-		ecrRepoNames, err = ecrsvc.GetEcrRepositoriesByFilter(clients.EcrClient, opts.SearchString)
+		ecrRepoNames, err = ecrsvc.GetEcrRepositoriesByFilter(clients.EcrClient, opts.SearchString, opts.Exact)
 		if err != nil {
 			fmt.Printf("❌ ECRリポジトリ一覧取得中にエラーが発生しました: %v\n", err)
 			ecrRepoNames = []string{}
 		}
 
-		logGroupNames, err = logssvc.GetLogGroupsByFilter(clients.LogsClient, opts.SearchString)
+		logGroupNames, err = logssvc.GetLogGroupsByFilter(clients.LogsClient, opts.SearchString, opts.Exact)
 		if err != nil {
 			fmt.Printf("❌ CloudWatch Logsグループ一覧取得中にエラーが発生しました: %v\n", err)
 			logGroupNames = []string{}

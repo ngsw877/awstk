@@ -20,4 +20,5 @@ type Options struct {
 	SearchString string // 検索文字列
 	StackName    string // CloudFormationスタック名
 	StackId      string // CloudFormationスタックID (ARN可)
+	Exact        bool   // 大文字小文字を区別してマッチ
 }

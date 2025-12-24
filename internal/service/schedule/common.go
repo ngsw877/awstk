@@ -85,7 +85,7 @@ func listEventBridgeRulesWithFilter(client *eventbridge.Client, filter string) (
 
 		// フィルターにマッチするルールを抽出
 		for _, rule := range listOutput.Rules {
-			if rule.Name != nil && common.MatchesFilter(*rule.Name, filter) && rule.ScheduleExpression != nil {
+			if rule.Name != nil && common.MatchesFilter(*rule.Name, filter, false) && rule.ScheduleExpression != nil {
 				// 詳細情報を取得
 				describeOutput, err := client.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: rule.Name,
@@ -120,7 +120,7 @@ func listEventBridgeSchedulersWithFilter(client *scheduler.Client, filter string
 
 		// フィルターにマッチするスケジュールを抽出
 		for _, schedule := range listOutput.Schedules {
-			if schedule.Name != nil && common.MatchesFilter(*schedule.Name, filter) {
+			if schedule.Name != nil && common.MatchesFilter(*schedule.Name, filter, false) {
 				// 詳細情報を取得
 				getOutput, err := client.GetSchedule(ctx, &scheduler.GetScheduleInput{
 					Name: schedule.Name,

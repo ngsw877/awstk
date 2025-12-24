@@ -28,4 +28,5 @@ type DeleteOptions struct {
 	Filter     string   // 必須: 削除対象のフィルターパターン
 	UnusedDays int      // 0=無効、-1=never used、>0=指定日数以上未使用
 	Exclude    []string // 除外パターン
+	Exact      bool     // 大文字小文字を区別してマッチ
 }

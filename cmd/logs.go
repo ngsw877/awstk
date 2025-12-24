@@ -9,7 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var logsClient *cloudwatchlogs.Client
+var (
+	logsClient      *cloudwatchlogs.Client
+	logsDeleteExact bool
+)
 
 // LogsCmd represents the logs command
 var LogsCmd = &cobra.Command{
@@ -65,6 +68,7 @@ var logsDeleteCmd = &cobra.Command{
 			LogGroups:   args,
 			EmptyOnly:   emptyOnly,
 			NoRetention: noRetention,
+			Exact:       logsDeleteExact,
 		}
 
 		return logssvc.DeleteLogGroups(logsClient, opts)
@@ -168,4 +172,5 @@ func init() {
 	logsDeleteCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン（ワイルドカード対応）")
 	logsDeleteCmd.Flags().BoolP("empty-only", "e", false, "空のログループのみを削除")
 	logsDeleteCmd.Flags().BoolP("no-retention", "n", false, "保存期間が未設定のログのみを削除")
+	logsDeleteCmd.Flags().BoolVar(&logsDeleteExact, "exact", false, "大文字小文字を区別してマッチ")
 }
