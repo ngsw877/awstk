@@ -74,18 +74,18 @@ var elbDeleteCmd = &cobra.Command{
 削除保護が有効な場合は --force オプションで保護を解除して削除できます。
 
 例:
-  ` + AppName + ` elb delete -f "test-" -P my-profile
-  ` + AppName + ` elb delete -f "dev" --type alb
-  ` + AppName + ` elb delete -f "stg" --with-target-groups
-  ` + AppName + ` elb delete -f "prod" --force    # 削除保護を解除して削除`,
+  ` + AppName + ` elb delete -s "test-" -P my-profile
+  ` + AppName + ` elb delete -s "dev" --type alb
+  ` + AppName + ` elb delete -s "stg" --with-target-groups
+  ` + AppName + ` elb delete -s "prod" --force    # 削除保護を解除して削除`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		filter, _ := cmd.Flags().GetString("filter")
+		search, _ := cmd.Flags().GetString("search")
 		withTargetGroups, _ := cmd.Flags().GetBool("with-target-groups")
 		lbType, _ := cmd.Flags().GetString("type")
 
-		printAwsContextWithInfo("検索文字列", filter)
+		printAwsContextWithInfo("検索文字列", search)
 
-		return elbsvc.DeleteLoadBalancersByFilter(elbv2Client, filter, withTargetGroups, lbType, elbDeleteExact, elbDeleteForce)
+		return elbsvc.DeleteLoadBalancersByFilter(elbv2Client, search, withTargetGroups, lbType, elbDeleteExact, elbDeleteForce)
 	},
 	SilenceUsage: true,
 }
@@ -101,10 +101,10 @@ func init() {
 	elbLsCmd.Flags().String("type", "", "ロードバランサータイプでフィルタ (alb, nlb, gwlb)")
 
 	// delete コマンドのフラグ
-	elbDeleteCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
+	elbDeleteCmd.Flags().StringP("search", "s", "", "削除対象の検索パターン")
 	elbDeleteCmd.Flags().Bool("with-target-groups", false, "関連するターゲットグループも削除")
 	elbDeleteCmd.Flags().String("type", "", "ロードバランサータイプでフィルタ (alb, nlb, gwlb)")
 	elbDeleteCmd.Flags().BoolVar(&elbDeleteExact, "exact", false, "大文字小文字を区別してマッチ")
 	elbDeleteCmd.Flags().BoolVar(&elbDeleteForce, "force", false, "削除保護を解除して削除")
-	_ = elbDeleteCmd.MarkFlagRequired("filter")
+	_ = elbDeleteCmd.MarkFlagRequired("search")
 }

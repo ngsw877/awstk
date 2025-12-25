@@ -55,8 +55,8 @@ EventBridge RuleまたはEventBridge Schedulerを無効化します。
 
 例:
   awstk schedule disable my-rule               # 単一のスケジュールを無効化
-  awstk schedule disable --filter "test-*"     # test-で始まる全てを無効化
-  awstk schedule disable --filter "Dev"        # Devを含む全てを無効化
+  awstk schedule disable --search "test-*"     # test-で始まる全てを無効化
+  awstk schedule disable --search "Dev"        # Devを含む全てを無効化
 
 ```
 awstk schedule disable NAME [flags]
@@ -65,8 +65,8 @@ awstk schedule disable NAME [flags]
 ### Options
 
 ```
-  -f, --filter string   無効化するスケジュールのフィルターパターン
   -h, --help            help for disable
+  -s, --search string   無効化するスケジュールの検索パターン
 ```
 
 ### Options inherited from parent commands
@@ -94,8 +94,8 @@ EventBridge RuleまたはEventBridge Schedulerを有効化します。
 
 例:
   awstk schedule enable my-rule                # 単一のスケジュールを有効化
-  awstk schedule enable --filter "batch-*"     # batch-で始まる全てを有効化
-  awstk schedule enable --filter "Scheduled"   # Scheduledを含む全てを有効化
+  awstk schedule enable --search "batch-*"     # batch-で始まる全てを有効化
+  awstk schedule enable --search "Scheduled"   # Scheduledを含む全てを有効化
 
 ```
 awstk schedule enable NAME [flags]
@@ -104,8 +104,8 @@ awstk schedule enable NAME [flags]
 ### Options
 
 ```
-  -f, --filter string   有効化するスケジュールのフィルターパターン
   -h, --help            help for enable
+  -s, --search string   有効化するスケジュールの検索パターン
 ```
 
 ### Options inherited from parent commands

@@ -144,7 +144,7 @@ var s3AvailCmd = &cobra.Command{
 }
 
 var (
-	s3CleanupFilter string
+	s3CleanupSearch string
 	s3CleanupExact  bool
 )
 
@@ -155,19 +155,19 @@ var s3CleanupCmd = &cobra.Command{
 	Long: `指定したキーワードを含むS3バケットを削除します。
 
 例:
-  ` + AppName + ` s3 cleanup -f "test-bucket" -P my-profile
-  ` + AppName + ` s3 cleanup -f "Test" --exact    # 大文字小文字を区別`,
+  ` + AppName + ` s3 cleanup -s "test-bucket" -P my-profile
+  ` + AppName + ` s3 cleanup -s "Test" --exact    # 大文字小文字を区別`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		printAwsContextWithInfo("検索文字列", s3CleanupFilter)
+		printAwsContextWithInfo("検索文字列", s3CleanupSearch)
 
-		// フィルターに一致するバケットを取得
-		buckets, err := s3svc.GetS3BucketsByFilter(s3Client, s3CleanupFilter, s3CleanupExact)
+		// 検索パターンに一致するバケットを取得
+		buckets, err := s3svc.GetS3BucketsByFilter(s3Client, s3CleanupSearch, s3CleanupExact)
 		if err != nil {
 			return fmt.Errorf("❌ S3バケット一覧取得エラー: %w", err)
 		}
 
 		if len(buckets) == 0 {
-			fmt.Printf("フィルター '%s' に一致するS3バケットが見つかりませんでした\n", s3CleanupFilter)
+			fmt.Printf("検索パターン '%s' に一致するS3バケットが見つかりませんでした\n", s3CleanupSearch)
 			return nil
 		}
 
@@ -199,7 +199,7 @@ func init() {
 	s3LsCmd.Flags().BoolP("empty-only", "e", false, "空のバケットのみを表示")
 
 	// cleanup コマンドのフラグ
-	s3CleanupCmd.Flags().StringVarP(&s3CleanupFilter, "filter", "f", "", "削除対象のフィルターパターン")
-	_ = s3CleanupCmd.MarkFlagRequired("filter")
+	s3CleanupCmd.Flags().StringVarP(&s3CleanupSearch, "search", "s", "", "削除対象の検索パターン")
+	_ = s3CleanupCmd.MarkFlagRequired("search")
 	s3CleanupCmd.Flags().BoolVar(&s3CleanupExact, "exact", false, "大文字小文字を区別してマッチ")
 }

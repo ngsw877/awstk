@@ -51,10 +51,10 @@ ELB（Elastic Load Balancing - ALB/NLB/GWLB）を操作するためのコマン�
 削除保護が有効な場合は --force オプションで保護を解除して削除できます。
 
 例:
-  awstk elb delete -f "test-" -P my-profile
-  awstk elb delete -f "dev" --type alb
-  awstk elb delete -f "stg" --with-target-groups
-  awstk elb delete -f "prod" --force    # 削除保護を解除して削除
+  awstk elb delete -s "test-" -P my-profile
+  awstk elb delete -s "dev" --type alb
+  awstk elb delete -s "stg" --with-target-groups
+  awstk elb delete -s "prod" --force    # 削除保護を解除して削除
 
 ```
 awstk elb delete [flags]
@@ -64,9 +64,9 @@ awstk elb delete [flags]
 
 ```
       --exact                大文字小文字を区別してマッチ
-  -f, --filter string        削除対象のフィルターパターン
       --force                削除保護を解除して削除
   -h, --help                 help for delete
+  -s, --search string        削除対象の検索パターン
       --type string          ロードバランサータイプでフィルタ (alb, nlb, gwlb)
       --with-target-groups   関連するターゲットグループも削除
 ```

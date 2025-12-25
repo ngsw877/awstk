@@ -49,7 +49,7 @@ S3バケット、ECRリポジトリ、CloudWatch Logsを横断削除
 CloudFormationスタック名またはスタックIDを指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
-  awstk cleanup all -f "test" -P my-profile
+  awstk cleanup all -s "test" -P my-profile
   awstk cleanup all -S my-stack -P my-profile
   awstk cleanup all --stack-id arn:aws:cloudformation:... -P my-profile
 
@@ -61,8 +61,8 @@ awstk cleanup all [flags]
 
 ```
       --exact               大文字小文字を区別してマッチ
-  -f, --filter string       削除対象のフィルターパターン
   -h, --help                help for all
+  -s, --search string       削除対象の検索パターン
   -i, --stack-id string     CloudFormationスタックID(ARN可)
   -S, --stack-name string   CloudFormationスタック名
 ```

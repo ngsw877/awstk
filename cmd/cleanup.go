@@ -26,12 +26,12 @@ var allCleanupCmd = &cobra.Command{
 CloudFormationスタック名またはスタックIDを指定することで、スタック内のリソースを対象にすることもできます。
 
 例:
-  ` + AppName + ` cleanup all -f "test" -P my-profile
+  ` + AppName + ` cleanup all -s "test" -P my-profile
   ` + AppName + ` cleanup all -S my-stack -P my-profile
   ` + AppName + ` cleanup all --stack-id arn:aws:cloudformation:... -P my-profile`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolveStackName()
-		filter, _ := cmd.Flags().GetString("filter")
+		search, _ := cmd.Flags().GetString("search")
 		stackID, _ := cmd.Flags().GetString("stack-id")
 		exact, _ := cmd.Flags().GetBool("exact")
 
@@ -46,7 +46,7 @@ CloudFormationスタック名またはスタックIDを指定することで、�
 		}
 
 		opts := cleanup.Options{
-			SearchString: filter,
+			SearchString: search,
 			StackName:    stackName,
 			StackId:      stackID,
 			Exact:        exact,
@@ -65,7 +65,7 @@ CloudFormationスタック名またはスタックIDを指定することで、�
 func init() {
 	RootCmd.AddCommand(cleanupCmd)
 	cleanupCmd.AddCommand(allCleanupCmd)
-	allCleanupCmd.Flags().StringP("filter", "f", "", "削除対象のフィルターパターン")
+	allCleanupCmd.Flags().StringP("search", "s", "", "削除対象の検索パターン")
 	allCleanupCmd.Flags().StringVarP(&stackName, "stack-name", "S", "", "CloudFormationスタック名")
 	allCleanupCmd.Flags().StringP("stack-id", "i", "", "CloudFormationスタックID(ARN可)")
 	allCleanupCmd.Flags().Bool("exact", false, "大文字小文字を区別してマッチ")

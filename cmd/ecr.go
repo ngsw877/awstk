@@ -9,7 +9,7 @@ import (
 
 var (
 	ecrClient        *ecr.Client
-	ecrCleanupFilter string
+	ecrCleanupSearch string
 	ecrCleanupExact  bool
 )
 
@@ -39,12 +39,12 @@ var ecrCleanupCmd = &cobra.Command{
 	Long: `指定したキーワードを含むECRリポジトリを削除します。
 
 例:
-  ` + AppName + ` ecr cleanup -f "test-repo" -P my-profile
-  ` + AppName + ` ecr cleanup -f "Test" --exact    # 大文字小文字を区別`,
+  ` + AppName + ` ecr cleanup -s "test-repo" -P my-profile
+  ` + AppName + ` ecr cleanup -s "Test" --exact    # 大文字小文字を区別`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		printAwsContextWithInfo("検索文字列", ecrCleanupFilter)
+		printAwsContextWithInfo("検索文字列", ecrCleanupSearch)
 
-		return ecrsvc.CleanupRepositoriesByFilter(ecrClient, ecrCleanupFilter, ecrCleanupExact)
+		return ecrsvc.CleanupRepositoriesByFilter(ecrClient, ecrCleanupSearch, ecrCleanupExact)
 	},
 	SilenceUsage: true,
 }
@@ -96,7 +96,7 @@ func init() {
 	ecrLsCmd.Flags().BoolP("details", "d", false, "詳細情報を表示")
 
 	// cleanup コマンドのフラグ
-	ecrCleanupCmd.Flags().StringVarP(&ecrCleanupFilter, "filter", "f", "", "削除対象のフィルターパターン")
-	_ = ecrCleanupCmd.MarkFlagRequired("filter")
+	ecrCleanupCmd.Flags().StringVarP(&ecrCleanupSearch, "search", "s", "", "削除対象の検索パターン")
+	_ = ecrCleanupCmd.MarkFlagRequired("search")
 	ecrCleanupCmd.Flags().BoolVar(&ecrCleanupExact, "exact", false, "大文字小文字を区別してマッチ")
 }

@@ -15,8 +15,8 @@ var (
 	triggerTimeout int
 	triggerNoWait  bool
 	// enable/disable サブコマンド用フラグ
-	enableFilter  string
-	disableFilter string
+	enableSearch  string
+	disableSearch string
 )
 
 // ScheduleCmd はscheduleコマンドを表す
@@ -95,23 +95,23 @@ var scheduleEnableCmd = &cobra.Command{
 
 例:
   ` + AppName + ` schedule enable my-rule                # 単一のスケジュールを有効化
-  ` + AppName + ` schedule enable --filter "batch-*"     # batch-で始まる全てを有効化
-  ` + AppName + ` schedule enable --filter "Scheduled"   # Scheduledを含む全てを有効化`,
+  ` + AppName + ` schedule enable --search "batch-*"     # batch-で始まる全てを有効化
+  ` + AppName + ` schedule enable --search "Scheduled"   # Scheduledを含む全てを有効化`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// クライアント生成
 		eventBridgeClient := eventbridge.NewFromConfig(awsCfg)
 		schedulerClient := scheduler.NewFromConfig(awsCfg)
 
-		// 単一指定またはフィルター指定の確認
-		if len(args) == 1 && enableFilter == "" {
+		// 単一指定または検索パターン指定の確認
+		if len(args) == 1 && enableSearch == "" {
 			// 単一スケジュールの有効化
 			return schedule.EnableSchedule(eventBridgeClient, schedulerClient, args[0])
-		} else if len(args) == 0 && enableFilter != "" {
-			// フィルターによる一括有効化
-			return schedule.EnableSchedulesWithFilter(eventBridgeClient, schedulerClient, enableFilter)
+		} else if len(args) == 0 && enableSearch != "" {
+			// 検索パターンによる一括有効化
+			return schedule.EnableSchedulesWithFilter(eventBridgeClient, schedulerClient, enableSearch)
 		} else {
-			return fmt.Errorf("スケジュール名またはフィルターのいずれか一方を指定してください")
+			return fmt.Errorf("スケジュール名または検索パターンのいずれか一方を指定してください")
 		}
 	},
 	SilenceUsage: true,
@@ -124,23 +124,23 @@ var scheduleDisableCmd = &cobra.Command{
 
 例:
   ` + AppName + ` schedule disable my-rule               # 単一のスケジュールを無効化
-  ` + AppName + ` schedule disable --filter "test-*"     # test-で始まる全てを無効化
-  ` + AppName + ` schedule disable --filter "Dev"        # Devを含む全てを無効化`,
+  ` + AppName + ` schedule disable --search "test-*"     # test-で始まる全てを無効化
+  ` + AppName + ` schedule disable --search "Dev"        # Devを含む全てを無効化`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// クライアント生成
 		eventBridgeClient := eventbridge.NewFromConfig(awsCfg)
 		schedulerClient := scheduler.NewFromConfig(awsCfg)
 
-		// 単一指定またはフィルター指定の確認
-		if len(args) == 1 && disableFilter == "" {
+		// 単一指定または検索パターン指定の確認
+		if len(args) == 1 && disableSearch == "" {
 			// 単一スケジュールの無効化
 			return schedule.DisableSchedule(eventBridgeClient, schedulerClient, args[0])
-		} else if len(args) == 0 && disableFilter != "" {
-			// フィルターによる一括無効化
-			return schedule.DisableSchedulesWithFilter(eventBridgeClient, schedulerClient, disableFilter)
+		} else if len(args) == 0 && disableSearch != "" {
+			// 検索パターンによる一括無効化
+			return schedule.DisableSchedulesWithFilter(eventBridgeClient, schedulerClient, disableSearch)
 		} else {
-			return fmt.Errorf("スケジュール名またはフィルターのいずれか一方を指定してください")
+			return fmt.Errorf("スケジュール名または検索パターンのいずれか一方を指定してください")
 		}
 	},
 	SilenceUsage: true,
@@ -161,8 +161,8 @@ func init() {
 	scheduleTriggerCmd.Flags().BoolVar(&triggerNoWait, "no-wait", false, "実行を待たずに終了")
 
 	// enable サブコマンドのフラグ
-	scheduleEnableCmd.Flags().StringVarP(&enableFilter, "filter", "f", "", "有効化するスケジュールのフィルターパターン")
+	scheduleEnableCmd.Flags().StringVarP(&enableSearch, "search", "s", "", "有効化するスケジュールの検索パターン")
 
 	// disable サブコマンドのフラグ
-	scheduleDisableCmd.Flags().StringVarP(&disableFilter, "filter", "f", "", "無効化するスケジュールのフィルターパターン")
+	scheduleDisableCmd.Flags().StringVarP(&disableSearch, "search", "s", "", "無効化するスケジュールの検索パターン")
 }

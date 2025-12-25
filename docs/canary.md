@@ -23,10 +23,10 @@ AWS Synthetics Canaryの一覧表示、有効化/無効化、手動実行を行�
 使用例:
   awstk canary ls                          # Canary一覧を表示
   awstk canary enable --name my-canary     # 特定のCanaryを有効化
-  awstk canary disable --filter "test-*"   # パターンに一致するCanaryを無効化
+  awstk canary disable --search "test-*"   # パターンに一致するCanaryを無効化
   awstk canary enable --all                # 全てのCanaryを有効化
   awstk canary run --name my-canary        # 特定のCanaryを手動実行
-  awstk canary run --filter "api-*" --yes  # パターンに一致するCanaryを一括実行
+  awstk canary run --search "api-*" --yes  # パターンに一致するCanaryを一括実行
 
 ### Options
 
@@ -60,7 +60,7 @@ Canaryを無効化するコマンド
 ### Synopsis
 
 指定したCanaryを無効化（停止）します。
-    --name, --filter, --all のいずれかを指定してください。
+    --name, --search, --all のいずれかを指定してください。
 
 ```
 awstk canary disable [flags]
@@ -70,9 +70,9 @@ awstk canary disable [flags]
 
 ```
   -a, --all             全てのCanaryを対象
-  -f, --filter string   名前パターン（ワイルドカード対応）
   -h, --help            help for disable
   -n, --name string     Canary名
+  -s, --search string   名前パターン（ワイルドカード対応）
   -y, --yes             確認なしで実行
 ```
 
@@ -98,7 +98,7 @@ Canaryを有効化するコマンド
 ### Synopsis
 
 指定したCanaryを有効化（開始）します。
-    --name, --filter, --all のいずれかを指定してください。
+    --name, --search, --all のいずれかを指定してください。
 
 ```
 awstk canary enable [flags]
@@ -108,9 +108,9 @@ awstk canary enable [flags]
 
 ```
   -a, --all             全てのCanaryを対象
-  -f, --filter string   名前パターン（ワイルドカード対応）
   -h, --help            help for enable
   -n, --name string     Canary名
+  -s, --search string   名前パターン（ワイルドカード対応）
   -y, --yes             確認なしで実行
 ```
 
@@ -169,7 +169,7 @@ Canaryを手動実行するコマンド
 ### Synopsis
 
 指定したCanaryを手動で実行します。
-    --name または --filter を指定してください。
+    --name または --search を指定してください。
 
 ```
 awstk canary run [flags]
@@ -179,9 +179,9 @@ awstk canary run [flags]
 
 ```
   -d, --dry-run          ドライラン実行
-  -f, --filter strings   名前パターン（複数指定可能、ワイルドカード対応）
   -h, --help             help for run
   -n, --name string      Canary名
+  -s, --search strings   名前パターン（複数指定可能、ワイルドカード対応）
   -y, --yes              確認なしで実行
 ```
 

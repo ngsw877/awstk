@@ -44,23 +44,23 @@ CloudWatch Logsグループを削除するコマンド
 ### Synopsis
 
 指定したCloudWatch Logsグループを削除します。
-ロググループ名の直接指定とフィルターパターンの両方に対応しています。
+ロググループ名の直接指定と検索パターンの両方に対応しています。
 削除保護が有効な場合は --force オプションで保護を解除して削除できます。
 
 【使い方】
   awstk logs delete my-log-group                    # 単一のロググループを削除
   awstk logs delete log1 log2 log3                  # 複数のロググループを削除
-  awstk logs delete --filter "/aws/lambda/*"        # パターンに一致するロググループを削除
-  awstk logs delete --filter "test-*" prod-log      # フィルターと直接指定の組み合わせ
-  awstk logs delete --filter "*" --empty-only       # 空のロググループをすべて削除
-  awstk logs delete --filter "*" --no-retention     # 保存期間未設定のロググループを削除
-  awstk logs delete -f "prod-*" --force             # 削除保護を解除して削除
+  awstk logs delete --search "/aws/lambda/*"        # パターンに一致するロググループを削除
+  awstk logs delete --search "test-*" prod-log      # 検索パターンと直接指定の組み合わせ
+  awstk logs delete --search "*" --empty-only       # 空のロググループをすべて削除
+  awstk logs delete --search "*" --no-retention     # 保存期間未設定のロググループを削除
+  awstk logs delete -s "prod-*" --force             # 削除保護を解除して削除
 
 【例】
   awstk logs delete /aws/lambda/my-function
   → 指定したLambda関数のロググループを削除します。
 
-  awstk logs delete --filter "test-*" --empty-only
+  awstk logs delete --search "test-*" --empty-only
   → test-で始まる空のロググループのみを削除します。
 
 ```
@@ -72,10 +72,10 @@ awstk logs delete [log-group-names...] [flags]
 ```
   -e, --empty-only      空のログループのみを削除
       --exact           大文字小文字を区別してマッチ
-  -f, --filter string   削除対象のフィルターパターン（ワイルドカード対応）
       --force           削除保護を解除して削除
   -h, --help            help for delete
   -n, --no-retention    保存期間が未設定のログのみを削除
+  -s, --search string   削除対象の検索パターン（ワイルドカード対応）
 ```
 
 ### Options inherited from parent commands
