@@ -27,4 +27,5 @@ type DeleteOptions struct {
 	EmptyOnly   bool     // 空のロググループのみ削除
 	NoRetention bool     // 保存期間未設定のロググループのみ削除
 	Exact       bool     // 大文字小文字を区別してマッチ
+	Force       bool     // 削除保護を解除して削除
 }

@@ -5,11 +5,14 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
 // DeleteLogGroups は指定されたオプションに基づいてロググループを削除します
+// Force=true の場合、削除保護が有効なロググループも保護を解除して削除します
 func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 	// 削除対象のロググループを収集
 	targetGroups, err := collectTargetLogGroups(client, opts)
@@ -20,6 +23,31 @@ func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 	if len(targetGroups) == 0 {
 		fmt.Println("削除対象のロググループがありません")
 		return nil
+	}
+
+	// 削除保護の状態を事前チェック
+	var protectedGroups []string
+	for _, groupName := range targetGroups {
+		protected, err := isDeletionProtected(client, groupName)
+		if err != nil {
+			return fmt.Errorf("削除保護状態の確認エラー (%s): %w", groupName, err)
+		}
+		if protected {
+			protectedGroups = append(protectedGroups, groupName)
+		}
+	}
+
+	// 削除保護が有効なロググループがある場合
+	if len(protectedGroups) > 0 {
+		if !opts.Force {
+			fmt.Printf("⚠️  %d件のロググループで削除保護が有効です:\n", len(protectedGroups))
+			for _, name := range protectedGroups {
+				fmt.Printf("   🔒 %s\n", name)
+			}
+			fmt.Println("\n削除保護を解除して削除するには --force オプションを指定してください")
+			return fmt.Errorf("削除保護が有効なロググループがあります")
+		}
+		fmt.Printf("⚠️  %d件のロググループで削除保護が有効です。--force により削除前に解除されます。\n\n", len(protectedGroups))
 	}
 
 	// 並列実行数を設定（最大20並列）
@@ -38,9 +66,7 @@ func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 		idx := i
 		groupName := logGroupName
 		executor.Execute(func() {
-			_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
-				LogGroupName: &groupName,
-			})
+			err := deleteLogGroupWithProtectionCheck(client, groupName, opts.Force)
 
 			resultsMutex.Lock()
 			if err != nil {
@@ -65,6 +91,63 @@ func DeleteLogGroups(client *cloudwatchlogs.Client, opts DeleteOptions) error {
 	}
 
 	return nil
+}
+
+// deleteLogGroupWithProtectionCheck は削除保護を確認・解除してからロググループを削除します
+// force=true の場合、削除保護が有効でも解除して削除します
+func deleteLogGroupWithProtectionCheck(client *cloudwatchlogs.Client, logGroupName string, force bool) error {
+	// 削除保護の確認
+	protected, err := isDeletionProtected(client, logGroupName)
+	if err != nil {
+		return fmt.Errorf("削除保護状態の確認エラー: %w", err)
+	}
+
+	// 削除保護が有効な場合
+	if protected && force {
+		fmt.Printf("🔓 %s ... 削除保護を解除中\n", logGroupName)
+		if err := disableDeletionProtection(client, logGroupName); err != nil {
+			return fmt.Errorf("削除保護の解除エラー: %w", err)
+		}
+		// 削除保護解除が反映されるまで少し待つ
+		time.Sleep(1 * time.Second)
+	}
+
+	// ロググループ削除
+	_, err = client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
+		LogGroupName: &logGroupName,
+	})
+	return err
+}
+
+// isDeletionProtected はロググループの削除保護が有効かどうかを確認します
+func isDeletionProtected(client *cloudwatchlogs.Client, logGroupName string) (bool, error) {
+	output, err := client.DescribeLogGroups(context.Background(), &cloudwatchlogs.DescribeLogGroupsInput{
+		LogGroupNamePrefix: &logGroupName,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	// 完全一致するロググループを探す
+	for _, lg := range output.LogGroups {
+		if lg.LogGroupName != nil && *lg.LogGroupName == logGroupName {
+			if lg.DeletionProtectionEnabled != nil {
+				return *lg.DeletionProtectionEnabled, nil
+			}
+			return false, nil
+		}
+	}
+
+	return false, nil
+}
+
+// disableDeletionProtection はロググループの削除保護を無効化します
+func disableDeletionProtection(client *cloudwatchlogs.Client, logGroupName string) error {
+	_, err := client.PutLogGroupDeletionProtection(context.Background(), &cloudwatchlogs.PutLogGroupDeletionProtectionInput{
+		LogGroupIdentifier:        aws.String(logGroupName),
+		DeletionProtectionEnabled: aws.Bool(false),
+	})
+	return err
 }
 
 // collectTargetLogGroups は削除対象のロググループを収集します
@@ -126,6 +209,7 @@ func GetLogGroupsByFilter(client *cloudwatchlogs.Client, searchString string, ex
 }
 
 // CleanupLogGroups は指定したロググループ一覧を削除します（cleanup allから呼ばれる用）
+// cleanup allでは削除保護を自動的に解除して削除します（force=true相当）
 func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) common.CleanupResult {
 	result := common.CleanupResult{
 		ResourceType: "CloudWatch Logsグループ",
@@ -153,18 +237,15 @@ func CleanupLogGroups(client *cloudwatchlogs.Client, logGroupNames []string) com
 		idx := i
 		groupName := logGroupName
 		executor.Execute(func() {
-			fmt.Printf("ロググループ %s を削除中...\n", groupName)
-
-			_, err := client.DeleteLogGroup(context.Background(), &cloudwatchlogs.DeleteLogGroupInput{
-				LogGroupName: &groupName,
-			})
+			// cleanup allでは削除保護を自動解除（force=true）
+			err := deleteLogGroupWithProtectionCheck(client, groupName, true)
 
 			resultsMutex.Lock()
 			if err != nil {
-				fmt.Printf("❌ ロググループ %s の削除に失敗しました: %v\n", groupName, err)
+				fmt.Printf("❌ %s ... 失敗 (%v)\n", groupName, err)
 				results[idx] = common.ProcessResult{Item: groupName, Success: false, Error: err}
 			} else {
-				fmt.Printf("✅ ロググループ %s を削除しました\n", groupName)
+				fmt.Printf("✅ %s ... 完了\n", groupName)
 				results[idx] = common.ProcessResult{Item: groupName, Success: true}
 			}
 			resultsMutex.Unlock()

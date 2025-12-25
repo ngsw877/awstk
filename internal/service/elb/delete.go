@@ -12,8 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 )
 
-// CleanupLoadBalancersByFilter はフィルターに一致するロードバランサーを削除する
-func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, withTargetGroups bool, lbType string, exact bool) error {
+// DeleteLoadBalancersByFilter はフィルターに一致するロードバランサーを削除する
+// force=true の場合、削除保護が有効なロードバランサーも保護を解除して削除する
+func DeleteLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter string, withTargetGroups bool, lbType string, exact bool, force bool) error {
 	// フィルターに一致するロードバランサーを取得
 	lbs, err := GetLoadBalancersByFilter(client, filter, lbType, exact)
 	if err != nil {
@@ -34,6 +35,7 @@ func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter 
 	fmt.Println(strings.Repeat("-", 70))
 
 	protectedCount := 0
+	var protectedNames []string
 	for i, lb := range lbs {
 		protected, err := IsDeletionProtected(client, *lb.LoadBalancerArn)
 		if err != nil {
@@ -44,14 +46,21 @@ func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter 
 		if protected {
 			protectionStatus = "🔒有効"
 			protectedCount++
+			protectedNames = append(protectedNames, *lb.LoadBalancerName)
 		}
 
 		lbTypeStr := getLBTypeDisplay(lb.Type)
 		fmt.Printf("%d. %s [%s] (削除保護: %s)\n", i+1, *lb.LoadBalancerName, lbTypeStr, protectionStatus)
 	}
 
+	// 削除保護が有効なロードバランサーがある場合
 	if protectedCount > 0 {
-		fmt.Printf("\n⚠️  %d件のロードバランサーで削除保護が有効です。削除前に自動的に解除されます。\n", protectedCount)
+		if !force {
+			fmt.Printf("\n⚠️  %d件のロードバランサーで削除保護が有効です。\n", protectedCount)
+			fmt.Println("削除保護を解除して削除するには --force オプションを指定してください")
+			return fmt.Errorf("削除保護が有効なロードバランサーがあります: %v", protectedNames)
+		}
+		fmt.Printf("\n⚠️  %d件のロードバランサーで削除保護が有効です。--force により削除前に解除されます。\n", protectedCount)
 	}
 
 	// ターゲットグループも削除する場合の確認
@@ -76,7 +85,7 @@ func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter 
 		lbTypeStr := getLBTypeDisplay(lb.Type)
 		fmt.Printf("  %s [%s] を処理中...\n", *lb.LoadBalancerName, lbTypeStr)
 
-		if err := deleteLoadBalancer(client, lb, withTargetGroups); err != nil {
+		if err := deleteLoadBalancer(client, lb, withTargetGroups, force); err != nil {
 			fmt.Printf("❌ %s の削除に失敗: %v\n", *lb.LoadBalancerName, err)
 			continue
 		}
@@ -88,14 +97,15 @@ func CleanupLoadBalancersByFilter(client *elasticloadbalancingv2.Client, filter 
 }
 
 // deleteLoadBalancer は単一のロードバランサーを削除する
-func deleteLoadBalancer(client *elasticloadbalancingv2.Client, lb types.LoadBalancer, withTargetGroups bool) error {
+// force=true の場合、削除保護が有効でも解除して削除する
+func deleteLoadBalancer(client *elasticloadbalancingv2.Client, lb types.LoadBalancer, withTargetGroups bool, force bool) error {
 	// 削除保護の確認と解除
 	protected, err := IsDeletionProtected(client, *lb.LoadBalancerArn)
 	if err != nil {
 		return fmt.Errorf("削除保護状態の確認エラー: %w", err)
 	}
 
-	if protected {
+	if protected && force {
 		fmt.Printf("    🔓 削除保護を解除中...\n")
 		if err := disableDeletionProtection(client, *lb.LoadBalancerArn); err != nil {
 			return fmt.Errorf("削除保護の解除エラー: %w", err)
