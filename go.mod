@@ -13,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.225.2
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.57.6
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.53.0
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.41.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.46.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.97.3
@@ -27,7 +28,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/schollz/progressbar/v3 v3.18.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.37 // indirect
-	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.53.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.18 // indirect
@@ -53,7 +53,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
